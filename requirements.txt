@@ -1,0 +1,14 @@
+torch>=2.0.0
+lightning>=2.0.0
+mmcv>=2.0.0rc4
+mmengine
+openmim
+redis
+scikit-learn
+tenacity
+torchmetrics
+torchvision
+transformers
+ipdb
+prettytable
+einops
