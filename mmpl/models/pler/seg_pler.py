@@ -72,6 +72,23 @@ class SegPLer(BasePLer):
     def setup(self, stage: str) -> None:
         self._set_grad(self.need_train_names, [])
 
+    def init_weights(self):
+        import ipdb; ipdb.set_trace()
+        pass
+
+    def train(self, mode=True):
+        self.training = mode
+        for name, module in self.named_children():
+            flag = False
+            for need_train_name in self.need_train_names:
+                if need_train_name in name:
+                    flag = True
+            if flag:
+                module.train(mode)
+            else:
+                module.eval()
+        return self
+
     def training_val_step(self, batch, batch_idx, prefix=''):
         img = torch.stack(batch['inputs'], dim=0)
         img = img[:, [2, 1, 0], :, :]
