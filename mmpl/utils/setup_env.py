@@ -20,7 +20,7 @@ def register_all_modules(init_default_scope: bool = True):
     import mmpl.engine  # noqa: F401,F403
     import mmpl.models  # noqa: F401,F403
     # import mmyolo.models  # noqa: F401,F403
-    import mmyolo.datasets  # noqa: F401,F403
+    # import mmyolo.datasets  # noqa: F401,F403
     import mmdet.models  # noqa: F401,F403
 
     if init_default_scope:
