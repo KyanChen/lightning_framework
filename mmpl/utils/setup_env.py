@@ -22,6 +22,7 @@ def register_all_modules(init_default_scope: bool = True):
     # import mmyolo.models  # noqa: F401,F403
     # import mmyolo.datasets  # noqa: F401,F403
     # import mmdet.models  # noqa: F401,F403
+    import mmseg.datasets  # noqa: F401,F403
 
     if init_default_scope:
         never_created = DefaultScope.get_current_instance() is None \
