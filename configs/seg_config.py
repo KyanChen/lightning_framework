@@ -135,7 +135,7 @@ test_num_workers = 0
 persistent_workers = False
 
 
-data_parent = '/Users/kyanchen/datasets/Building/'
+data_parent = '/data1/kyanchen/datasets/'
 data_root = data_parent+'WHU/'
 train_data_prefix = 'train/'
 val_data_prefix = 'test/'
