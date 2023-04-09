@@ -149,6 +149,7 @@ class MaskDecoder(nn.Module):
         dense_prompt_embeddings = repeat(dense_prompt_embeddings, 'b c h w -> (b n) c h w', n=num_imgs)
         src = src + dense_prompt_embeddings
         pos_src = repeat(image_pe, 'b c h w -> (b n) c h w', n=src.shape[0])
+        b, c, h, w = src.shape
 
         # Run the transformer
         hs, src = self.transformer(src, pos_src, tokens)
@@ -156,7 +157,6 @@ class MaskDecoder(nn.Module):
         mask_tokens_out = hs[:, 1: (1 + self.num_mask_tokens), :]
         building_token_out = hs[:, (1 + self.num_mask_tokens):(2 + self.num_mask_tokens), :]
 
-        b, c, h, w = src.shape
         # Upscale mask embeddings and predict masks using the mask tokens
         src = src.transpose(1, 2).view(b, c, h, w)
         upscaled_embedding = self.output_upscaling(src)
