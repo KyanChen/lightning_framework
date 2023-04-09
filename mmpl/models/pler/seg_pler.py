@@ -25,7 +25,7 @@ class SegPLer(BasePLer):
                  sam='vit_h',
                  sam_checkpoint='',
                  points_per_side=32,
-                 need_train_names=[],
+                 need_train_names=None,
                  train_cfg=None,
                  test_cfg=None,
                  *args, **kwargs):
@@ -42,7 +42,7 @@ class SegPLer(BasePLer):
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
 
-    def _set_grad(self, need_train_names: list, noneed_train_names: list):
+    def _set_grad(self, need_train_names: list=[], noneed_train_names: list=[]):
         import ipdb; ipdb.set_trace()
         for name, param in self.named_parameters():
             flag = False

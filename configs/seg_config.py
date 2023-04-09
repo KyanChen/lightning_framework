@@ -3,7 +3,7 @@ sub_model = [
         'sam.mask_decoder.building_token',
         'sam.mask_decoder.iou_prediction_head',
         'sam.mask_decoder.building_probability_head',
-    ],
+    ]
 
 optimizer = dict(
     type='AdamW',
