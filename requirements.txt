@@ -12,3 +12,4 @@ transformers
 ipdb
 prettytable
 einops
+pycocotools
