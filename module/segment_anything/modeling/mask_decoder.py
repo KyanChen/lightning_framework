@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
+from einops import repeat
 from torch import nn
 from torch.nn import functional as F
 
@@ -135,23 +136,26 @@ class MaskDecoder(nn.Module):
         dense_prompt_embeddings: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Predicts masks. See 'forward' for more details."""
+        num_imgs = image_embeddings.shape[0]
         # Concatenate output tokens
-        output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight, self.building_token.weight], dim=0)
+        output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight, self.building_token.weight], dim=0)  # 6x256
         output_tokens = output_tokens.unsqueeze(0).expand(sparse_prompt_embeddings.size(0), -1, -1)
-        tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)
+        tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)  # 1024, 8, 256
+        tokens = repeat(tokens, 'b n c -> (b n) d c', d=num_imgs)  # 1024, 18, 256
 
         # Expand per-image data in batch direction to be per-mask
-        src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)
+        src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)  # 2048
+        dense_prompt_embeddings = repeat(dense_prompt_embeddings, 'b c -> (b n) c', n=num_imgs)
         src = src + dense_prompt_embeddings
-        pos_src = torch.repeat_interleave(image_pe, tokens.shape[0], dim=0)
-        b, c, h, w = src.shape
+        pos_src = repeat(image_pe, 'b c h w -> (b n) c h w', n=src.shape[0])
 
         # Run the transformer
         hs, src = self.transformer(src, pos_src, tokens)
         iou_token_out = hs[:, 0, :]
-        mask_tokens_out = hs[:, 1 : (1 + self.num_mask_tokens), :]
+        mask_tokens_out = hs[:, 1: (1 + self.num_mask_tokens), :]
         building_token_out = hs[:, (1 + self.num_mask_tokens):(2 + self.num_mask_tokens), :]
 
+        b, c, h, w = src.shape
         # Upscale mask embeddings and predict masks using the mask tokens
         src = src.transpose(1, 2).view(b, c, h, w)
         upscaled_embedding = self.output_upscaling(src)

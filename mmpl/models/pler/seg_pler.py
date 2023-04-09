@@ -79,7 +79,7 @@ class SegPLer(BasePLer):
         import ipdb
         ipdb.set_trace()
         img = (img - self.sam.pixel_mean) / self.sam.pixel_std
-        image_embeddings = self.sam.image_encoder(img)
+        image_embeddings = self.sam.image_encoder(img)  # Bx256x64x64
         if hasattr(self, 'point_grids'):
             points_scale = np.array(img.shape[-2:])[None, :]
             points_for_image = self.point_grids[0] * points_scale
@@ -102,7 +102,7 @@ class SegPLer(BasePLer):
             points=points,
             boxes=None,
             masks=None,
-        )
+        )  # # 1024, 2, 256; 1024, 256, 64, 64
 
         low_res_masks, building_probabilities = self.sam.mask_decoder(
             image_embeddings=image_embeddings,
