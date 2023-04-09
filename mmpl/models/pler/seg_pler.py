@@ -133,7 +133,7 @@ class SegPLer(BasePLer):
         import ipdb;
         ipdb.set_trace()
         low_res_masks = rearrange(low_res_masks, '(n b) c h w -> n b c h w', n=num_img)
-        building_probabilities = rearrange(building_probabilities, '(n b) c d -> n b', n=num_img)
+        building_probabilities = rearrange(building_probabilities, '(n b) c d -> n b c d', n=num_img)
         low_res_masks = low_res_masks * building_probabilities
         low_res_masks = torch.sum(low_res_masks, dim=1)
 

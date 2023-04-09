@@ -154,7 +154,7 @@ class MaskDecoder(nn.Module):
         hs, src = self.transformer(src, pos_src, tokens)
         iou_token_out = hs[:, 0, :]
         mask_tokens_out = hs[:, 1: (1 + self.num_mask_tokens), :]
-        building_token_out = hs[:, (1 + self.num_mask_tokens):(2 + self.num_mask_tokens), :]
+        building_token_out = hs[:, (1 + self.num_mask_tokens), :]
 
         # Upscale mask embeddings and predict masks using the mask tokens
         src = src.transpose(1, 2).view(b, c, h, w)
