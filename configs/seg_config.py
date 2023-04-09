@@ -41,6 +41,19 @@ model_cfg = dict(
     sam='vit_h',
     sam_checkpoint='../pretrain/sam/sam_vit_h_4b8939.pth',
     need_train_names=sub_model,
+    loss_mask=dict(
+            type='mmdet.CrossEntropyLoss',
+            use_sigmoid=True,
+            reduction='mean',
+            loss_weight=1.0),
+    loss_dice=dict(
+        type='mmdet.DiceLoss',
+        use_sigmoid=True,
+        activate=True,
+        reduction='mean',
+        naive_dice=True,
+        eps=1.0,
+        loss_weight=1.0),
 )
 
 # logger = dict(

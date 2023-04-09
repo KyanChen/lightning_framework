@@ -133,8 +133,7 @@ class Sam(nn.Module):
     def postprocess_masks(
         self,
         masks: torch.Tensor,
-        input_size: Tuple[int, ...],
-        original_size: Tuple[int, ...],
+        original_size=None,
     ) -> torch.Tensor:
         """
         Remove padding and upscale masks to the original image size.
@@ -157,8 +156,8 @@ class Sam(nn.Module):
             mode="bilinear",
             align_corners=False,
         )
-        masks = masks[..., : input_size[0], : input_size[1]]
-        masks = F.interpolate(masks, original_size, mode="bilinear", align_corners=False)
+        if original_size is not None:
+            masks = F.interpolate(masks, original_size, mode="bilinear", align_corners=False)
         return masks
 
     def preprocess(self, x: torch.Tensor) -> torch.Tensor:

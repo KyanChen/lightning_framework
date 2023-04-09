@@ -26,6 +26,19 @@ class SegPLer(BasePLer):
                  sam_checkpoint='',
                  points_per_side=16,
                  need_train_names=None,
+                 loss_mask=dict(
+                     type='CrossEntropyLoss',
+                     use_sigmoid=True,
+                     reduction='mean',
+                     loss_weight=5.0),
+                 loss_dice=dict(
+                     type='DiceLoss',
+                     use_sigmoid=True,
+                     activate=True,
+                     reduction='mean',
+                     naive_dice=True,
+                     eps=1.0,
+                     loss_weight=5.0),
                  train_cfg=None,
                  test_cfg=None,
                  *args, **kwargs):
@@ -38,6 +51,9 @@ class SegPLer(BasePLer):
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
                 points_per_side, 0, 1)
+
+        self.loss_mask = MODELS.build(loss_mask)
+        self.loss_dice = MODELS.build(loss_dice)
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
@@ -90,12 +106,40 @@ class SegPLer(BasePLer):
         return self
 
     def training_val_step(self, batch, batch_idx, prefix=''):
+
+        import ipdb;
+        ipdb.set_trace()
+
+        # parsed_losses, log_vars = self.parse_losses(losses)
+        # log_vars = {f'{prefix}_{k}': v for k, v in log_vars.items()}
+        # log_vars['loss'] = parsed_losses
+        # self.log_dict(log_vars, prog_bar=True)
+        log_vars = 0
+        return log_vars
+
+    def validation_step(self, batch, batch_idx):
+        return self.training_val_step(batch, batch_idx, prefix='val')
+
+    def training_step(self, batch, batch_idx):
+        masks = self.forward(batch)
+        gt_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+        losses = {}
+        loss_bce = self.loss_mask(masks, gt_label)
+        loss_dice = self.loss_dice(masks, gt_label)
+        losses['loss_bce'] = loss_bce
+        losses['loss_dice'] = loss_dice
+
+        parsed_losses, log_vars = self.parse_losses(losses)
+        log_vars = {f'train_{k}': v for k, v in log_vars.items()}
+        log_vars['loss'] = parsed_losses
+        self.log_dict(log_vars, prog_bar=True)
+        return log_vars
+
+    def forward(self, batch, *args: Any, **kwargs: Any) -> Any:
         img = torch.stack(batch['inputs'], dim=0)
         num_img = img.shape[0]
         img = img[:, [2, 1, 0], :, :]
-        gt_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-        import ipdb
-        ipdb.set_trace()
+
         img = (img - self.sam.pixel_mean) / self.sam.pixel_std
         image_embeddings = self.sam.image_encoder(img)  # Bx256x64x64
         if hasattr(self, 'point_grids'):
@@ -129,49 +173,14 @@ class SegPLer(BasePLer):
             dense_prompt_embeddings=dense_embeddings,
             multimask_output='all',
         )
+        masks = self.sam.postprocess_masks(low_res_masks)
 
-        import ipdb;
-        ipdb.set_trace()
-        low_res_masks = rearrange(low_res_masks, '(n b) c h w -> n b c h w', n=num_img)
+        masks = rearrange(masks, '(n b) c h w -> n b c h w', n=num_img)
         building_probabilities = rearrange(building_probabilities, '(n b) c -> n b c', n=num_img)
-        low_res_masks = low_res_masks * building_probabilities
-        low_res_masks = torch.sum(low_res_masks, dim=1)
+        masks = masks * building_probabilities
+        masks = torch.sum(masks, dim=1)
 
-
-        # parsed_losses, log_vars = self.parse_losses(losses)
-        # log_vars = {f'{prefix}_{k}': v for k, v in log_vars.items()}
-        # log_vars['loss'] = parsed_losses
-        # self.log_dict(log_vars, prog_bar=True)
-        log_vars = 0
-        return log_vars
-
-    def validation_step(self, batch, batch_idx):
-        return self.training_val_step(batch, batch_idx, prefix='val')
-
-    def training_step(self, batch, batch_idx):
-        return self.training_val_step(batch, batch_idx, prefix='train')
-
-    def forward(self, rot_6d_with_position_input, diff_root_zyx_input, *args: Any, **kwargs: Any) -> Any:
-        # min-max normalization
-        rot_6d_with_position_input = (rot_6d_with_position_input - self.min_rot_6d_with_position) / (
-                self.max_rot_6d_with_position - self.min_rot_6d_with_position)
-        rot_6d_with_position_input = rot_6d_with_position_input * 2 - 1
-
-        diff_root_zyx_input = (diff_root_zyx_input - self.min_diff_root_xz) / (
-                self.max_diff_root_xz - self.min_diff_root_xz)
-        diff_root_zyx_input = diff_root_zyx_input * 2 - 1
-
-        x_rot = self.rotation_proj(rot_6d_with_position_input)
-        x_pos = self.position_proj(diff_root_zyx_input)
-
-        x = torch.cat([x_rot, x_pos], dim=-2)
-        x = rearrange(x, 'b t j d -> (b t) j d')
-        x, _ = self.spatial_transformer(x)
-        x = rearrange(x, '(b t) d -> b t d', b=rot_6d_with_position_input.shape[0])
-
-        outputs = self.temporal_transformer(inputs_embeds=x)
-        x = outputs['last_hidden_state']
-        return x
+        return masks
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
         positions = batch['positions']
