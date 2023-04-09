@@ -142,7 +142,7 @@ class MaskDecoder(nn.Module):
         output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight, self.building_token.weight], dim=0)  # 6x256
         output_tokens = output_tokens.unsqueeze(0).expand(sparse_prompt_embeddings.size(0), -1, -1)
         tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)  # 1024, 8, 256
-        tokens = repeat(tokens, 'b n c -> (b n) d c', n=num_imgs)  # 1024, 18, 256
+        tokens = repeat(tokens, 'b d c -> (b n) d c', n=num_imgs)  # 1024, 18, 256
 
         # Expand per-image data in batch direction to be per-mask
         src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)  # 2048
