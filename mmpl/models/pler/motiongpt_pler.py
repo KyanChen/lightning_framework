@@ -26,7 +26,7 @@ class MotionGPTPLer(BasePLer):
                  head,
                  mean_std_info,
                  block_size=512,
-                 max_frames=128,
+                 max_frames_predict=128,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
@@ -38,7 +38,7 @@ class MotionGPTPLer(BasePLer):
         self.head = build_head(head)
         self.block_size = block_size
         self.mean_std_info = mean_std_info
-        self.max_frames = max_frames
+        self.max_frames_predict = max_frames_predict
 
     def setup(self, stage: str) -> None:
         mean_std = mmengine.load(self.mean_std_info)
@@ -51,13 +51,16 @@ class MotionGPTPLer(BasePLer):
             self.register_buffer(key, mean_std[key])
         zero_mask = self.max_rot_6d_with_position - self.min_rot_6d_with_position == 0
         self.max_rot_6d_with_position[zero_mask] = 1
+        self.min_rot_6d_with_position[zero_mask] = 0
         zero_mask = self.max_diff_root_xz - self.min_diff_root_xz == 0
         self.max_diff_root_xz[zero_mask] = 1
+        self.min_diff_root_xz[zero_mask] = 0
         # if self.local_rank == 0:
         #     assert torch.all(self.max_rot_6d_with_position - self.min_rot_6d_with_position > 0)
         #     assert torch.all(self.max_diff_root_xz - self.min_diff_root_xz > 0)
 
-    def training_step(self, batch, batch_idx):
+
+    def training_val_step(self, batch, batch_idx, prefix=''):
         positions = batch['positions']
         rotations = batch['rotations']
         global_positions = batch['global_positions']
@@ -94,8 +97,17 @@ class MotionGPTPLer(BasePLer):
         )
 
         parsed_losses, log_vars = self.parse_losses(losses)
+        log_vars = {f'{prefix}_{k}': v for k, v in log_vars.items()}
+        log_vars['loss'] = parsed_losses
+
         self.log_dict(log_vars, prog_bar=True)
         return log_vars
+
+    def validation_step(self, batch, batch_idx):
+        return self.training_val_step(batch, batch_idx, prefix='val')
+
+    def training_step(self, batch, batch_idx):
+        return self.training_val_step(batch, batch_idx, prefix='train')
 
     def forward(self, rot_6d_with_position_input, diff_root_zyx_input, *args: Any, **kwargs: Any) -> Any:
         # min-max normalization
@@ -129,9 +141,9 @@ class MotionGPTPLer(BasePLer):
         positions_shift, rotations_shift = lafan1_utils_torch.reduce_frame_root_shift_and_rotation(
             positions, rotations, base_frame_id=0)
 
-        assert positions_shift.shape[1] <= self.max_frames
+        assert positions_shift.shape[1] <= self.max_frames_predict
 
-        while positions_shift.shape[1] < self.max_frames:
+        while positions_shift.shape[1] < self.max_frames_predict:
             rot_6d_with_position, diff_root_zyx = lafan1_utils_torch.get_shift_model_input(positions_shift.clone(), rotations_shift.clone())
             # rot_6d_with_position BxTxJx9
             # diff_root_zyx BxTxJx3
@@ -150,11 +162,12 @@ class MotionGPTPLer(BasePLer):
             pred_rot_6d = pred_rot_6d * (self.max_rot_6d_with_position[:, :6] - \
                                          self.min_rot_6d_with_position[:, :6]) + \
                           self.min_rot_6d_with_position[:, :6]
-            try:
-                pred_rot_6d = torch.normal(mean=pred_rot_6d[:, :, 0], std=torch.abs(pred_rot_6d[:, :, 1]))
-            except:
-                import ipdb;
-                ipdb.set_trace()
+            # try:
+            #     pred_rot_6d = torch.normal(mean=pred_rot_6d[:, :, 0], std=torch.abs(pred_rot_6d[:, :, 1]))
+            # except:
+            #     import ipdb;
+            #     ipdb.set_trace()
+            pred_rot_6d = pred_rot_6d[:, :, 0]
 
             pred_diff_root_zyx = rearrange(pred_diff_root_zyx, 'b t (d c) -> b t d c', d=2)
             pred_diff_root_zyx = pred_diff_root_zyx.unsqueeze(-2)
@@ -163,7 +176,8 @@ class MotionGPTPLer(BasePLer):
                                                        self.min_diff_root_xz) + \
                                  self.min_diff_root_xz
 
-            pred_diff_root_zyx = torch.normal(mean=pred_diff_root_zyx[:, :, 0], std=torch.abs(pred_diff_root_zyx[:, :, 1]))
+            # pred_diff_root_zyx = torch.normal(mean=pred_diff_root_zyx[:, :, 0], std=torch.abs(pred_diff_root_zyx[:, :, 1]))
+            pred_diff_root_zyx = pred_diff_root_zyx[:, :, 0]
 
             # project 6D rotation to 9D rotation
             pred_rotations_9d = lafan1_utils_torch.matrix6D_to_9D_torch(pred_rot_6d)
@@ -175,6 +189,7 @@ class MotionGPTPLer(BasePLer):
             positions_shift = torch.cat([positions_shift, position_new], dim=1)
 
         return positions_shift, rotations_shift, batch
+
 
 
 

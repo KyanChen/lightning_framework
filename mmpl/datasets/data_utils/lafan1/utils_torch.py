@@ -429,25 +429,23 @@ def get_shift_model_input(positions, rotations, return_offset=False):
     # return (batch, seq, joint*6+3)
     rot_6d = matrix9D_to_6D_torch(rotations)  # B S 22 6
 
-    root_zyx = positions.clone()  # B S 1 2
-    root_zyx = root_zyx[..., 0:1, :]  # B S 1 3
-    frame0_root_zyx_offset = root_zyx[..., 0, :, :].clone().detach()
-    # 解藕 y轴身高
-    frame_0_root_y = root_zyx[..., 0:1, :, 1:2].clone().detach()
-    root_zyx[..., 1:2] = root_zyx[..., 1:2] - frame_0_root_y
+    skeleton_offset = positions.clone()  # B S 22 3
+    frame0_root_zyx = skeleton_offset[..., 0:1, :].clone()  # B S 1 3
+    # 将root的位置设置为0
+    skeleton_offset[..., 0, :] = 0
+    rot_6d_with_skeleton_offset = torch.cat([rot_6d, skeleton_offset], dim=-1)  # B S 22 9
 
-    positions[..., 0, ::2] = 0
-    positions[..., 0, 1] = positions[..., 0:1, 0, 1]
-    rot_6d_with_position = torch.cat([rot_6d, positions], dim=-1)  # B S 22 9
-
+    # 得到root的位置
+    root_zyx = positions[..., 0:1, :].clone()  # B S 1 3
+    # 得到root在帧之间的差
     diff_root_zyx = root_zyx[..., 1:, :, :] - root_zyx[..., :-1, :, :]  # B S-1 1 3
     pad_root_zyx = torch.zeros_like(diff_root_zyx[..., :1, :, :], device=diff_root_zyx.device)
-    diff_root_zyx = torch.cat([pad_root_zyx, diff_root_zyx], dim=-3)  # B S 1 2
+    diff_root_zyx = torch.cat([pad_root_zyx, diff_root_zyx], dim=-3)  # B S 1 3
 
     if return_offset:
-        return rot_6d_with_position, diff_root_zyx, frame0_root_zyx_offset
+        return rot_6d_with_skeleton_offset, diff_root_zyx, frame0_root_zyx
     else:
-        return rot_6d_with_position, diff_root_zyx
+        return rot_6d_with_skeleton_offset, diff_root_zyx
 
 
 def reverse_shift_model_input(diff_root_zyx, frame0_root_zyx_offset):

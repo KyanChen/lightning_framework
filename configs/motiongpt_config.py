@@ -1,4 +1,5 @@
 optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
+
 param_scheduler = [
     # warm up learning rate scheduler
     dict(
@@ -12,19 +13,18 @@ param_scheduler = [
     # main learning rate scheduler
     dict(
         type='CosineAnnealingLR',
-        T_max=200,
+        T_max=100,
         by_epoch=True,
         begin=1,
-        end=200,
+        end=100,
     )
 ]
 
-block_size = 64
-
+block_size = 128
 model_cfg = dict(
     type='MotionGPTPLer',
     block_size=block_size,
-    max_frames=64,
+    max_frames_predict=64,
     mean_std_info=f'../data/lafan1_train_mean_std_info_{block_size}.pkl',
     hyperparameters=dict(
         optimizer=optimizer,
@@ -63,50 +63,86 @@ model_cfg = dict(
         type='MotionGPTHead',
         in_channels=768,
         out_channels=dict(
-            rot_6d=22*6*2,
-            diff_root_zyx=3*2,
+            rot_6d=22*6,
+            diff_root_zyx=3,
         ),
         # rotation_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
         global_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
-        rotation_loss=dict(type='UncertaintyRegressionLoss', choice='smooth_l1', loss_weight=1.0),
-        root_position_loss=dict(type='UncertaintyRegressionLoss', choice='smooth_l1', loss_weight=1.0)
+        rotation_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
+        root_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0)
+        # rotation_loss=dict(type='UncertaintyRegressionLoss', choice='smooth_l1', loss_weight=1.0),
+        # root_position_loss=dict(type='UncertaintyRegressionLoss', choice='smooth_l1', loss_weight=1.0)
     ),
 )
 
-logger = dict(
-    type='WandbLogger',
-    project='MotionGPT',
-    group='test',
-    name='E20230403_1'
-)
+# logger = dict(
+#     type='WandbLogger',
+#     project='MotionGPT',
+#     group='test',
+#     name='E20230403_1'
+# )
+logger = None
+callbacks = [
+    dict(
+        type='ModelCheckpoint',
+        monitor='val_loss',
+        save_top_k=5,
+    ),
+    dict(
+        type='MotionVisualizer',
+        save_dir='results/vis'
+    )
+]
+
 
 trainer_cfg = dict(
     compiled_model=False,
-    default_root_dir='results/exp',
-    max_epochs=200,
-    logger=logger,
+    accelerator="auto",
+    strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
-    devices=1,
     # precision='32',
     # precision='16-mixed',
-    log_every_n_steps=100,
-    # limit_train_batches=1,
+    devices=1,
+    default_root_dir='results/exp',
+    max_epochs=100,
+    logger=logger,
+    callbacks=callbacks,
+    log_every_n_steps=1,
+
+    # limit_val_batches=0,
+    check_val_every_n_epoch=1,
+    benchmark=True,
+    sync_batchnorm=True,
+
     # fast_dev_run=True,
-    limit_val_batches=0,
-    # gradient_clip_algorithm
-    # gradient_clip_val
-    # ckpt_path=None,
-    # fast_dev_run=False,
-    # limit_train_batches=0.1,
-    # limit_val_batches=0.01,
-    # enable_model_summary=False,
+    limit_train_batches=1,
+    limit_val_batches=1,
+    # limit_test_batches=None,
+    # limit_predict_batches=None,
+    # overfit_batches=0.0,
+
+    # val_check_interval=None,
+    # num_sanity_val_steps=2,
+    # enable_checkpointing=None,
+    # enable_progress_bar=None,
+    # enable_model_summary=None,
+    # accumulate_grad_batches=1,
+    # gradient_clip_val=None,
+    # gradient_clip_algorithm=None,
+    # deterministic=None,
+    # inference_mode: bool=True,
+    # use_distributed_sampler=True,
     # profiler="simple",
+    # detect_anomaly=False,
+    # barebones=False,
+    # plugins=None,
+    # reload_dataloaders_every_n_epochs=0,
 )
 
-train_batch_size_per_gpu = 64
-train_num_workers = 8
+train_batch_size_per_gpu = 4
+train_num_workers = 0
 test_batch_size_per_gpu = 4
-test_num_workers = 2
+test_num_workers = 0
 persistent_workers = False
 datamodule_cfg = dict(
     type='PLDataModule',
@@ -120,6 +156,20 @@ datamodule_cfg = dict(
             block_size=block_size,
             test_mode=False,
             data_root='../data/lafan1/',
+            n_offset=1000,
+        )
+    ),
+    val_loader=dict(
+        batch_size=test_batch_size_per_gpu,
+        num_workers=test_num_workers,
+        persistent_workers=persistent_workers,
+        pin_memory=True,
+        dataset=dict(
+            type='BvhDataset',
+            block_size=block_size,
+            test_mode=False,
+            data_root='../data/lafan1/',
+            n_offset=1000,
         )
     ),
     predict_loader=dict(
@@ -134,16 +184,9 @@ datamodule_cfg = dict(
             data_root='../data/lafan1/',
             n_prompt_frames=10,
             n_offset=1000,
-            # indices=8,
         )
     )
 )
-
-visualizer = dict(
-    type='MotionVisualizer',
-    save_dir='results/vis'
-)
-
 
 
 

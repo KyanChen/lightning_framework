@@ -17,7 +17,47 @@ class BasePLer(pl.LightningModule, BaseModel):
 
     def configure_optimizers(self):
         optimizer_cfg = copy.deepcopy(self.hyperparameters.get('optimizer'))
-        optimizer_cfg['params'] = self.parameters()
+        base_lr = optimizer_cfg.pop('lr')
+        base_wd = optimizer_cfg.pop('weight_decay', None)
+
+        sub_models = optimizer_cfg.pop('sub_model', None)
+        if sub_models is None:
+            optimizer_cfg['params'] = self.parameters()
+        else:
+            if isinstance(sub_models, str):
+                sub_models = {sub_models: {}}
+            if isinstance(sub_models, list):
+                sub_models = {x: {} for x in sub_models}
+
+            # set training parameters and lr
+            for sub_model_name, value in sub_models.items():
+                sub_model_ = self.get_submodule(sub_model_name)
+                if isinstance(sub_model_, torch.nn.Parameter):
+                    # filter(lambda p: p.requires_grad, model.parameters())
+                    sub_models[sub_model_name]['params'] = filter(lambda p: p.requires_grad, [sub_model_])
+                else:
+                    sub_models[sub_model_name]['params'] = filter(lambda p: p.requires_grad,
+                                                                      sub_model_.parameters())
+                lr_mult = value.pop('lr_mult', 1.)
+                sub_models[sub_model_name]['lr'] = base_lr * lr_mult
+                if base_wd is not None:
+                    decay_mult = value.pop('decay_mult', 1.)
+                    sub_models[sub_model_name]['weight_decay'] = base_wd * decay_mult
+                else:
+                    raise ModuleNotFoundError(f'{sub_model_name} not in model')
+
+            if self.local_rank == 0:
+                print('All sub models:')
+                for name, module in self.named_children():
+                    print(name, end=', ')
+                print()
+                print('Needed train models:')
+                for needed_train_sub_model in sub_models.keys():
+                    print(needed_train_sub_model, end=', ')
+                print()
+
+            optimizer_cfg['params'] = [value for key, value in sub_models.items()]
+
         optimizer = OPTIMIZERS.build(optimizer_cfg)
 
         schedulers = copy.deepcopy(self.hyperparameters.get('param_scheduler'))

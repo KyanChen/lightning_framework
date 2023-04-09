@@ -13,14 +13,14 @@ register_all_modules()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a pl model')
-    parser.add_argument('--config', default='../configs/motiongpt_config.py', help='train config file path')
+    # parser.add_argument('--config', default='../configs/yolov8_config.py', help='train config file path')
+    parser.add_argument('--config', default='../configs/seg_config.py', help='train config file path')
+    # parser.add_argument('--config', default='../configs/motiongpt_config.py', help='train config file path')
     parser.add_argument('--status', default='fit', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
     parser.add_argument('--work-dir', default='results/exp', help='the dir to save logs and mmpl')
     args = parser.parse_args()
     return args
 
-# return_predictions: Optional[bool] = None,
-#         ckpt_path: Optional[str] = None,
 
 def main():
     args = parse_args()

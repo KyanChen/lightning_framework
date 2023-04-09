@@ -21,7 +21,7 @@ from mmengine.registry import \
     WEIGHT_INITIALIZERS as MMENGINE_WEIGHT_INITIALIZERS
 from mmengine.registry import Registry
 
-LOGGERS = Registry('logger', locations=['mmpl.logger'])
+LOGGERS = Registry('logger', locations=['mmpl.engine.logger'])
 # manage all kinds of runners like `EpochBasedRunner` and `IterBasedRunner`
 RUNNERS = Registry(
     'runner', parent=MMENGINE_RUNNERS, locations=['mmpl.engine'])

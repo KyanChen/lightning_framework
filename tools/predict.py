@@ -17,9 +17,9 @@ def parse_args():
     parser.add_argument('--config', default='../configs/motiongpt_config.py', help='train config file path')
     parser.add_argument('--status', default='predict', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
     parser.add_argument('--return-predictions', default=True, help='return predictions')
-    parser.add_argument('--ckpt-path', default='results/exp/MotionGPT/tc6u6115/checkpoints/epoch=55-step=88088.ckpt', help='checkpoint path')
-    # parser.add_argument('--ckpt-path', default='../pretrain/epoch=55-step=88088.ckpt',
-    #                     help='checkpoint path')
+    # parser.add_argument('--ckpt-path', default='results/exp/MotionGPT/tc6u6115/checkpoints/epoch=55-step=88088.ckpt', help='checkpoint path')
+    parser.add_argument('--ckpt-path', default='../pretrain/epoch=55-step=88088.ckpt',
+                        help='checkpoint path')
     parser.add_argument('--work-dir', default='results/exp', help='the dir to save logs and mmpl')
     args = parser.parse_args()
     return args
@@ -37,8 +37,7 @@ def main():
         runner = PLRunner.from_cfg(cfg)
     else:
         runner = RUNNERS.build(cfg)
-    results = runner.run(args.status, return_predictions=args.return_predictions, ckpt_path=args.ckpt_path)
-    runner.visualize(results)
+    runner.run(args.status, return_predictions=args.return_predictions, ckpt_path=args.ckpt_path)
 
 
 if __name__ == '__main__':

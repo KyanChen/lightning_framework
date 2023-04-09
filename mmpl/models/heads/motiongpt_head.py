@@ -48,7 +48,10 @@ class MotionGPTHead(BaseModel):
         diff_root_zyx = self.diff_root_zyx(x)
         return rot_6d, diff_root_zyx
 
-    def loss(self,
+    def loss(self, *args, **kwargs):
+        return self.get_certainty_loss(*args, **kwargs)
+
+    def get_uncertainty_loss(self,
              x,
              normalization_info=dict(
                  max_rot_6d_with_position=0,
@@ -107,6 +110,66 @@ class MotionGPTHead(BaseModel):
             root_position_loss=root_position_loss
         )
         return losses
+
+    def get_certainty_loss(
+            self,
+            x,
+            normalization_info=dict(
+            max_rot_6d_with_position=0,
+            min_rot_6d_with_position=0,
+            max_diff_root_xz=0,
+            min_diff_root_xz=0,
+            ),
+            block_size=64,
+            parents=[],
+            rot_6d_with_position=None,
+            diff_root_zyx=None,
+            positions_shift=None,
+            rotations_shift=None,
+            *args,
+            **kwargs) -> dict:
+        """Compute loss.
+        """
+
+        pred_rot_6d, pred_diff_root_zyx = self.forward(x)
+        pred_rot_6d = rearrange(pred_rot_6d, 'b t (n_j c) -> b t n_j c', c=6)
+
+        pred_rot_6d = (pred_rot_6d + 1) / 2
+        pred_rot_6d = pred_rot_6d * (normalization_info['max_rot_6d_with_position'][:, :6] - normalization_info['min_rot_6d_with_position'][:, :6]) + \
+                      normalization_info['min_rot_6d_with_position'][:, :6]
+
+        pred_diff_root_zyx = rearrange(pred_diff_root_zyx, 'b t (n_j c) -> b t n_j c', n_j=1)
+        pred_diff_root_zyx = (pred_diff_root_zyx + 1) / 2
+        pred_diff_root_zyx = pred_diff_root_zyx * (normalization_info['max_diff_root_xz'] - normalization_info['min_diff_root_xz']) + \
+                             normalization_info['min_diff_root_xz']
+
+        # local rotation loss
+        gt_rotation_6d = rot_6d_with_position[:, -block_size:, :, :6].detach()  # B, T, N_j, 6
+        rotation_loss = self.rotation_loss(pred_rot_6d, gt_rotation_6d)
+
+        # root position loss
+        root_position_loss = self.root_position_loss(pred_diff_root_zyx, diff_root_zyx[:, -block_size:, 0:1, :].detach())
+
+        # global position loss
+        # 从预测值恢复全局坐标，注意预测值是基于前一帧的相对坐标
+        # 先恢复9D旋转量，基于均值
+        pred_rotations_9d = lafan1_utils_torch.matrix6D_to_9D_torch(pred_rot_6d[..., :, :])
+        # 然后恢复root节点的zyx坐标，预测的是与上一帧的偏移
+        position_new = positions_shift[:, :block_size].clone()
+        position_new[..., 0, :] += pred_diff_root_zyx[:, :, 0, :]
+
+        grot_new, gpos_new = lafan1_utils_torch.fk_torch(pred_rotations_9d, position_new, parents)
+
+        gt_global_rotations, gt_global_positions = lafan1_utils_torch.fk_torch(rotations_shift, positions_shift, parents)
+        global_position_loss = self.global_position_loss(gpos_new, gt_global_positions[:, -block_size:].detach())
+
+        losses = dict(
+            rotation_loss=rotation_loss,
+            global_position_loss=global_position_loss,
+            root_position_loss=root_position_loss
+        )
+        return losses
+
 
     def predict(
         self,
