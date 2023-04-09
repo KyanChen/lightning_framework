@@ -24,7 +24,7 @@ class SegPLer(BasePLer):
     def __init__(self,
                  sam='vit_h',
                  sam_checkpoint='',
-                 points_per_side=32,
+                 points_per_side=16,
                  need_train_names=None,
                  train_cfg=None,
                  test_cfg=None,
