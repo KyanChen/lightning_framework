@@ -91,6 +91,7 @@ class SegPLer(BasePLer):
 
     def training_val_step(self, batch, batch_idx, prefix=''):
         img = torch.stack(batch['inputs'], dim=0)
+        num_img = img.shape[0]
         img = img[:, [2, 1, 0], :, :]
         gt_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
         import ipdb
@@ -129,11 +130,13 @@ class SegPLer(BasePLer):
             multimask_output='all',
         )
 
-        masks = self.sam.postprocess_masks(
-            low_res_masks,
-            input_size=img.shape[-2:],
-            original_size=gt_label.shape[-2:],
-        )
+        import ipdb;
+        ipdb.set_trace()
+        low_res_masks = rearrange(low_res_masks, '(n b) c h w -> n b h w c', n=num_img)
+        building_probabilities = rearrange(building_probabilities, '(n b) c d -> n b', n=num_img)
+        low_res_masks = low_res_masks * building_probabilities
+        low_res_masks = torch.sum(low_res_masks, dim=1)
+
 
         # parsed_losses, log_vars = self.parse_losses(losses)
         # log_vars = {f'{prefix}_{k}': v for k, v in log_vars.items()}
