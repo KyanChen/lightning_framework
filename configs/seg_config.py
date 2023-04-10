@@ -100,7 +100,7 @@ trainer_cfg = dict(
     logger=logger,
     callbacks=callbacks,
     log_every_n_steps=30,
-    check_val_every_n_epoch=2,
+    check_val_every_n_epoch=1,
     benchmark=True,
     # sync_batchnorm=True,
 
