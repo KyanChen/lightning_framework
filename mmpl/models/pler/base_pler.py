@@ -108,5 +108,6 @@ class BasePLer(pl.LightningModule, BaseModel):
 
     def on_validation_epoch_end(self) -> None:
         metrics = self.evaluator.compute()
+        import ipdb; ipdb.set_trace()
         self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.evaluator.reset()

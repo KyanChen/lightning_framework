@@ -113,7 +113,6 @@ class SegPLer(BasePLer):
         seg_label = seg_label.squeeze(1)
         masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
         masks = torch.argmax(masks, dim=1)
-        import ipdb; ipdb.set_trace()
         self.evaluator.update(masks, seg_label)
 
     def training_step(self, batch, batch_idx):
