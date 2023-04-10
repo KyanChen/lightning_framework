@@ -1,3 +1,5 @@
+custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_imports=False)
+
 sub_model = [
         'sam.mask_decoder.iou_token',
         'sam.mask_decoder.building_token',
