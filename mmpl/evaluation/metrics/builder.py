@@ -34,7 +34,7 @@ def register_pl_metrics() -> List[str]:
                     continue
                 _metric = getattr(_metric, _metric_name)
                 if inspect.isclass(_metric) and issubclass(_metric, torchmetrics.Metric):
-                    METRICS.register_module(module=_metric)
+                    METRICS.register_module(module=_metric, force=True)
                     pl_metrics.append(_metric_name)
     import ipdb; ipdb.set_trace()
     return pl_metrics
