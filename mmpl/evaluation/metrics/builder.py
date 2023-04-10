@@ -26,6 +26,8 @@ def register_pl_metrics() -> List[str]:
             for _metric_name in dir(_metric):
                 if _metric_name.startswith('__'):
                     continue
+                import ipdb;
+                ipdb.set_trace()
                 _metric = getattr(_metric, _metric_name)
                 if inspect.isclass(_metric) and issubclass(_metric, torchmetrics.Metric):
                     METRICS.register_module(module=_metric)
