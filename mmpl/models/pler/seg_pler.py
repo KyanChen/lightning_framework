@@ -107,20 +107,23 @@ class SegPLer(BasePLer):
                 module.eval()
         return self
 
-    def training_val_step(self, batch, batch_idx, prefix=''):
-
-        import ipdb;
-        ipdb.set_trace()
-
-        # parsed_losses, log_vars = self.parse_losses(losses)
-        # log_vars = {f'{prefix}_{k}': v for k, v in log_vars.items()}
-        # log_vars['loss'] = parsed_losses
-        # self.log_dict(log_vars, prog_bar=True)
-        log_vars = 0
-        return log_vars
-
     def validation_step(self, batch, batch_idx):
-        return self.training_val_step(batch, batch_idx, prefix='val')
+        masks = self.forward(batch)
+        seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+
+        losses = {}
+        seg_label = seg_label.squeeze(1)
+        # import ipdb; ipdb.set_trace()
+        loss_bce = F.binary_cross_entropy_with_logits(masks.squeeze(dim=1), seg_label.float(), reduction='mean')
+        loss_dice = self.loss_dice(masks, seg_label)
+        losses['loss_bce'] = loss_bce
+        losses['loss_dice'] = loss_dice
+
+        parsed_losses, log_vars = self.parse_losses(losses)
+        log_vars = {f'train_{k}': v for k, v in log_vars.items()}
+        log_vars['loss'] = parsed_losses
+        self.log_dict(log_vars, prog_bar=True, rank_zero_only=True)
+        return log_vars
 
     def training_step(self, batch, batch_idx):
         masks = self.forward(batch)
@@ -187,64 +190,7 @@ class SegPLer(BasePLer):
 
         return masks
 
-    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
-        positions = batch['positions']
-        rotations = batch['rotations']
-        global_positions = batch['global_positions']
-        global_rotations = batch['global_rotations']
-        foot_contact = batch['foot_contact']
-        parents = batch['parents'][0]
-        positions_shift, rotations_shift = lafan1_utils_torch.reduce_frame_root_shift_and_rotation(
-            positions, rotations, base_frame_id=0)
 
-        assert positions_shift.shape[1] <= self.max_frames_predict
-
-        while positions_shift.shape[1] < self.max_frames_predict:
-            rot_6d_with_position, diff_root_zyx = lafan1_utils_torch.get_shift_model_input(positions_shift.clone(), rotations_shift.clone())
-            # rot_6d_with_position BxTxJx9
-            # diff_root_zyx BxTxJx3
-
-            rot_6d_with_position_input = rot_6d_with_position[:, -self.block_size:].clone()
-            diff_root_zyx_input = diff_root_zyx[:, -self.block_size:].clone()
-
-
-            x = self.forward(rot_6d_with_position_input, diff_root_zyx_input)
-            x = x[:, -1:, :]
-            pred_rot_6d, pred_diff_root_zyx = self.head.forward(x)
-
-            pred_rot_6d = rearrange(pred_rot_6d, 'b t (d c) -> b t d c', d=2)
-            pred_rot_6d = rearrange(pred_rot_6d, 'b t d (n_j c) -> b t d n_j c', c=6)
-            pred_rot_6d = (pred_rot_6d + 1) / 2
-            pred_rot_6d = pred_rot_6d * (self.max_rot_6d_with_position[:, :6] - \
-                                         self.min_rot_6d_with_position[:, :6]) + \
-                          self.min_rot_6d_with_position[:, :6]
-            # try:
-            #     pred_rot_6d = torch.normal(mean=pred_rot_6d[:, :, 0], std=torch.abs(pred_rot_6d[:, :, 1]))
-            # except:
-            #     import ipdb;
-            #     ipdb.set_trace()
-            pred_rot_6d = pred_rot_6d[:, :, 0]
-
-            pred_diff_root_zyx = rearrange(pred_diff_root_zyx, 'b t (d c) -> b t d c', d=2)
-            pred_diff_root_zyx = pred_diff_root_zyx.unsqueeze(-2)
-            pred_diff_root_zyx = (pred_diff_root_zyx + 1) / 2
-            pred_diff_root_zyx = pred_diff_root_zyx * (self.max_diff_root_xz - \
-                                                       self.min_diff_root_xz) + \
-                                 self.min_diff_root_xz
-
-            # pred_diff_root_zyx = torch.normal(mean=pred_diff_root_zyx[:, :, 0], std=torch.abs(pred_diff_root_zyx[:, :, 1]))
-            pred_diff_root_zyx = pred_diff_root_zyx[:, :, 0]
-
-            # project 6D rotation to 9D rotation
-            pred_rotations_9d = lafan1_utils_torch.matrix6D_to_9D_torch(pred_rot_6d)
-            # accumulate root position shift to the last frame
-            position_new = positions_shift[:, -1:].clone()
-            position_new[..., 0, :] += pred_diff_root_zyx[..., 0, :]
-
-            rotations_shift = torch.cat([rotations_shift, pred_rotations_9d], dim=1)
-            positions_shift = torch.cat([positions_shift, position_new], dim=1)
-
-        return positions_shift, rotations_shift, batch
 
 
 
