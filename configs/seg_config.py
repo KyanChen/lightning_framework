@@ -68,13 +68,13 @@ model_cfg = dict(
         loss_weight=1.0),
 )
 
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='test',
-    name='E20230410_0'
-)
-# logger = None
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='test',
+#     name='E20230410_0'
+# )
+logger = None
 
 
 callbacks = [
