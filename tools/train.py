@@ -24,7 +24,6 @@ def parse_args():
 
 def main():
     args = parse_args()
-    import ipdb; ipdb.set_trace()
     cfg = Config.fromfile(args.config)
     if args.work_dir is not None:
         cfg.trainer_cfg['default_root_dir'] = args.work_dir
