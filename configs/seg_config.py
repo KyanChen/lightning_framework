@@ -27,10 +27,10 @@ param_scheduler = [
     # main learning rate scheduler
     dict(
         type='CosineAnnealingLR',
-        T_max=200,
+        T_max=300,
         by_epoch=True,
         begin=1,
-        end=200,
+        end=300,
     )
 ]
 
@@ -94,13 +94,13 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=4,
+    devices=8,
     default_root_dir='results/exp',
-    max_epochs=200,
+    max_epochs=300,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=5,
-    check_val_every_n_epoch=1,
+    log_every_n_steps=50,
+    check_val_every_n_epoch=2,
     benchmark=True,
     # sync_batchnorm=True,
 
@@ -186,7 +186,7 @@ datamodule_cfg = dict(
             metainfo=metainfo,
             data_root=data_root,
             data_prefix=dict(img_path=train_data_prefix+'image', seg_map_path=train_data_prefix+'label'),
-            indices=16,
+            # indices=16,
             test_mode=False,
             pipeline=train_pipeline,
         )
@@ -204,7 +204,7 @@ datamodule_cfg = dict(
             metainfo=metainfo,
             data_root=data_root,
             data_prefix=dict(img_path=val_data_prefix+'image', seg_map_path=val_data_prefix+'label'),
-            indices=16,
+            # indices=16,
             test_mode=True,
             pipeline=test_pipeline,
         )
