@@ -5,13 +5,13 @@ torchvision
 lightning>=2.0.1
 mmengine
 openmim
-
+wandb
 redis
 scikit-learn
 scikit-image
 tenacity
 torchmetrics
-
+tensorboardx
 transformers
 ipdb
 prettytable
