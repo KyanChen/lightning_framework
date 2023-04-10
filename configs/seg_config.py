@@ -99,7 +99,7 @@ trainer_cfg = dict(
     max_epochs=300,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=50,
+    log_every_n_steps=30,
     check_val_every_n_epoch=2,
     benchmark=True,
     # sync_batchnorm=True,
@@ -156,9 +156,9 @@ test_pipeline = [
 
 
 train_batch_size_per_gpu = 1
-train_num_workers = 1
+train_num_workers = 2
 test_batch_size_per_gpu = 1
-test_num_workers = 1
+test_num_workers = 2
 persistent_workers = True
 
 
