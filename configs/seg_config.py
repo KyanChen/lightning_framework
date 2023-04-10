@@ -93,7 +93,7 @@ trainer_cfg = dict(
     # sync_batchnorm=True,
 
     # fast_dev_run=True,
-    limit_train_batches=1,
+    # limit_train_batches=1,
     limit_val_batches=0,
     # limit_test_batches=None,
     # limit_predict_batches=None,
@@ -173,7 +173,7 @@ datamodule_cfg = dict(
             metainfo=metainfo,
             data_root=data_root,
             data_prefix=dict(img_path=train_data_prefix+'image', seg_map_path=train_data_prefix+'label'),
-            indices=16,
+            indices=2,
             test_mode=False,
             pipeline=train_pipeline,
         )
