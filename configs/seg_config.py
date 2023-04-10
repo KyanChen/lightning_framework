@@ -79,7 +79,7 @@ logger = None
 callbacks = [
     dict(
         type='ModelCheckpoint',
-        monitor='val_loss',
+        monitor='metric_1',
         save_top_k=5,
     ),
 ]

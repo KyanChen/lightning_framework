@@ -109,5 +109,5 @@ class BasePLer(pl.LightningModule, BaseModel):
     def on_validation_epoch_end(self) -> None:
         metrics = self.evaluator.compute()
         for i, data in enumerate(metrics):
-            self.log(f'metric_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+            self.log(f'metric_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, rank_zero_only=True)
         self.evaluator.reset()
