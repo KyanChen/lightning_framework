@@ -136,7 +136,7 @@ class BaseSegDataset(BaseDataset):
             self._join_prefix()
 
         # Build pipeline.
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         self.pipeline = Compose(pipeline)
         # Full initialize the dataset.
         if not lazy_init:
