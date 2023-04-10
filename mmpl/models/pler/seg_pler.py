@@ -24,7 +24,7 @@ class SegPLer(BasePLer):
     def __init__(self,
                  sam='vit_h',
                  sam_checkpoint='',
-                 points_per_side=16,
+                 points_per_side=20,
                  need_train_names=None,
                  loss_mask=dict(
                      type='CrossEntropyLoss',
