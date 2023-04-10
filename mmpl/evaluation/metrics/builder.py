@@ -27,6 +27,8 @@ def register_pl_metrics() -> List[str]:
             pl_metrics.append(module_name)
             continue
         if inspect.ismodule(_metric):
+            import ipdb;
+            ipdb.set_trace()
             for _metric_name in dir(_metric):
                 if _metric_name.startswith('__'):
                     continue
