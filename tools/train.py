@@ -17,7 +17,7 @@ def parse_args():
     parser.add_argument('--config', default='configs/seg_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/motiongpt_config.py', help='train config file path')
     parser.add_argument('--status', default='fit', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
-    parser.add_argument('--work-dir', default='results/exp', help='the dir to save logs and mmpl')
+    parser.add_argument('--work-dir', default=None, help='the dir to save logs and mmpl')
     args = parser.parse_args()
     return args
 
