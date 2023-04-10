@@ -39,12 +39,14 @@ class SegPLer(BasePLer):
                      naive_dice=True,
                      eps=1.0,
                      loss_weight=5.0),
+                 ignore_index=255,
                  train_cfg=None,
                  test_cfg=None,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
         self.need_train_names = need_train_names
+        self.ignore_index = ignore_index
 
         self.sam = sam_model_registry[sam](sam_checkpoint)
 
@@ -122,17 +124,20 @@ class SegPLer(BasePLer):
 
     def training_step(self, batch, batch_idx):
         masks = self.forward(batch)
-        gt_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+        seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+
         losses = {}
-        loss_bce = self.loss_mask(masks, gt_label)
-        loss_dice = self.loss_dice(masks, gt_label)
+        seg_label = seg_label.squeeze(1)
+        import ipdb; ipdb.set_trace()
+        loss_bce = self.loss_mask(masks, seg_label, ignore_index=self.ignore_index)
+        loss_dice = self.loss_dice(masks, seg_label)
         losses['loss_bce'] = loss_bce
         losses['loss_dice'] = loss_dice
 
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'train_{k}': v for k, v in log_vars.items()}
         log_vars['loss'] = parsed_losses
-        self.log_dict(log_vars, prog_bar=True)
+        self.log_dict(log_vars, prog_bar=True, rank_zero_only=True)
         return log_vars
 
     def forward(self, batch, *args: Any, **kwargs: Any) -> Any:

@@ -42,7 +42,7 @@ model_cfg = dict(
     sam_checkpoint='../pretrain/sam/sam_vit_h_4b8939.pth',
     need_train_names=sub_model,
     loss_mask=dict(
-            type='mmdet.CrossEntropyLoss',
+            type='mmseg.CrossEntropyLoss',
             use_sigmoid=True,
             reduction='mean',
             loss_weight=1.0),
@@ -118,7 +118,7 @@ trainer_cfg = dict(
 crop_size = (1024, 1024)
 train_pipeline = [
     dict(type='mmseg.LoadImageFromFile'),
-    dict(type='mmseg.LoadAnnotations', reduce_zero_label=True, label_id_map={255: 1}),
+    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False, label_id_map={255: 1}),
     dict(
         type='mmseg.RandomResize',
         scale=(2048, 512),
@@ -136,7 +136,7 @@ test_pipeline = [
     dict(type='Resize', scale=(2048, 512), keep_ratio=True),
     # add loading annotation after ``Resize`` because ground truth
     # does not need to do resize data transform
-    dict(type='LoadAnnotations', reduce_zero_label=True),
+    dict(type='LoadAnnotations', reduce_zero_label=False),
     dict(type='PackSegInputs')
 ]
 
@@ -167,7 +167,7 @@ datamodule_cfg = dict(
             type=dataset_type,
             img_suffix='.tif',
             seg_map_suffix='.tif',
-            reduce_zero_label=True,
+            reduce_zero_label=False,
             metainfo=metainfo,
             data_root=data_root,
             data_prefix=dict(img_path=train_data_prefix+'image', seg_map_path=train_data_prefix+'label'),
