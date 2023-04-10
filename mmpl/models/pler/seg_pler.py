@@ -179,7 +179,7 @@ class SegPLer(BasePLer):
             multimask_output='all',
         )
         masks = self.sam.postprocess_masks(low_res_masks)
-
+        import ipdb; ipdb.set_trace()
         masks = rearrange(masks, '(n b) c h w -> n b c h w', n=num_img)
         building_probabilities = rearrange(building_probabilities, '(n b) c -> n b c', n=num_img)
         masks = masks * building_probabilities
