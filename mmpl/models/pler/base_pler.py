@@ -3,7 +3,7 @@ import torch.nn as nn
 from mmengine import OPTIM_WRAPPERS
 from mmengine.optim import build_optim_wrapper, _ParamScheduler
 import copy
-from mmpl.registry import MODELS
+from mmpl.registry import MODELS, METRICS
 import lightning.pytorch as pl
 from mmengine.registry import OPTIMIZERS, PARAM_SCHEDULERS
 from mmengine.model import BaseModel
@@ -14,6 +14,9 @@ class BasePLer(pl.LightningModule, BaseModel):
     def __init__(self, hyperparameters, *args, **kwargs):
         super().__init__()
         self.hyperparameters = hyperparameters
+        evaluator_cfg = copy.deepcopy(self.hyperparameters.get('evaluator', None))
+        if evaluator_cfg is not None:
+            self.evaluator = METRICS.build(evaluator_cfg)
 
     def configure_optimizers(self):
         optimizer_cfg = copy.deepcopy(self.hyperparameters.get('optimizer'))
@@ -101,3 +104,9 @@ class BasePLer(pl.LightningModule, BaseModel):
                 'runner.param_schedulers should be list of ParamScheduler or '
                 'a dict containing list of ParamScheduler, '
                 f'but got {param_schedulers}')
+
+    def on_validation_epoch_end(self) -> None:
+        import ipdb; ipdb.set_trace()
+        metrics = self.evaluator.compute()
+        self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        self.evaluator.reset()

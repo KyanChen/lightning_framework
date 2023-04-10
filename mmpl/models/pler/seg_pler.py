@@ -110,20 +110,11 @@ class SegPLer(BasePLer):
     def validation_step(self, batch, batch_idx):
         masks = self.forward(batch)
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-
-        losses = {}
         seg_label = seg_label.squeeze(1)
-        # import ipdb; ipdb.set_trace()
-        loss_bce = F.binary_cross_entropy_with_logits(masks.squeeze(dim=1), seg_label.float(), reduction='mean')
-        loss_dice = self.loss_dice(masks, seg_label)
-        losses['loss_bce'] = loss_bce
-        losses['loss_dice'] = loss_dice
-
-        parsed_losses, log_vars = self.parse_losses(losses)
-        log_vars = {f'train_{k}': v for k, v in log_vars.items()}
-        log_vars['loss'] = parsed_losses
-        self.log_dict(log_vars, prog_bar=True, rank_zero_only=True)
-        return log_vars
+        masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
+        masks = torch.argmax(masks, dim=1)
+        import ipdb; ipdb.set_trace()
+        self.evaluator.update(masks, seg_label)
 
     def training_step(self, batch, batch_idx):
         masks = self.forward(batch)

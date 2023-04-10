@@ -34,11 +34,20 @@ param_scheduler = [
     )
 ]
 
+evaluator = dict(
+    type='JaccardIndex',
+    task='multiclass',
+    num_classes=2,
+    ignore_index=255
+)
+
+
 model_cfg = dict(
     type='SegPLer',
     hyperparameters=dict(
         optimizer=optimizer,
         param_scheduler=param_scheduler,
+        evaluator=evaluator,
     ),
     sam='vit_h',
     sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
@@ -88,13 +97,13 @@ trainer_cfg = dict(
     logger=logger,
     callbacks=callbacks,
     log_every_n_steps=1,
-    # check_val_every_n_epoch=1,
+    check_val_every_n_epoch=1,
     benchmark=True,
     # sync_batchnorm=True,
 
     # fast_dev_run=True,
     # limit_train_batches=1,
-    limit_val_batches=0,
+    # limit_val_batches=0,
     # limit_test_batches=None,
     # limit_predict_batches=None,
     # overfit_batches=0.0,
@@ -134,12 +143,12 @@ train_pipeline = [
 ]
 
 test_pipeline = [
-    dict(type='LoadImageFromFile'),
-    dict(type='Resize', scale=(2048, 512), keep_ratio=True),
+    dict(type='mmseg.LoadImageFromFile'),
+    dict(type='mmseg.Resize', scale=crop_size),
     # add loading annotation after ``Resize`` because ground truth
     # does not need to do resize data transform
-    dict(type='LoadAnnotations', reduce_zero_label=False),
-    dict(type='PackSegInputs')
+    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False, label_id_map={255: 1}),
+    dict(type='mmseg.PackSegInputs')
 ]
 
 
@@ -176,6 +185,24 @@ datamodule_cfg = dict(
             indices=2,
             test_mode=False,
             pipeline=train_pipeline,
+        )
+    ),
+    val_loader=dict(
+        batch_size=test_batch_size_per_gpu,
+        num_workers=test_num_workers,
+        persistent_workers=persistent_workers,
+        pin_memory=True,
+        dataset=dict(
+            type=dataset_type,
+            img_suffix='.tif',
+            seg_map_suffix='.tif',
+            reduce_zero_label=False,
+            metainfo=metainfo,
+            data_root=data_root,
+            data_prefix=dict(img_path=val_data_prefix+'image', seg_map_path=val_data_prefix+'label'),
+            indices=2,
+            test_mode=True,
+            pipeline=test_pipeline,
         )
     ),
 )

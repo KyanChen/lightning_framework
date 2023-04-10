@@ -24,23 +24,9 @@ def register_pl_metrics() -> List[str]:
         if module_name.startswith('__'):
             continue
         _metric = getattr(torchmetrics, module_name)
-        if inspect.isclass(_metric) and issubclass(_metric, torchmetrics.Metric):
+        if inspect.isclass(_metric):
             METRICS.register_module(module=_metric)
             pl_metrics.append(module_name)
-            continue
-        # if inspect.ismodule(_metric):
-        #     import ipdb;
-        #     ipdb.set_trace()
-        #     for _metric_name in dir(_metric):
-        #         if _metric_name.startswith('__'):
-        #             continue
-        #         if not hasattr(_metric, _metric_name):
-        #             continue
-        #         _metric = getattr(_metric, _metric_name)
-        #         if inspect.isclass(_metric) and issubclass(_metric, torchmetrics.Metric):
-        #             METRICS.register_module(module=_metric, force=True)
-        #             pl_metrics.append(_metric_name)
-    import ipdb; ipdb.set_trace()
     return pl_metrics
 
 
