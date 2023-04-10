@@ -128,7 +128,7 @@ class SegPLer(BasePLer):
 
         losses = {}
         seg_label = seg_label.squeeze(1)
-        # import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         loss_bce = self.loss_mask(masks, seg_label, ignore_index=self.ignore_index)
         loss_dice = self.loss_dice(masks, seg_label)
         losses['loss_bce'] = loss_bce
