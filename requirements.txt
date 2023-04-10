@@ -3,6 +3,7 @@ lightning>=2.0.0
 mmcv>=2.0.0rc4
 mmengine
 openmim
+
 redis
 scikit-learn
 tenacity
@@ -13,5 +14,7 @@ ipdb
 prettytable
 einops
 
+imageio
 pycocotools
 shapely
+terminaltables

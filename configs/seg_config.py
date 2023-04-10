@@ -41,7 +41,7 @@ model_cfg = dict(
         param_scheduler=param_scheduler,
     ),
     sam='vit_h',
-    sam_checkpoint='../pretrain/sam/sam_vit_h_4b8939.pth',
+    sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
     need_train_names=sub_model,
     loss_mask=dict(
             type='mmseg.CrossEntropyLoss',
