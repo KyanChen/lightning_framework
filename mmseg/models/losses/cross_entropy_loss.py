@@ -65,6 +65,7 @@ def cross_entropy(pred,
 
 def _expand_onehot_labels(labels, label_weights, target_shape, ignore_index):
     """Expand onehot labels to match the size of prediction."""
+    import ipdb; ipdb.set_trace()
     bin_labels = labels.new_zeros(target_shape)
     valid_mask = (labels >= 0) & (labels != ignore_index)
     inds = torch.nonzero(valid_mask, as_tuple=True)
