@@ -22,6 +22,15 @@ def register_pl_metrics() -> List[str]:
         if module_name.startswith('__'):
             continue
         _metric = getattr(torchmetrics, module_name)
+        if inspect.ismodule(_metric):
+            for _metric_name in dir(_metric):
+                if _metric_name.startswith('__'):
+                    continue
+                _metric = getattr(_metric, _metric_name)
+                if inspect.isclass(_metric) and issubclass(_metric, torchmetrics.Metric):
+                    METRICS.register_module(module=_metric)
+                    pl_metrics.append(_metric_name)
+            continue
         if inspect.isclass(_metric) and issubclass(_metric, torchmetrics.Metric):
             METRICS.register_module(module=_metric)
             pl_metrics.append(module_name)
