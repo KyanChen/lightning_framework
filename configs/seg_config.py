@@ -27,10 +27,10 @@ param_scheduler = [
     # main learning rate scheduler
     dict(
         type='CosineAnnealingLR',
-        T_max=100,
+        T_max=200,
         by_epoch=True,
         begin=1,
-        end=100,
+        end=200,
     )
 ]
 
@@ -68,14 +68,15 @@ model_cfg = dict(
         loss_weight=1.0),
 )
 
-# logger = dict(
-#     type='WandbLogger',
-#     project='MotionGPT',
-#     group='test',
-#     name='E20230403_1'
-# )
+logger = dict(
+    type='WandbLogger',
+    project='building',
+    group='test',
+    name='E20230410_0'
+)
+# logger = None
 
-logger = None
+
 callbacks = [
     dict(
         type='ModelCheckpoint',
@@ -92,12 +93,12 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=4,
     default_root_dir='results/exp',
-    max_epochs=100,
+    max_epochs=200,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=1,
+    log_every_n_steps=5,
     check_val_every_n_epoch=1,
     benchmark=True,
     # sync_batchnorm=True,
@@ -154,10 +155,10 @@ test_pipeline = [
 
 
 train_batch_size_per_gpu = 1
-train_num_workers = 0
+train_num_workers = 1
 test_batch_size_per_gpu = 1
-test_num_workers = 0
-persistent_workers = False
+test_num_workers = 1
+persistent_workers = True
 
 
 data_parent = '/data1/kyanchen/datasets/'
@@ -183,7 +184,7 @@ datamodule_cfg = dict(
             metainfo=metainfo,
             data_root=data_root,
             data_prefix=dict(img_path=train_data_prefix+'image', seg_map_path=train_data_prefix+'label'),
-            indices=2,
+            indices=16,
             test_mode=False,
             pipeline=train_pipeline,
         )
@@ -201,7 +202,7 @@ datamodule_cfg = dict(
             metainfo=metainfo,
             data_root=data_root,
             data_prefix=dict(img_path=val_data_prefix+'image', seg_map_path=val_data_prefix+'label'),
-            indices=2,
+            indices=16,
             test_mode=True,
             pipeline=test_pipeline,
         )
