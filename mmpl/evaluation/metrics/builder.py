@@ -19,8 +19,6 @@ def register_pl_metrics() -> List[str]:
     """
     pl_metrics = []
     for module_name in dir(torchmetrics):
-        import ipdb;
-        ipdb.set_trace()
         if module_name.startswith('__'):
             continue
         _metric = getattr(torchmetrics, module_name)
