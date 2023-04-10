@@ -82,6 +82,7 @@ callbacks = [
         type='ModelCheckpoint',
         monitor='metric_1',
         save_top_k=5,
+        filename='epoch_{epoch}-iou_{metric_1:.4f}'
     ),
 ]
 
