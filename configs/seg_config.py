@@ -38,7 +38,8 @@ evaluator = dict(
     type='JaccardIndex',
     task='multiclass',
     num_classes=2,
-    ignore_index=255
+    ignore_index=255,
+    average='none'
 )
 
 

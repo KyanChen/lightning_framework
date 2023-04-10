@@ -17,6 +17,7 @@ class BasePLer(pl.LightningModule, BaseModel):
         evaluator_cfg = copy.deepcopy(self.hyperparameters.get('evaluator', None))
         if evaluator_cfg is not None:
             self.evaluator = METRICS.build(evaluator_cfg)
+            # self.train_metrics = metrics.clone(prefix='train_')
 
     def configure_optimizers(self):
         optimizer_cfg = copy.deepcopy(self.hyperparameters.get('optimizer'))
@@ -106,7 +107,6 @@ class BasePLer(pl.LightningModule, BaseModel):
                 f'but got {param_schedulers}')
 
     def on_validation_epoch_end(self) -> None:
-        import ipdb; ipdb.set_trace()
         metrics = self.evaluator.compute()
         self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.evaluator.reset()
