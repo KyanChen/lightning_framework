@@ -1,5 +1,5 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_imports=False)
-
+# train max_num_instance=140
 sub_model = [
         'sam.mask_decoder.iou_token',
         'sam.mask_decoder.building_token',
