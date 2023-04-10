@@ -68,13 +68,13 @@ model_cfg = dict(
         loss_weight=1.0),
 )
 
-# logger = dict(
-#     type='WandbLogger',
-#     project='building',
-#     group='test',
-#     name='E20230410_0'
-# )
-logger = None
+logger = dict(
+    type='WandbLogger',
+    project='building',
+    group='test',
+    name='E20230410_0'
+)
+# logger = None
 
 
 callbacks = [
@@ -94,7 +94,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=8,
     default_root_dir='results/exp',
     max_epochs=300,
     logger=logger,
