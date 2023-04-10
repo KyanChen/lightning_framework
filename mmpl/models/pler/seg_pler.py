@@ -128,7 +128,7 @@ class SegPLer(BasePLer):
 
         losses = {}
         seg_label = seg_label.squeeze(1)
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         loss_bce = F.binary_cross_entropy_with_logits(masks.squeeze(dim=1), seg_label.float(), reduction='mean')
         loss_dice = self.loss_dice(masks, seg_label)
         losses['loss_bce'] = loss_bce
