@@ -108,6 +108,8 @@ class SegPLer(BasePLer):
         return self
 
     def validation_step(self, batch, batch_idx):
+        import ipdb;
+        ipdb.set_trace()
         masks = self.forward(batch)
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
         seg_label = seg_label.squeeze(1)
@@ -116,6 +118,7 @@ class SegPLer(BasePLer):
         self.evaluator.update(masks, seg_label)
 
     def training_step(self, batch, batch_idx):
+        import ipdb; ipdb.set_trace()
         masks = self.forward(batch)
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
 
