@@ -141,7 +141,6 @@ class SegPLer(BasePLer):
           torch.Tensor: dense embeddings for the masks, in the shape
             Bx(embed_dim)x(embed_H)x(embed_W)
         '''
-        import ipdb; ipdb.set_trace()
         sparse_embeddings, dense_embeddings = self.sam.prompt_encoder(
             points=points,
             boxes=None,
@@ -164,7 +163,7 @@ class SegPLer(BasePLer):
                 mode="bilinear",
                 align_corners=False,
             )
-
+            import ipdb; ipdb.set_trace()
             mask_slice = slice(0, 1)
 
             masks = masks[:, mask_slice, :, :]
