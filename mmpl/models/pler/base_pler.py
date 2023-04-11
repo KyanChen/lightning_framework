@@ -30,6 +30,7 @@ class BasePLer(pl.LightningModule, BaseModel):
             # self.train_metrics = metrics.clone(prefix='train_')
 
     def _set_grad(self, need_train_names: list=[], noneed_train_names: list=[]):
+        import ipdb; ipdb.set_trace()
         for name, param in self.named_parameters():
             flag = False
             for need_train_name in need_train_names:
