@@ -158,11 +158,11 @@ class SegPLer(BasePLer):
                 dense_prompt_embeddings=dense_embeddings
             )
             mask_slice = slice(0, 1)
-            lr_masks = lr_masks[:, mask_slice, :, :]
+            masks = lr_masks[:, mask_slice, :, :]
             iou_pred = iou_pred[:, mask_slice]
             class_aware_prob = class_aware_prob[:, mask_slice]
 
-            lr_masks = torch.sigmoid(lr_masks)
+            masks = torch.sigmoid(masks)
             iou_pred = torch.sigmoid(iou_pred)
             class_aware_prob = torch.sigmoid(class_aware_prob)
 
