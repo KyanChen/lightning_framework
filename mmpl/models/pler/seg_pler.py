@@ -78,7 +78,7 @@ class SegPLer(BasePLer):
         pass
 
     def train(self, mode=True):
-        return super()._set_train_module(mode)
+        return self._set_train_module(mode)
 
     def validation_step(self, batch, batch_idx):
         # import ipdb;
@@ -141,6 +141,7 @@ class SegPLer(BasePLer):
           torch.Tensor: dense embeddings for the masks, in the shape
             Bx(embed_dim)x(embed_H)x(embed_W)
         '''
+        import ipdb; ipdb.set_trace()
         sparse_embeddings, dense_embeddings = self.sam.prompt_encoder(
             points=points,
             boxes=None,
