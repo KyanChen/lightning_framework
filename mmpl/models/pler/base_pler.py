@@ -15,8 +15,6 @@ class BasePLer(pl.LightningModule, BaseModel):
         super().__init__()
         self.hyperparameters = hyperparameters
         if data_preprocessor is not None:
-            if data_preprocessor is None:
-                data_preprocessor = dict(type='BaseDataPreprocessor')
             if isinstance(data_preprocessor, nn.Module):
                 self.data_preprocessor = data_preprocessor
             elif isinstance(data_preprocessor, dict):
@@ -30,6 +28,46 @@ class BasePLer(pl.LightningModule, BaseModel):
         if evaluator_cfg is not None:
             self.evaluator = METRICS.build(evaluator_cfg)
             # self.train_metrics = metrics.clone(prefix='train_')
+
+    def _set_grad(self, need_train_names: list=[], noneed_train_names: list=[]):
+        for name, param in self.named_parameters():
+            flag = False
+            for need_train_name in need_train_names:
+                if need_train_name in name:
+                    flag = True
+            for noneed_train_name in noneed_train_names:
+                if noneed_train_name in name:
+                    flag = False
+            param.requires_grad_(flag)
+
+        not_specific_names = []
+        for name, param in self.named_parameters():
+            flag_find = False
+            for specific_name in need_train_names + noneed_train_names:
+                if specific_name in name:
+                    flag_find = True
+            if not flag_find:
+                not_specific_names.append(name)
+
+        if self.local_rank == 0:
+            not_specific_names = [x.split('.')[0] for x in not_specific_names]
+            not_specific_names = set(not_specific_names)
+            print(f"Turning off gradients for names: {noneed_train_names}")
+            print(f"Turning on gradients for names: {need_train_names}")
+            print(f"Turning off gradients for not specific names: {not_specific_names}")
+
+    def _set_train_module(self, mode=True):
+        self.training = mode
+        for name, module in self.named_children():
+            flag = False
+            for need_train_name in self.need_train_names:
+                if need_train_name in name:
+                    flag = True
+            if flag:
+                module.train(mode)
+            else:
+                module.eval()
+        return self
 
     def configure_optimizers(self):
         optimizer_cfg = copy.deepcopy(self.hyperparameters.get('optimizer'))
@@ -52,8 +90,7 @@ class BasePLer(pl.LightningModule, BaseModel):
                     # filter(lambda p: p.requires_grad, model.parameters())
                     sub_models[sub_model_name]['params'] = filter(lambda p: p.requires_grad, [sub_model_])
                 else:
-                    sub_models[sub_model_name]['params'] = filter(lambda p: p.requires_grad,
-                                                                      sub_model_.parameters())
+                    sub_models[sub_model_name]['params'] = filter(lambda p: p.requires_grad, sub_model_.parameters())
                 lr_mult = value.pop('lr_mult', 1.)
                 sub_models[sub_model_name]['lr'] = base_lr * lr_mult
                 if base_wd is not None:

@@ -1,6 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-
+import einops
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
@@ -71,8 +71,14 @@ class MaskDecoder(nn.Module):
             transformer_dim, iou_head_hidden_dim, self.num_mask_tokens, iou_head_depth
         )
 
+        self.soft_head = nn.Sequential(
+            nn.Conv2d(self.num_mask_tokens, self.num_mask_tokens*2, kernel_size=3),
+            activation(),
+            nn.Conv2d(self.num_mask_tokens*2, self.num_mask_tokens, kernel_size=3),
+        )
+
         self.building_probability_head = MLP(
-            transformer_dim, iou_head_hidden_dim, 1, iou_head_depth, sigmoid_output=True
+            transformer_dim, iou_head_hidden_dim, 1, iou_head_depth
         )
 
     def forward(
@@ -167,10 +173,9 @@ class MaskDecoder(nn.Module):
         masks = (hyper_in @ upscaled_embedding.view(b, c, h * w)).view(b, -1, h, w)
 
         # Generate mask quality predictions
-        iou_pred = self.iou_prediction_head(iou_token_out)
-
-        masks = masks * torch.softmax(iou_pred, dim=-1)[..., None, None]
-        masks = torch.sum(masks, dim=1, keepdim=True)
+        iou_pred = self.iou_prediction_head(iou_token_out)  # B 4
+        # masks B 4 256 256
+        masks = einops.einsum(masks, iou_pred, 'b c h w, b c -> b h w')  # B 1 256 256
 
         building_probability = self.building_probability_head(building_token_out)
 

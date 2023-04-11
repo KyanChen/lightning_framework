@@ -1,6 +1,7 @@
 import os
 from typing import Any
 
+import einops
 import mmengine
 import numpy as np
 import torch
@@ -25,6 +26,7 @@ class SegPLer(BasePLer):
                  sam='vit_h',
                  sam_checkpoint='',
                  points_per_side=18,
+                 prompt_shape=(120, 6),
                  need_train_names=None,
                  loss_mask=dict(
                      type='CrossEntropyLoss',
@@ -53,39 +55,19 @@ class SegPLer(BasePLer):
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
                 points_per_side, 0, 1)
+        self.prompt_shape = prompt_shape
+        num_channels = points_per_side*points_per_side
+        self.soft_aggregation = nn.Sequential(
+            nn.Conv2d(num_channels, num_channels, 3),
+            nn.ReLU(),
+            nn.Conv2d(num_channels, num_channels, 3),
+        )
 
         self.loss_mask = MODELS.build(loss_mask)
         self.loss_dice = MODELS.build(loss_dice)
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
-
-    def _set_grad(self, need_train_names: list=[], noneed_train_names: list=[]):
-        for name, param in self.named_parameters():
-            flag = False
-            for need_train_name in need_train_names:
-                if need_train_name in name:
-                    flag = True
-            for noneed_train_name in noneed_train_names:
-                if noneed_train_name in name:
-                    flag = False
-            param.requires_grad_(flag)
-
-        not_specific_names = []
-        for name, param in self.named_parameters():
-            flag_find = False
-            for specific_name in need_train_names + noneed_train_names:
-                if specific_name in name:
-                    flag_find = True
-            if not flag_find:
-                not_specific_names.append(name)
-
-        if self.local_rank == 0:
-            not_specific_names = [x.split('.')[0] for x in not_specific_names]
-            not_specific_names = set(not_specific_names)
-            print(f"Turning off gradients for names: {noneed_train_names}")
-            print(f"Turning on gradients for names: {need_train_names}")
-            print(f"Turning off gradients for not specific names: {not_specific_names}")
 
     def setup(self, stage: str) -> None:
         self._set_grad(self.need_train_names, [])
@@ -95,26 +77,16 @@ class SegPLer(BasePLer):
         pass
 
     def train(self, mode=True):
-        self.training = mode
-        for name, module in self.named_children():
-            flag = False
-            for need_train_name in self.need_train_names:
-                if need_train_name in name:
-                    flag = True
-            if flag:
-                module.train(mode)
-            else:
-                module.eval()
-        return self
+        return super().train(mode)
 
     def validation_step(self, batch, batch_idx):
         # import ipdb;
         # ipdb.set_trace()
         masks = self.forward(batch)
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-        seg_label = seg_label.squeeze(1)
+        seg_label = seg_label
         masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
-        masks = masks.squeeze(1) > 0
+        masks = masks > 0
         self.evaluator.update(masks, seg_label)
 
     def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any):
@@ -131,9 +103,9 @@ class SegPLer(BasePLer):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
 
         losses = {}
-        seg_label = seg_label.squeeze(1)
+
         # import ipdb; ipdb.set_trace()
-        loss_bce = F.binary_cross_entropy_with_logits(masks.squeeze(dim=1), seg_label.float(), reduction='mean')
+        loss_bce = F.binary_cross_entropy_with_logits(masks, seg_label.float(), reduction='mean')
         loss_dice = self.loss_dice(masks, seg_label)
         losses['loss_bce'] = loss_bce
         losses['loss_dice'] = loss_dice
@@ -148,8 +120,8 @@ class SegPLer(BasePLer):
         img = torch.stack(batch['inputs'], dim=0)
         num_img = img.shape[0]
         img = img[:, [2, 1, 0], :, :]  # BGR2RGB
-
         img = (img - self.sam.pixel_mean) / self.sam.pixel_std
+
         image_embeddings = self.sam.image_encoder(img)  # Bx256x64x64
         if hasattr(self, 'point_grids'):
             points_scale = np.array(img.shape[-2:])[None, :]
@@ -182,12 +154,12 @@ class SegPLer(BasePLer):
             dense_prompt_embeddings=dense_embeddings,
             multimask_output='all',
         )
+        low_res_masks = rearrange(low_res_masks, '(b n_img) h w -> n_img b h w', n_img=num_img)
+        building_probabilities = einops.rearrange(building_probabilities.squeeze(dim=-1), '(b n_img) -> n_img b', n_img=num_img)
+        low_res_masks = self.soft_aggregation(low_res_masks)
         masks = self.sam.postprocess_masks(low_res_masks)
-
-        masks = rearrange(masks, '(b n) c h w -> b n c h w', n=num_img)
-        building_probabilities = rearrange(building_probabilities.squeeze(-1), '(b n) -> b n', n=num_img)
-        masks = masks * building_probabilities[:, :, None, None, None]
-        masks = torch.sum(masks, dim=0)
+        masks = einops.einsum(masks, building_probabilities, 'n_img c h w, n_img c -> n_img h w')
+        masks = masks.unsqueeze(1)
 
         return masks
 

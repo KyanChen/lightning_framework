@@ -6,6 +6,8 @@ sub_model = [
         'sam.mask_decoder.building_token',
         'sam.mask_decoder.iou_prediction_head',
         'sam.mask_decoder.building_probability_head',
+        'sam.mask_decoder.soft_head',
+        'soft_aggregation',
     ]
 max_epochs = 300
 
@@ -100,6 +102,7 @@ trainer_cfg = dict(
     # precision='16-mixed',
     devices=8,
     default_root_dir='results/building/E20230411_0',
+    # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
@@ -116,7 +119,7 @@ trainer_cfg = dict(
     # overfit_batches=0.0,
 
     # val_check_interval=None,
-    # num_sanity_val_steps=2,
+    # num_sanity_val_steps=0,
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
@@ -137,12 +140,12 @@ crop_size = (1024, 1024)
 train_pipeline = [
     dict(type='mmseg.LoadImageFromFile'),
     dict(type='mmseg.LoadAnnotations', reduce_zero_label=False, label_id_map={255: 1}),
-    dict(
-        type='mmseg.RandomResize',
-        scale=(2048, 512),
-        ratio_range=(1.0, 3.0),
-        keep_ratio=True),
-    dict(type='mmseg.RandomCrop', crop_size=crop_size),
+    # dict(
+    #     type='mmseg.RandomResize',
+    #     scale=(2048, 512),
+    #     ratio_range=(1.0, 3.0),
+    #     keep_ratio=True),
+    # dict(type='mmseg.RandomCrop', crop_size=crop_size),
     dict(type='mmseg.Resize', scale=crop_size),
     dict(type='mmseg.RandomFlip', prob=0.5),
     dict(type='mmseg.PhotoMetricDistortion'),
@@ -167,6 +170,7 @@ persistent_workers = True
 
 
 # data_parent = '/data1/kyanchen/datasets/'
+# data_parent = '/Users/kyanchen/datasets/Building/'
 data_parent = '/mnt/search01/dataset/cky_data/'
 data_root = data_parent+'WHU/'
 train_data_prefix = 'train/'

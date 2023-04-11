@@ -1,17 +1,9 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_imports=False)
-# train max_num_instance=140
-# test max_num_instance=96
-sub_model = [
-        'sam.mask_decoder.iou_token',
-        'sam.mask_decoder.building_token',
-        'sam.mask_decoder.iou_prediction_head',
-        'sam.mask_decoder.building_probability_head',
-    ]
+
 max_epochs = 300
 
 optimizer = dict(
     type='AdamW',
-    sub_model=sub_model,
     lr=0.0001,
     weight_decay=1e-3
 )
@@ -36,17 +28,9 @@ param_scheduler = [
     )
 ]
 
-evaluator = dict(
-    type='JaccardIndex',
-    task='multiclass',
-    num_classes=2,
-    ignore_index=255,
-    average='none'
-)
-
 crop_size = (512, 512)
 data_preprocessor = dict(
-    type='SegDataPreProcessor',
+    type='mmseg.SegDataPreProcessor',
     mean=[123.675, 116.28, 103.53],
     std=[58.395, 57.12, 57.375],
     bgr_to_rgb=True,
@@ -56,10 +40,10 @@ data_preprocessor = dict(
     test_cfg=dict(size_divisor=32))
 num_classes = 150
 model = dict(
-    type='EncoderDecoder',
+    type='mmseg.EncoderDecoder',
     data_preprocessor=data_preprocessor,
     backbone=dict(
-        type='ResNet',
+        type='mmseg.ResNet',
         depth=50,
         deep_stem=False,
         num_stages=4,
@@ -67,9 +51,10 @@ model = dict(
         frozen_stages=-1,
         norm_cfg=dict(type='SyncBN', requires_grad=False),
         style='pytorch',
-        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')),
+        # init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')
+    ),
     decode_head=dict(
-        type='Mask2FormerHead',
+        type='mmseg.Mask2FormerHead',
         in_channels=[256, 512, 1024, 2048],
         strides=[4, 8, 16, 32],
         feat_channels=256,
@@ -175,40 +160,25 @@ model = dict(
                 ]),
             sampler=dict(type='mmdet.MaskPseudoSampler'))),
     train_cfg=dict(),
-    test_cfg=dict(mode='whole'))
+    test_cfg=dict(mode='whole')
+)
 
 model_cfg = dict(
-    type='SegPLer',
+    type='MMSegPLer',
     hyperparameters=dict(
         optimizer=optimizer,
         param_scheduler=param_scheduler,
-        evaluator=evaluator,
     ),
-    sam='vit_h',
-    sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
-    need_train_names=sub_model,
-    loss_mask=dict(
-            type='mmdet.CrossEntropyLoss',
-            use_sigmoid=True,
-            reduction='mean',
-            loss_weight=1.0),
-    loss_dice=dict(
-        type='mmdet.DiceLoss',
-        use_sigmoid=True,
-        activate=True,
-        reduction='mean',
-        naive_dice=True,
-        eps=1.0,
-        loss_weight=1.0),
+    whole_model=model,
 )
 
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='test',
-    name='E20230410_0'
-)
-# logger = None
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='test',
+#     name='E20230410_0'
+# )
+logger = None
 
 
 callbacks = [
@@ -225,18 +195,18 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="auto",
+    accelerator="cpu",
     strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
-    default_root_dir='results/exp/E20230410_0',
+    devices=1,
+    default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=30,
-    check_val_every_n_epoch=1,
+    log_every_n_steps=1,
+    check_val_every_n_epoch=0,
     benchmark=True,
     # sync_batchnorm=True,
 
@@ -265,19 +235,19 @@ trainer_cfg = dict(
     # reload_dataloaders_every_n_epochs=0,
 )
 
-crop_size = (1024, 1024)
+crop_size = (512, 512)
 train_pipeline = [
     dict(type='mmseg.LoadImageFromFile'),
-    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False, label_id_map={255: 1}),
-    dict(
-        type='mmseg.RandomResize',
-        scale=(2048, 512),
-        ratio_range=(1.0, 3.0),
-        keep_ratio=True),
-    dict(type='mmseg.RandomCrop', crop_size=crop_size),
+    dict(type='mmseg.LoadAnnotations', reduce_zero_label=True),
+    # dict(
+    #     type='mmseg.RandomResize',
+    #     scale=(2048, 512),
+    #     ratio_range=(1.0, 3.0),
+    #     keep_ratio=True),
+    # dict(type='mmseg.RandomCrop', crop_size=crop_size),
     dict(type='mmseg.Resize', scale=crop_size),
-    dict(type='mmseg.RandomFlip', prob=0.5),
-    dict(type='mmseg.PhotoMetricDistortion'),
+    # dict(type='mmseg.RandomFlip', prob=0.5),
+    # dict(type='mmseg.PhotoMetricDistortion'),
     dict(type='mmseg.PackSegInputs')
 ]
 
@@ -286,46 +256,21 @@ test_pipeline = [
     dict(type='mmseg.Resize', scale=crop_size),
     # add loading annotation after ``Resize`` because ground truth
     # does not need to do resize data transform
-    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False, label_id_map={255: 1}),
+    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False),
     dict(type='mmseg.PackSegInputs')
 ]
 
 
-train_batch_size_per_gpu = 1
-train_num_workers = 2
-test_batch_size_per_gpu = 1
-test_num_workers = 2
-persistent_workers = True
+train_batch_size_per_gpu = 2
+train_num_workers = 0
+test_batch_size_per_gpu = 2
+test_num_workers = 0
+persistent_workers = False
 
 
-# data_parent = '/data1/kyanchen/datasets/'
-data_parent = '/mnt/search01/dataset/cky_data/'
-data_root = data_parent+'WHU/'
-train_data_prefix = 'train/'
-val_data_prefix = 'test/'
+data_root = '/Users/kyanchen/codes/lightning_framework/sample/ade'
 
 dataset_type = 'mmseg.ADE20KDataset'
-metainfo = dict(classes=('building',), palette=[(0, 0, 255)])
-
-val_loader = dict(
-        batch_size=test_batch_size_per_gpu,
-        num_workers=test_num_workers,
-        persistent_workers=persistent_workers,
-        pin_memory=True,
-        dataset=dict(
-            type=dataset_type,
-            img_suffix='.tif',
-            seg_map_suffix='.tif',
-            reduce_zero_label=False,
-            metainfo=metainfo,
-            data_root=data_root,
-            data_prefix=dict(img_path=val_data_prefix+'image', seg_map_path=val_data_prefix+'label'),
-            # indices=16,
-            test_mode=True,
-            pipeline=test_pipeline,
-        )
-    )
-
 datamodule_cfg = dict(
     type='PLDataModule',
     train_loader=dict(
@@ -335,18 +280,13 @@ datamodule_cfg = dict(
         pin_memory=True,
         dataset=dict(
             type=dataset_type,
-            img_suffix='.tif',
-            seg_map_suffix='.tif',
-            reduce_zero_label=False,
-            metainfo=metainfo,
+            img_suffix='.jpg',
+            seg_map_suffix='.png',
+            reduce_zero_label=True,
             data_root=data_root,
-            data_prefix=dict(img_path=train_data_prefix+'image', seg_map_path=train_data_prefix+'label'),
-            # indices=16,
             test_mode=False,
             pipeline=train_pipeline,
         )
     ),
-    val_loader=val_loader,
-    test_loader=val_loader
 )
 

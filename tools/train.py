@@ -15,6 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a pl model')
     # parser.add_argument('--config', default='../configs/yolov8_config.py', help='train config file path')
     parser.add_argument('--config', default='configs/seg_config.py', help='train config file path')
+    # parser.add_argument('--config', default='../configs/seg_mask2former_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/motiongpt_config.py', help='train config file path')
     parser.add_argument('--status', default='fit', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
     parser.add_argument('--work-dir', default=None, help='the dir to save logs and mmpl')
