@@ -78,7 +78,7 @@ class SegPLer(BasePLer):
         pass
 
     def train(self, mode=True):
-        return super().train(mode)
+        return super()._set_train_module(mode)
 
     def validation_step(self, batch, batch_idx):
         # import ipdb;
