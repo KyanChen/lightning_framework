@@ -114,7 +114,15 @@ class SegPLer(BasePLer):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
         seg_label = seg_label.squeeze(1)
         masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
-        masks = torch.argmax(masks, dim=1)
+        masks = masks.squeeze(1) > 0
+        self.evaluator.update(masks, seg_label)
+
+    def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any):
+        masks = self.forward(batch)
+        seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+        seg_label = seg_label.squeeze(1)
+        masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
+        masks = masks.squeeze(1) > 0
         self.evaluator.update(masks, seg_label)
 
     def training_step(self, batch, batch_idx):
@@ -133,13 +141,13 @@ class SegPLer(BasePLer):
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'train_{k}': v for k, v in log_vars.items()}
         log_vars['loss'] = parsed_losses
-        self.log_dict(log_vars, prog_bar=True, rank_zero_only=True)
+        self.log_dict(log_vars, prog_bar=True)
         return log_vars
 
     def forward(self, batch, *args: Any, **kwargs: Any) -> Any:
         img = torch.stack(batch['inputs'], dim=0)
         num_img = img.shape[0]
-        img = img[:, [2, 1, 0], :, :]
+        img = img[:, [2, 1, 0], :, :]  # BGR2RGB
 
         img = (img - self.sam.pixel_mean) / self.sam.pixel_std
         image_embeddings = self.sam.image_encoder(img)  # Bx256x64x64

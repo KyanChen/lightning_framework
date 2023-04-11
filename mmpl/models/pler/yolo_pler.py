@@ -40,29 +40,15 @@ class YoloPLer(BasePLer):
         pass
 
     def training_val_step(self, batch, batch_idx, prefix=''):
-        img = batch['img']
-        gt_label = batch['gt_label']
-
-        x = self.backbone(img)
+        data = self.data_preprocessor(batch, True)
+        img = data['inputs']
+        batch_data_samples = data['data_samples']
+        x = self.backbone(img) # [torch.Size([2, 128, 64, 64]), torch.Size([2, 256, 32, 32]), torch.Size([2, 512, 16, 16])]
         if hasattr(self, 'neck'):
-            x = self.neck(x)
+            x = self.neck(x)  # [torch.Size([2, 128, 64, 64]), torch.Size([2, 256, 32, 32]), torch.Size([2, 512, 16, 16])]
         losses = self.head.loss(x, batch_data_samples)
-
-        losses = self.head.loss(
-            x,
-            normalization_info=dict(
-                max_rot_6d_with_position=self.max_rot_6d_with_position,
-                min_rot_6d_with_position=self.min_rot_6d_with_position,
-                max_diff_root_xz=self.max_diff_root_xz,
-                min_diff_root_xz=self.min_diff_root_xz,
-            ),
-            block_size=self.block_size,
-            parents=parents,
-            rot_6d_with_position=rot_6d_with_position,
-            diff_root_zyx=diff_root_zyx,
-            positions_shift=positions_shift,
-            rotations_shift=rotations_shift,
-        )
+        import ipdb;
+        ipdb.set_trace()
 
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'{prefix}_{k}': v for k, v in log_vars.items()}

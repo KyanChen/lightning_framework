@@ -11,9 +11,21 @@ from mmengine.model import BaseModel
 
 @MODELS.register_module()
 class BasePLer(pl.LightningModule, BaseModel):
-    def __init__(self, hyperparameters, *args, **kwargs):
+    def __init__(self, hyperparameters, data_preprocessor=None, *args, **kwargs):
         super().__init__()
         self.hyperparameters = hyperparameters
+        if data_preprocessor is not None:
+            if data_preprocessor is None:
+                data_preprocessor = dict(type='BaseDataPreprocessor')
+            if isinstance(data_preprocessor, nn.Module):
+                self.data_preprocessor = data_preprocessor
+            elif isinstance(data_preprocessor, dict):
+                self.data_preprocessor = MODELS.build(data_preprocessor)
+            else:
+                raise TypeError('data_preprocessor should be a `dict` or '
+                                f'`nn.Module` instance, but got '
+                                f'{type(data_preprocessor)}')
+
         evaluator_cfg = copy.deepcopy(self.hyperparameters.get('evaluator', None))
         if evaluator_cfg is not None:
             self.evaluator = METRICS.build(evaluator_cfg)
@@ -107,7 +119,8 @@ class BasePLer(pl.LightningModule, BaseModel):
                 f'but got {param_schedulers}')
 
     def on_validation_epoch_end(self) -> None:
-        metrics = self.evaluator.compute()
-        for i, data in enumerate(metrics):
-            self.log(f'metric_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, rank_zero_only=True)
-        self.evaluator.reset()
+        if hasattr(self, 'evaluator'):
+            metrics = self.evaluator.compute()
+            for i, data in enumerate(metrics):
+                self.log(f'metric_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+            self.evaluator.reset()
