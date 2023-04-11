@@ -169,14 +169,14 @@ class SegPLer(BasePLer):
             class_aware_prob = class_aware_prob * iou_pred
 
             masks = einops.einsum(masks, class_aware_prob, 'b c h w, b c -> c h w')
-            masks = torch.clamp(masks, 0, 1)
-
             masks = F.interpolate(
-                masks,
+                masks.unsqueeze(0),
                 (self.sam.image_encoder.img_size, self.sam.image_encoder.img_size),
                 mode="bilinear",
                 align_corners=False,
             )
+            masks = torch.clamp(masks.squeeze(0), 0, 1)
+
             n_img_masks.append(masks)
         n_img_masks = torch.stack(n_img_masks, dim=0)
 
