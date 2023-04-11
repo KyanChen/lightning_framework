@@ -2,7 +2,7 @@ torch>=2.0.0
 mmcv>=2.0.0rc4
 
 torchvision
-lightning>=2.0.1
+lightning==2.0.1
 mmengine
 openmim
 wandb
