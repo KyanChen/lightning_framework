@@ -157,20 +157,12 @@ class SegPLer(BasePLer):
                 sparse_prompt_embeddings=sparse_embeddings,
                 dense_prompt_embeddings=dense_embeddings
             )
-            masks = F.interpolate(
-                lr_masks,
-                (self.sam.image_encoder.img_size, self.sam.image_encoder.img_size),
-                mode="bilinear",
-                align_corners=False,
-            )
-            import ipdb; ipdb.set_trace()
             mask_slice = slice(0, 1)
-
-            masks = masks[:, mask_slice, :, :]
+            lr_masks = lr_masks[:, mask_slice, :, :]
             iou_pred = iou_pred[:, mask_slice]
             class_aware_prob = class_aware_prob[:, mask_slice]
 
-            masks = torch.sigmoid(masks)
+            lr_masks = torch.sigmoid(lr_masks)
             iou_pred = torch.sigmoid(iou_pred)
             class_aware_prob = torch.sigmoid(class_aware_prob)
 
@@ -178,6 +170,13 @@ class SegPLer(BasePLer):
 
             masks = einops.einsum(masks, class_aware_prob, 'b c h w, b c -> c h w')
             masks = torch.clamp(masks, 0, 1)
+
+            masks = F.interpolate(
+                masks,
+                (self.sam.image_encoder.img_size, self.sam.image_encoder.img_size),
+                mode="bilinear",
+                align_corners=False,
+            )
             n_img_masks.append(masks)
         n_img_masks = torch.stack(n_img_masks, dim=0)
 
