@@ -15,11 +15,10 @@ from mmengine.structures import InstanceData
 from torch import Tensor
 
 from mmpl.registry import MODELS, TASK_UTILS
-from .. import ModulatedSirens
 from ..utils import gt_instances_preprocess, make_divisible
 from mmyolo.models.dense_heads.yolov5_head import YOLOv5Head
 from torch.nn import functional as F
-
+from mmpl.models.necks.sirens import ModulatedSirens
 
 @MODELS.register_module()
 class YOLOv8SIRENSHeadModule(BaseModule):
