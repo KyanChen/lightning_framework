@@ -50,7 +50,6 @@ class Sam(nn.Module):
     def device(self) -> Any:
         return self.pixel_mean.device
 
-    @torch.no_grad()
     def forward(
         self,
         batched_input: List[Dict[str, Any]],
@@ -85,8 +84,8 @@ class Sam(nn.Module):
           (list(dict)): A list over input images, where each element is
             as dictionary with the following keys.
               'masks': (torch.Tensor) Batched binary mask predictions,
-                with shape BxCxHxW, where B is the number of input promts,
-                C is determiend by multimask_output, and (H, W) is the
+                with shape BxCxHxW, where B is the number of input prompts,
+                C is determined by multimask_output, and (H, W) is the
                 original size of the image.
               'iou_predictions': (torch.Tensor) The model's predictions
                 of mask quality, in shape BxC.
@@ -133,7 +132,8 @@ class Sam(nn.Module):
     def postprocess_masks(
         self,
         masks: torch.Tensor,
-        original_size=None,
+        input_size: Tuple[int, ...],
+        original_size: Tuple[int, ...],
     ) -> torch.Tensor:
         """
         Remove padding and upscale masks to the original image size.
@@ -156,8 +156,8 @@ class Sam(nn.Module):
             mode="bilinear",
             align_corners=False,
         )
-        if original_size is not None:
-            masks = F.interpolate(masks, original_size, mode="bilinear", align_corners=False)
+        masks = masks[..., : input_size[0], : input_size[1]]
+        masks = F.interpolate(masks, original_size, mode="bilinear", align_corners=False)
         return masks
 
     def preprocess(self, x: torch.Tensor) -> torch.Tensor:

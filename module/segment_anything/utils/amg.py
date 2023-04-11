@@ -162,7 +162,7 @@ def calculate_stability_score(
     the predicted mask logits at high and low values.
     """
     # One mask is always contained inside the other.
-    # Save memory by preventing unnecesary cast to torch.int64
+    # Save memory by preventing unnecessary cast to torch.int64
     intersections = (
         (masks > (mask_threshold + threshold_offset))
         .sum(-1, dtype=torch.int16)
@@ -179,7 +179,7 @@ def calculate_stability_score(
 def build_point_grid(n_per_side: int) -> np.ndarray:
     """Generates a 2D grid of points evenly spaced in [0,1]x[0,1]."""
     offset = 1 / (2 * n_per_side)
-    points_one_side = np.linspace(offset, 1 - offset, n_per_side)
+    points_one_side = np.linspace(offset, 1 - offset, n_per_side, dtype=np.float32)
     points_x = np.tile(points_one_side[None, :], (n_per_side, 1))
     points_y = np.tile(points_one_side[:, None], (1, n_per_side))
     points = np.stack([points_x, points_y], axis=-1).reshape(-1, 2)

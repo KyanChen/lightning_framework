@@ -2,12 +2,10 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_i
 # train max_num_instance=140
 # test max_num_instance=96
 sub_model = [
-        'sam.mask_decoder.iou_token',
-        'sam.mask_decoder.building_token',
-        'sam.mask_decoder.iou_prediction_head',
-        'sam.mask_decoder.building_probability_head',
-        'sam.mask_decoder.soft_head',
-        'soft_aggregation',
+        # 'sam.mask_decoder.iou_token',
+        # 'sam.mask_decoder.iou_prediction_head',
+        'sam.mask_decoder.class_aware_token',
+        'sam.mask_decoder.class_aware_head',
     ]
 max_epochs = 300
 
@@ -76,7 +74,7 @@ logger = dict(
     type='WandbLogger',
     project='building',
     group='b_pred',
-    name='E20230410_0'
+    name='E20230411_0'
 )
 # logger = None
 
@@ -96,8 +94,8 @@ callbacks = [
 trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
-    # strategy="auto",
-    strategy='ddp_find_unused_parameters_true',
+    strategy="auto",
+    # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
     devices=8,
@@ -170,8 +168,8 @@ persistent_workers = True
 
 
 # data_parent = '/data1/kyanchen/datasets/'
-# data_parent = '/Users/kyanchen/datasets/Building/'
-data_parent = '/mnt/search01/dataset/cky_data/'
+data_parent = '/Users/kyanchen/datasets/Building/'
+# data_parent = '/mnt/search01/dataset/cky_data/'
 data_root = data_parent+'WHU/'
 train_data_prefix = 'train/'
 val_data_prefix = 'test/'

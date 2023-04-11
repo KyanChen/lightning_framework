@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+import mmengine.dist
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+
 import torch
 
 from functools import partial
@@ -39,8 +45,8 @@ def build_sam_vit_b(checkpoint=None):
 
 
 sam_model_registry = {
-    "default": build_sam,
-    "vit_h": build_sam,
+    "default": build_sam_vit_h,
+    "vit_h": build_sam_vit_h,
     "vit_l": build_sam_vit_l,
     "vit_b": build_sam_vit_b,
 }
@@ -98,5 +104,6 @@ def _build_sam(
         with open(checkpoint, "rb") as f:
             state_dict = torch.load(f)
         missing_keys, unexpected_keys = sam.load_state_dict(state_dict, strict=False)
-        print(missing_keys)
+        if mmengine.dist.get_local_rank() == 0:
+            print(f'loading cp: missing_keys-{missing_keys}')
     return sam

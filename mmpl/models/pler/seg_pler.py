@@ -56,15 +56,16 @@ class SegPLer(BasePLer):
             self.point_grids = build_all_layer_point_grids(
                 points_per_side, 0, 1)
         self.prompt_shape = prompt_shape
-        num_channels = points_per_side*points_per_side
-        self.soft_aggregation = nn.Sequential(
-            nn.Conv2d(num_channels, num_channels, 3),
-            nn.ReLU(),
-            nn.Conv2d(num_channels, num_channels, 3),
-        )
 
-        self.loss_mask = MODELS.build(loss_mask)
-        self.loss_dice = MODELS.build(loss_dice)
+        # num_channels = points_per_side*points_per_side
+        # self.soft_aggregation = nn.Sequential(
+        #     nn.Conv2d(num_channels, num_channels, 3),
+        #     nn.ReLU(),
+        #     nn.Conv2d(num_channels, num_channels, 3),
+        # )
+
+        # self.loss_mask = MODELS.build(loss_mask)
+        # self.loss_dice = MODELS.build(loss_dice)
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
@@ -84,9 +85,9 @@ class SegPLer(BasePLer):
         # ipdb.set_trace()
         masks = self.forward(batch)
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-        seg_label = seg_label
+
         masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
-        masks = masks > 0
+        masks = masks > 0.5
         self.evaluator.update(masks, seg_label)
 
     def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any):
@@ -103,12 +104,10 @@ class SegPLer(BasePLer):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
 
         losses = {}
-
-        # import ipdb; ipdb.set_trace()
-        loss_bce = F.binary_cross_entropy_with_logits(masks, seg_label.float(), reduction='mean')
-        loss_dice = self.loss_dice(masks, seg_label)
+        loss_bce = F.binary_cross_entropy(masks, seg_label.float(), reduction='mean')
+        # loss_dice = self.loss_dice(masks, seg_label)
         losses['loss_bce'] = loss_bce
-        losses['loss_dice'] = loss_dice
+        # losses['loss_dice'] = loss_dice
 
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'train_{k}': v for k, v in log_vars.items()}
@@ -117,14 +116,15 @@ class SegPLer(BasePLer):
         return log_vars
 
     def forward(self, batch, *args: Any, **kwargs: Any) -> Any:
-        img = torch.stack(batch['inputs'], dim=0)
+        img = torch.stack(batch['inputs'], dim=0)  # B C H W
         num_img = img.shape[0]
         img = img[:, [2, 1, 0], :, :]  # BGR2RGB
         img = (img - self.sam.pixel_mean) / self.sam.pixel_std
-
         image_embeddings = self.sam.image_encoder(img)  # Bx256x64x64
+
+        # if has points prompt, then get points embeddings
         if hasattr(self, 'point_grids'):
-            points_scale = np.array(img.shape[-2:])[None, :]
+            points_scale = np.array(img.shape[-2:], dtype=np.float32).reshape(1, -1)  # 2,
             points_for_image = self.point_grids[0] * points_scale
             in_points = torch.as_tensor(points_for_image, device=img.device)
             in_labels = torch.ones(in_points.shape[0], dtype=torch.int, device=in_points.device)
@@ -145,23 +145,43 @@ class SegPLer(BasePLer):
             points=points,
             boxes=None,
             masks=None,
-        )  # # 1024, 2, 256; 1024, 256, 64, 64
+        )  # 1024x2x256; 1024x256x64x64
 
-        low_res_masks, building_probabilities = self.sam.mask_decoder(
-            image_embeddings=image_embeddings,
-            image_pe=self.sam.prompt_encoder.get_dense_pe(),
-            sparse_prompt_embeddings=sparse_embeddings,
-            dense_prompt_embeddings=dense_embeddings,
-            multimask_output='all',
-        )
-        low_res_masks = rearrange(low_res_masks, '(b n_img) h w -> n_img b h w', n_img=num_img)
-        building_probabilities = einops.rearrange(building_probabilities.squeeze(dim=-1), '(b n_img) -> n_img b', n_img=num_img)
-        low_res_masks = self.soft_aggregation(low_res_masks)
-        masks = self.sam.postprocess_masks(low_res_masks)
-        masks = einops.einsum(masks, building_probabilities, 'n_img c h w, n_img c -> n_img h w')
-        masks = masks.unsqueeze(1)
+        n_img_masks = []
+        n_iou_preds = []
+        n_class_aware_probs = []
+        for curr_img_embedding in image_embeddings:
+            lr_masks, iou_pred, class_aware_prob = self.sam.mask_decoder(
+                image_embeddings=curr_img_embedding.unsqueeze(0),
+                image_pe=self.sam.prompt_encoder.get_dense_pe(),
+                sparse_prompt_embeddings=sparse_embeddings,
+                dense_prompt_embeddings=dense_embeddings
+            )
+            masks = F.interpolate(
+                lr_masks,
+                (self.sam.image_encoder.img_size, self.sam.image_encoder.img_size),
+                mode="bilinear",
+                align_corners=False,
+            )
 
-        return masks
+            mask_slice = slice(0, 1)
+
+            masks = masks[:, mask_slice, :, :]
+            iou_pred = iou_pred[:, mask_slice]
+            class_aware_prob = class_aware_prob[:, mask_slice]
+
+            masks = torch.sigmoid(masks)
+            iou_pred = torch.sigmoid(iou_pred)
+            class_aware_prob = torch.sigmoid(class_aware_prob)
+
+            class_aware_prob = class_aware_prob * iou_pred
+
+            masks = einops.einsum(masks, class_aware_prob, 'b c h w, b c -> c h w')
+            masks = torch.clamp(masks, 0, 1)
+            n_img_masks.append(masks)
+        n_img_masks = torch.stack(n_img_masks, dim=0)
+
+        return n_img_masks
 
 
 

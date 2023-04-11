@@ -142,16 +142,14 @@ class SamPredictor:
             point_coords = self.transform.apply_coords(point_coords, self.original_size)
             coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=self.device)
             labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=self.device)
-            if len(coords_torch.shape) == 2:
-                coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
+            coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
         if box is not None:
             box = self.transform.apply_boxes(box, self.original_size)
             box_torch = torch.as_tensor(box, dtype=torch.float, device=self.device)
             box_torch = box_torch[None, :]
         if mask_input is not None:
             mask_input_torch = torch.as_tensor(mask_input, dtype=torch.float, device=self.device)
-            if len(mask_input_torch.shape) == 3:
-                mask_input_torch = mask_input_torch[None, :, :, :]
+            mask_input_torch = mask_input_torch[None, :, :, :]
 
         masks, iou_predictions, low_res_masks = self.predict_torch(
             coords_torch,
@@ -162,9 +160,9 @@ class SamPredictor:
             return_logits=return_logits,
         )
 
-        masks = masks.detach().cpu().numpy()
-        iou_predictions = iou_predictions.detach().cpu().numpy()
-        low_res_masks = low_res_masks.detach().cpu().numpy()
+        masks = masks[0].detach().cpu().numpy()
+        iou_predictions = iou_predictions[0].detach().cpu().numpy()
+        low_res_masks = low_res_masks[0].detach().cpu().numpy()
         return masks, iou_predictions, low_res_masks
 
     @torch.no_grad()
@@ -188,7 +186,7 @@ class SamPredictor:
           point_labels (torch.Tensor or None): A BxN array of labels for the
             point prompts. 1 indicates a foreground point and 0 indicates a
             background point.
-          box (np.ndarray or None): A Bx4 array given a box prompt to the
+          boxes (np.ndarray or None): A Bx4 array given a box prompt to the
             model, in XYXY format.
           mask_input (np.ndarray): A low resolution mask input to the model, typically
             coming from a previous prediction iteration. Has form Bx1xHxW, where

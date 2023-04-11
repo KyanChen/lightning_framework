@@ -1,11 +1,10 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-import einops
+
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from einops import repeat
 from torch import nn
 from torch.nn import functional as F
 
@@ -27,7 +26,7 @@ class MaskDecoder(nn.Module):
     ) -> None:
         """
         Predicts masks given an image and prompt embeddings, using a
-        tranformer architecture.
+        transformer architecture.
 
         Arguments:
           transformer_dim (int): the channel dimension of the transformer
@@ -48,7 +47,7 @@ class MaskDecoder(nn.Module):
         self.num_multimask_outputs = num_multimask_outputs
 
         self.iou_token = nn.Embedding(1, transformer_dim)
-        self.building_token = nn.Embedding(1, transformer_dim)
+        self.class_aware_token = nn.Embedding(1, transformer_dim)
 
         self.num_mask_tokens = num_multimask_outputs + 1
         self.mask_tokens = nn.Embedding(self.num_mask_tokens, transformer_dim)
@@ -70,15 +69,8 @@ class MaskDecoder(nn.Module):
         self.iou_prediction_head = MLP(
             transformer_dim, iou_head_hidden_dim, self.num_mask_tokens, iou_head_depth
         )
-
-        self.soft_head = nn.Sequential(
-            nn.Conv2d(self.num_mask_tokens, self.num_mask_tokens*2, kernel_size=3),
-            activation(),
-            nn.Conv2d(self.num_mask_tokens*2, self.num_mask_tokens, kernel_size=3),
-        )
-
-        self.building_probability_head = MLP(
-            transformer_dim, iou_head_hidden_dim, 1, iou_head_depth
+        self.class_aware_head = MLP(
+            transformer_dim, iou_head_hidden_dim, self.num_mask_tokens, iou_head_depth
         )
 
     def forward(
@@ -87,7 +79,6 @@ class MaskDecoder(nn.Module):
         image_pe: torch.Tensor,
         sparse_prompt_embeddings: torch.Tensor,
         dense_prompt_embeddings: torch.Tensor,
-        multimask_output,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Predict masks given image and prompt embeddings.
@@ -104,35 +95,23 @@ class MaskDecoder(nn.Module):
           torch.Tensor: batched predicted masks
           torch.Tensor: batched predictions of mask quality
         """
-        masks, iou_pred = self.predict_masks(
+        masks, iou_pred, class_aware_prob = self.predict_masks(
             image_embeddings=image_embeddings,
             image_pe=image_pe,
             sparse_prompt_embeddings=sparse_prompt_embeddings,
             dense_prompt_embeddings=dense_prompt_embeddings,
         )
 
-        if multimask_output == 'all':
-            return masks, iou_pred
-
-        # Select the correct mask or masks for output
-        if multimask_output == 'max':
-            mask_area = masks.sum(dim=(2, 3))
-            max_idx = mask_area.argmax(dim=1)
-            masks = masks[torch.arange(masks.shape[0]), max_idx, :, :]
-            iou_pred = iou_pred[torch.arange(iou_pred.shape[0]), max_idx]
-            masks = masks.unsqueeze(1)
-            iou_pred = iou_pred.unsqueeze(1)
-            return masks, iou_pred
-
-        if multimask_output:
-            mask_slice = slice(1, None)
-        else:
-            mask_slice = slice(0, 1)
-        masks = masks[:, mask_slice, :, :]
-        iou_pred = iou_pred[:, mask_slice]
+        # # Select the correct mask or masks for outptu
+        # if multimask_output:
+        #     mask_slice = slice(1, None)
+        # else:
+        #     mask_slice = slice(0, 1)
+        # masks = masks[:, mask_slice, :, :]
+        # iou_pred = iou_pred[:, mask_slice]
 
         # Prepare output
-        return masks, iou_pred
+        return masks, iou_pred, class_aware_prob
 
     def predict_masks(
         self,
@@ -142,25 +121,22 @@ class MaskDecoder(nn.Module):
         dense_prompt_embeddings: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Predicts masks. See 'forward' for more details."""
-        num_imgs = image_embeddings.shape[0]
         # Concatenate output tokens
-        output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight, self.building_token.weight], dim=0)  # 6x256
+        output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight, self.class_aware_token.weight], dim=0)
         output_tokens = output_tokens.unsqueeze(0).expand(sparse_prompt_embeddings.size(0), -1, -1)
-        tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)  # 1024, 8, 256
-        tokens = repeat(tokens, 'b d c -> (b n) d c', n=num_imgs)  # 1024, 18, 256
+        tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)
 
         # Expand per-image data in batch direction to be per-mask
-        src = torch.repeat_interleave(image_embeddings, tokens.shape[0]//num_imgs, dim=0)  # 2048
-        dense_prompt_embeddings = repeat(dense_prompt_embeddings, 'b c h w -> (b n) c h w', n=num_imgs)
+        src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)
         src = src + dense_prompt_embeddings
-        pos_src = repeat(image_pe, 'b c h w -> (b n) c h w', n=src.shape[0])
+        pos_src = torch.repeat_interleave(image_pe, tokens.shape[0], dim=0)
         b, c, h, w = src.shape
 
         # Run the transformer
         hs, src = self.transformer(src, pos_src, tokens)
         iou_token_out = hs[:, 0, :]
-        mask_tokens_out = hs[:, 1: (1 + self.num_mask_tokens), :]
-        building_token_out = hs[:, (1 + self.num_mask_tokens), :]
+        mask_tokens_out = hs[:, 1 : (1 + self.num_mask_tokens), :]
+        class_aware_token_out = hs[:, 1 + self.num_mask_tokens, :]
 
         # Upscale mask embeddings and predict masks using the mask tokens
         src = src.transpose(1, 2).view(b, c, h, w)
@@ -173,13 +149,11 @@ class MaskDecoder(nn.Module):
         masks = (hyper_in @ upscaled_embedding.view(b, c, h * w)).view(b, -1, h, w)
 
         # Generate mask quality predictions
-        iou_pred = self.iou_prediction_head(iou_token_out)  # B 4
-        # masks B 4 256 256
-        masks = einops.einsum(masks, iou_pred, 'b c h w, b c -> b h w')  # B 1 256 256
+        iou_pred = self.iou_prediction_head(iou_token_out)
 
-        building_probability = self.building_probability_head(building_token_out)
+        class_aware_prob = self.class_aware_head(class_aware_token_out)
 
-        return masks, building_probability
+        return masks, iou_pred, class_aware_prob
 
 
 # Lightly adapted from
