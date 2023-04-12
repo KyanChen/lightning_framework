@@ -217,7 +217,7 @@ datamodule_cfg = dict(
             pipeline=train_pipeline,
         )
     ),
-    val_loader=val_loader,
-    test_loader=val_loader
+    # val_loader=val_loader,
+    # test_loader=val_loader
 )
 
