@@ -92,15 +92,16 @@ class LoadAnnotations(MMCV_LoadAnnotations):
         Returns:
             dict: The dict contains loaded semantic segmentation annotations.
         """
-
+        import ipdb
+        ipdb.set_trace()
         img_bytes = fileio.get(
             results['seg_map_path'], backend_args=self.backend_args)
         gt_semantic_seg = mmcv.imfrombytes(
             img_bytes, flag='unchanged',
             backend=self.imdecode_backend).squeeze().astype(np.uint8)
 
-        for ori_id, new_id in self.label_id_map.items():
-            gt_semantic_seg[gt_semantic_seg == int(ori_id)] = new_id
+        # for ori_id, new_id in self.label_id_map.items():
+        #     gt_semantic_seg[gt_semantic_seg == int(ori_id)] = new_id
 
         # reduce zero_label
         if self.reduce_zero_label is None:

@@ -175,7 +175,7 @@ trainer_cfg = dict(
 crop_size = (1024, 1024)
 train_pipeline = [
     dict(type='mmseg.LoadImageFromFile'),
-    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False),
+    dict(type='mmseg.LoadAnnotations'),
     # dict(
     #     type='mmseg.RandomResize',
     #     scale=(2048, 512),
@@ -193,7 +193,7 @@ test_pipeline = [
     dict(type='mmseg.Resize', scale=crop_size),
     # add loading annotation after ``Resize`` because ground truth
     # does not need to do resize data transform
-    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False),
+    dict(type='mmseg.LoadAnnotations'),
     dict(type='mmseg.PackSegInputs')
 ]
 
