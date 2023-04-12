@@ -104,6 +104,8 @@ class SegPLer(BasePLer):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
         folder = 'results/tmp'
         import cv2
+
+        cv2.imwrite(os.path.join(folder, f'img.png'), batch['inputs'][0].permute((1, 2, 0)).detach().cpu().numpy())
         cv2.imwrite(os.path.join(folder, f'label_mask.png'), seg_label[0][0].detach().cpu().numpy() * 255)
         masks = masks > 0
         for idx, mask_pred in enumerate(masks[0]):
