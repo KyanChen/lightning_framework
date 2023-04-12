@@ -102,6 +102,13 @@ class SegPLer(BasePLer):
         # import ipdb; ipdb.set_trace()
         masks = self.forward(batch)
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+        folder = 'results/tmp'
+        import cv2
+        cv2.imwrite(os.path.join(folder, f'label_mask.png'), seg_label[0][0].detach().cpu().numpy() * 255)
+        masks = masks > 0
+        for idx, mask_pred in enumerate(masks[0]):
+            cv2.imwrite(os.path.join(folder, f'pred_mask_{idx}.png'), mask_pred.detach().cpu().numpy() * 255)
+        import ipdb; ipdb.set_trace()
 
         losses = {}
         loss_bce = F.binary_cross_entropy(masks, seg_label.float(), reduction='mean')
@@ -162,20 +169,20 @@ class SegPLer(BasePLer):
             iou_pred = iou_pred[:, mask_slice]
             class_aware_prob = class_aware_prob[:, mask_slice]
 
-            masks = torch.sigmoid(masks)
-            iou_pred = torch.sigmoid(iou_pred)
-            class_aware_prob = torch.sigmoid(class_aware_prob)
-
-            class_aware_prob = class_aware_prob * iou_pred
-
-            masks = einops.einsum(masks, class_aware_prob, 'b c h w, b c -> c h w')
-            masks = F.interpolate(
-                masks.unsqueeze(0),
-                (self.sam.image_encoder.img_size, self.sam.image_encoder.img_size),
-                mode="bilinear",
-                align_corners=False,
-            )
-            masks = torch.clamp(masks.squeeze(0), 0, 1)
+            # masks = torch.sigmoid(masks)
+            # iou_pred = torch.sigmoid(iou_pred)
+            # class_aware_prob = torch.sigmoid(class_aware_prob)
+            #
+            # class_aware_prob = class_aware_prob * iou_pred
+            #
+            # masks = einops.einsum(masks, class_aware_prob, 'b c h w, b c -> c h w')
+            # masks = F.interpolate(
+            #     masks.unsqueeze(0),
+            #     (self.sam.image_encoder.img_size, self.sam.image_encoder.img_size),
+            #     mode="bilinear",
+            #     align_corners=False,
+            # )
+            # masks = torch.clamp(masks.squeeze(0), 0, 1)
 
             n_img_masks.append(masks)
         n_img_masks = torch.stack(n_img_masks, dim=0)

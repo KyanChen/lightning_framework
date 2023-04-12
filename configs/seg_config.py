@@ -70,13 +70,13 @@ model_cfg = dict(
         loss_weight=1.0),
 )
 
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='b_pred',
-    name='E20230411_0'
-)
-# logger = None
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='b_pred',
+#     name='E20230411_0'
+# )
+logger = False
 
 
 callbacks = [
@@ -98,9 +98,9 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
-    default_root_dir='results/building/E20230411_0',
-    # default_root_dir='results/tmp',
+    devices=1,
+    # default_root_dir='results/building/E20230411_0',
+    default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
@@ -117,7 +117,7 @@ trainer_cfg = dict(
     # overfit_batches=0.0,
 
     # val_check_interval=None,
-    # num_sanity_val_steps=0,
+    num_sanity_val_steps=0,
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
