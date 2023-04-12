@@ -25,7 +25,7 @@ class SegPLer(BasePLer):
     def __init__(self,
                  sam='vit_h',
                  sam_checkpoint='',
-                 points_per_side=18,
+                 points_per_side=None,
                  prompt_shape=(120, 6),
                  need_train_names=None,
                  loss_mask=dict(
@@ -56,6 +56,17 @@ class SegPLer(BasePLer):
             self.point_grids = build_all_layer_point_grids(
                 points_per_side, 0, 1)
         self.prompt_shape = prompt_shape
+
+        self.decoder_input_projs = nn.ModuleList()
+        # from low resolution to high resolution
+        # for _ in range(num_transformer_feat_level):
+        #     if (self.decoder_embed_dims != feat_channels
+        #             or enforce_decoder_input_project):
+        #         self.decoder_input_projs.append(
+        #             Conv2d(
+        #                 feat_channels, self.decoder_embed_dims, kernel_size=1))
+        #     else:
+        #         self.decoder_input_projs.append(nn.Identity())
 
         # num_channels = points_per_side*points_per_side
         # self.soft_aggregation = nn.Sequential(
@@ -129,7 +140,11 @@ class SegPLer(BasePLer):
         num_img = img.shape[0]
         img = img[:, [2, 1, 0], :, :]  # BGR2RGB
         img = (img - self.sam.pixel_mean) / self.sam.pixel_std
-        image_embeddings = self.sam.image_encoder(img)  # Bx256x64x64
+
+        with torch.no_grad():
+            image_embeddings, inner_states = self.sam.image_encoder(img)  # Bx256x64x64
+        import ipdb;
+        ipdb.set_trace()
 
         # if has points prompt, then get points embeddings
         if hasattr(self, 'point_grids'):

@@ -108,12 +108,14 @@ class ImageEncoderViT(nn.Module):
         if self.pos_embed is not None:
             x = x + self.pos_embed
 
+        inner_states = []
         for blk in self.blocks:
             x = blk(x)
+            inner_states.append(x)
 
         x = self.neck(x.permute(0, 3, 1, 2))
 
-        return x
+        return x, inner_states
 
 
 class Block(nn.Module):
