@@ -1,4 +1,4 @@
 # lightning_framework
 Pytorch lightning framework with openmmlab integration. It's scalable to every tasks and every devices.
 
-https://meshcapade.wiki/SMPL
+The interface is similar to openmmlab, but it's more flexible and scalable.

@@ -107,7 +107,7 @@ class SegPLer(BasePLer):
         cv2.imwrite(os.path.join(folder, f'label_mask.png'), seg_label[0][0].detach().cpu().numpy() * 255)
         masks = masks > 0
         for idx, mask_pred in enumerate(masks[0]):
-            cv2.imwrite(os.path.join(folder, f'pred_mask_{idx}.png'), mask_pred.detach().cpu().numpy() * 255)
+            cv2.imwrite(os.path.join(folder, f'pred_mask_{idx}.png'), mask_pred[0].detach().cpu().numpy() * 255)
         import ipdb; ipdb.set_trace()
 
         losses = {}
