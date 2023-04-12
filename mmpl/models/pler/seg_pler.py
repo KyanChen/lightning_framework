@@ -114,7 +114,7 @@ class SegPLer(BasePLer):
             image_embeddings, inner_states = self.sam.image_encoder(img)  # Bx256x64x64
         import ipdb;
         ipdb.set_trace()
-        ponits_embeddings = self.sam_prompt_generator(inner_states)
+        points_embeddings = self.sam_prompt_generator(inner_states)
 
         # if has points prompt, then get points embeddings
         if hasattr(self, 'point_grids'):
@@ -133,7 +133,7 @@ class SegPLer(BasePLer):
             )  # 1024x2x256; 1024x256x64x64
         else:
             # ponits_embeddings B T N C
-            sparse_embeddings = ponits_embeddings
+            sparse_embeddings = points_embeddings
             dense_embeddings = self.sam.prompt_encoder.no_mask_embed.weight.view(1, -1, 1, 1).expand(
                 sparse_embeddings.shape[0], sparse_embeddings.shape[1], -1,
                 self.sam.prompt_encoder.image_embedding_size[0], self.sam.prompt_encoder.image_embedding_size[1]
