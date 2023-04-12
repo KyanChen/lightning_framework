@@ -131,7 +131,7 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="auto",
+    accelerator="cpu",
     strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
@@ -199,10 +199,10 @@ test_pipeline = [
 
 
 train_batch_size_per_gpu = 1
-train_num_workers = 2
+train_num_workers = 0
 test_batch_size_per_gpu = 1
-test_num_workers = 2
-persistent_workers = True
+test_num_workers = 0
+persistent_workers = False
 
 
 # data_parent = '/data1/kyanchen/datasets/'
