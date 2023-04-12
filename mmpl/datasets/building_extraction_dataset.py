@@ -50,8 +50,6 @@ class BuildingExtractionDataset(BaseSegDataset):
             all_instances.append(seg_map)
         all_instances = np.stack(all_instances, axis=0)
         all_instances = torch.from_numpy(all_instances)
-        import ipdb;
-        ipdb.set_trace()
         label = torch.ones(all_instances.shape[0], dtype=torch.long)
         results['data_samples'].set_data(dict(instances_data=all_instances, instances_label=label))
 
