@@ -154,6 +154,7 @@ class MaskDecoder(nn.Module):
         iou_pred = self.iou_prediction_head(iou_token_out)
 
         # class_aware_prob = self.class_aware_head(class_aware_token_out)
+        class_aware_prob = torch.zeros_like(iou_pred)
 
         return masks, iou_pred, class_aware_prob
 
