@@ -26,8 +26,7 @@ class InstanceMatchingHead(BaseModel):
                 type='CrossEntropyLoss',
                 use_sigmoid=False,
                 loss_weight=2.0,
-                reduction='mean',
-                class_weight=[1.0] * 133 + [0.1]),
+                reduction='mean'),
             loss_mask: ConfigType = dict(
                 type='CrossEntropyLoss',
                 use_sigmoid=True,
@@ -60,7 +59,6 @@ class InstanceMatchingHead(BaseModel):
             self.importance_sample_ratio = self.train_cfg.get(
                 'importance_sample_ratio', 0.75)
 
-        self.class_weight = loss_cls.class_weight
         self.loss_cls = MODELS.build(loss_cls)
         self.loss_mask = MODELS.build(loss_mask)
         self.loss_dice = MODELS.build(loss_dice)
