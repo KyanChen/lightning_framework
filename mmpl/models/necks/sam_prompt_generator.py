@@ -103,6 +103,6 @@ class SAMPromptGenNeck(nn.Module):
         decoder_outputs = self.query_feat_refine(decoder_outputs)
         import ipdb
         ipdb.set_trace()
-        decoder_outputs = rearrange(decoder_outputs, 'b n (t c) -> b n t c)', t=self.per_query_point)  # Bx100x6x256
+        decoder_outputs = rearrange(decoder_outputs, 'b n (t c) -> b n t c', t=self.per_query_point)  # Bx100x6x256
 
         return decoder_outputs
