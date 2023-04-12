@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import torch
 
-from mmseg.registry import DATASETS
+from mmpl.registry import DATASETS
 from mmseg.datasets.basesegdataset import BaseSegDataset
 
 
