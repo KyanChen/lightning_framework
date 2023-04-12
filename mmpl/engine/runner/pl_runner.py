@@ -90,7 +90,7 @@ class PLRunner:
 
         # build logger
         loggers = self.build_logger(
-            trainer_cfg.get('logger', None),
+            trainer_cfg.get('logger', False),
             trainer_cfg.get('default_root_dir', f'{self.timestamp}')
         )
         trainer_cfg['logger'] = loggers
@@ -150,7 +150,7 @@ class PLRunner:
         return runner
 
     def build_logger(self, loggers: Union[Dict, List[Dict]] = None, default_root_dir='logger'):
-        if loggers is not None:
+        if loggers is not None and loggers:
             if isinstance(loggers, Dict):
                 loggers = [loggers]
             tmp_loggers = []
