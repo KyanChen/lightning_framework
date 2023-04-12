@@ -34,7 +34,7 @@ class SAMPromptGenNeck(nn.Module):
                     nn.ReLU(inplace=True),
                     nn.Conv2d(decoder_embed_dims, decoder_embed_dims, kernel_size=3, stride=2, padding=1)
                 ))
-        self.level_embed = nn.Embedding(self.num_transformer_feat_level, decoder_embed_dims)
+        self.level_embed = nn.Embedding(self.num_img_feat_level, decoder_embed_dims)
         self.gather_img_feats = nn.Sequential(
             nn.Conv2d(out_put_channels, out_put_channels // 2, 3, padding=1),
             nn.ReLU(),
