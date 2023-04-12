@@ -35,8 +35,6 @@ class BuildingExtractionDataset(BaseSegDataset):
         results = self.pipeline(data_info)
         seg_map = results['data_samples'].gt_sem_seg.data
         # 如果是pillow，已经是1通道的了
-        import ipdb;
-        ipdb.set_trace()
         seg_map[seg_map == 255] = 1
         results['data_samples'].gt_sem_seg.data = seg_map
 
@@ -46,12 +44,14 @@ class BuildingExtractionDataset(BaseSegDataset):
 
         for i in range(len(contours)):
             draw_img = np.zeros(seg_map.shape, dtype=np.uint8)
-            cv2.drawContours(draw_img, contours[i], -1, 1)
+            cv2.drawContours(draw_img, contours, i, 1, -1)
             all_instances.append(draw_img)
         if len(all_instances) == 0:
             all_instances.append(seg_map)
         all_instances = np.stack(all_instances, axis=0)
         all_instances = torch.from_numpy(all_instances)
+        import ipdb;
+        ipdb.set_trace()
         label = torch.ones(all_instances.shape[0], dtype=torch.long)
         results['data_samples'].set_data(dict(instances_data=all_instances, instances_label=label))
 
