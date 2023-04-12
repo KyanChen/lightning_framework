@@ -122,7 +122,9 @@ class MaskDecoder(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Predicts masks. See 'forward' for more details."""
         # Concatenate output tokens
-        output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight, self.class_aware_token.weight], dim=0)
+        # output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight, self.class_aware_token.weight], dim=0)
+        output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight],
+                                  dim=0)
         output_tokens = output_tokens.unsqueeze(0).expand(sparse_prompt_embeddings.size(0), -1, -1)
         tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)
 
@@ -136,7 +138,7 @@ class MaskDecoder(nn.Module):
         hs, src = self.transformer(src, pos_src, tokens)
         iou_token_out = hs[:, 0, :]
         mask_tokens_out = hs[:, 1 : (1 + self.num_mask_tokens), :]
-        class_aware_token_out = hs[:, 1 + self.num_mask_tokens, :]
+        # class_aware_token_out = hs[:, 1 + self.num_mask_tokens, :]
 
         # Upscale mask embeddings and predict masks using the mask tokens
         src = src.transpose(1, 2).view(b, c, h, w)
@@ -151,7 +153,7 @@ class MaskDecoder(nn.Module):
         # Generate mask quality predictions
         iou_pred = self.iou_prediction_head(iou_token_out)
 
-        class_aware_prob = self.class_aware_head(class_aware_token_out)
+        # class_aware_prob = self.class_aware_head(class_aware_token_out)
 
         return masks, iou_pred, class_aware_prob
 
