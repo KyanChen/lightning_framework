@@ -207,7 +207,7 @@ persistent_workers = False
 
 # data_parent = '/data1/kyanchen/datasets/'
 # data_parent = '/Users/kyanchen/datasets/Building/'
-data_parent = '/mnt/search01/dataset/cky_data/'
+# data_parent = '/mnt/search01/dataset/cky_data/'
 data_parent = 'sample/'
 data_root = data_parent+'WHU/'
 train_data_prefix = 'train/'

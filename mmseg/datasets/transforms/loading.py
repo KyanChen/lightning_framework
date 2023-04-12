@@ -92,8 +92,6 @@ class LoadAnnotations(MMCV_LoadAnnotations):
         Returns:
             dict: The dict contains loaded semantic segmentation annotations.
         """
-        import ipdb
-        ipdb.set_trace()
         img_bytes = fileio.get(
             results['seg_map_path'], backend_args=self.backend_args)
         gt_semantic_seg = mmcv.imfrombytes(

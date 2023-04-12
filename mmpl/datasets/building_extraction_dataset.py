@@ -35,6 +35,7 @@ class BuildingExtractionDataset(BaseSegDataset):
         results = self.pipeline(data_info)
         import ipdb; ipdb.set_trace()
         seg_map = results['data_samples'].gt_sem_seg.data
+        # 如果是pillow，已经是1通道的了
         seg_map[seg_map == 255] = 1
         results['data_samples'].gt_sem_seg.data = seg_map
 
