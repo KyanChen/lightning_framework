@@ -213,7 +213,7 @@ data_root = data_parent+'WHU/'
 train_data_prefix = 'train/'
 val_data_prefix = 'test/'
 
-dataset_type = 'mmpl.BuildingExtractionDataset'
+dataset_type = 'BuildingExtractionDataset'
 metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
 
 val_loader = dict(
