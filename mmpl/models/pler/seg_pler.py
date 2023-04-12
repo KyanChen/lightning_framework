@@ -105,7 +105,6 @@ class SegPLer(BasePLer):
         return log_vars
 
     def forward(self, batch, *args: Any, **kwargs: Any) -> Any:
-        import ipdb; ipdb.set_trace()
         img = torch.stack(batch['inputs'], dim=0)  # B C H W
         num_img = img.shape[0]
         img = img[:, [2, 1, 0], :, :]  # BGR2RGB
@@ -113,6 +112,8 @@ class SegPLer(BasePLer):
 
         with torch.no_grad():
             image_embeddings, inner_states = self.sam.image_encoder(img)  # Bx256x64x64
+        import ipdb;
+        ipdb.set_trace()
         ponits_embeddings = self.sam_prompt_generator(inner_states)
 
         # if has points prompt, then get points embeddings

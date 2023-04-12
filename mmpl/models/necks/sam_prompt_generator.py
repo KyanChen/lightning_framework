@@ -18,7 +18,7 @@ class SAMPromptGenNeck(nn.Module):
         super(SAMPromptGenNeck, self).__init__()
         self.prompt_shape = prompt_shape
         self.num_queries = prompt_shape[0]
-        self.per_query_ponit = prompt_shape[1]
+        self.per_query_point = prompt_shape[1]
         self.img_feat_channels = img_feat_channels
         self.out_put_channels = out_put_channels
         self.num_img_feat_level = num_img_feat_level
@@ -30,20 +30,26 @@ class SAMPromptGenNeck(nn.Module):
         for _ in range(num_img_feat_level):
             self.decoder_input_projs.append(
                 nn.Sequential(
-                    nn.Conv2d(img_feat_channels, decoder_embed_dims, kernel_size=1),
+                    nn.Conv2d(img_feat_channels, 2 * decoder_embed_dims, kernel_size=1),
                     nn.ReLU(inplace=True),
-                    nn.Conv2d(decoder_embed_dims, decoder_embed_dims, kernel_size=3, stride=2, padding=1)
+                    nn.Conv2d(2 * decoder_embed_dims, 4 * decoder_embed_dims, kernel_size=2),
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(4 * decoder_embed_dims, 2 * decoder_embed_dims, kernel_size=3, stride=2, padding=1)
                 ))
-        self.level_embed = nn.Embedding(self.num_img_feat_level, decoder_embed_dims)
+        self.level_embed = nn.Embedding(self.num_img_feat_level, 2 * decoder_embed_dims)
         self.gather_img_feats = nn.Sequential(
-            nn.Conv2d(out_put_channels, out_put_channels // 2, 3, padding=1),
+            nn.Conv2d(out_put_channels * 2, out_put_channels, 3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(out_put_channels // 2, out_put_channels, 3, padding=1),
+            nn.Conv2d(out_put_channels, out_put_channels, 3, padding=1),
         )
         self.img_feats_pe = nn.Parameter(torch.zeros(1, out_put_channels, 32, 32))
         self.transformer = self.build_transformer()
-        self.query_feat = nn.Embedding(self.num_queries, 6 * out_put_channels)
-        self.query_feat_refine = nn.Linear(out_put_channels, out_put_channels)
+        self.query_feat = nn.Embedding(self.num_queries, out_put_channels)
+        self.query_feat_refine = nn.Sequential(
+            nn.Linear(out_put_channels, out_put_channels),
+            nn.ReLU(),
+            nn.Linear(out_put_channels, self.per_query_point * out_put_channels)
+        )
 
     def build_transformer(
             self, num_encoder_layers=2, num_decoder_layers=3, embed_dims=256, num_heads=8,
@@ -78,7 +84,7 @@ class SAMPromptGenNeck(nn.Module):
         num_layers = len(inputs)
 
         # select the feature maps from the selected layers
-        layer_start_id = (num_layers - self.num_img_feat_level) // 2
+        layer_start_id = num_layers - self.num_img_feat_level
         decoder_inputs = []
         for i in range(self.num_img_feat_level):
             decoder_input = self.decoder_input_projs[i](inner_states[i + layer_start_id])  # Bx256x64x64
@@ -94,6 +100,9 @@ class SAMPromptGenNeck(nn.Module):
         decoder_outputs = self.transformer(
             src=decoder_inputs, tgt=query_feat
         )
-        decoder_outputs = rearrange(decoder_outputs, 'b n (t c) -> b n t c)', t=6)  # Bx100x6x256
         decoder_outputs = self.query_feat_refine(decoder_outputs)
+        import ipdb
+        ipdb.set_trace()
+        decoder_outputs = rearrange(decoder_outputs, 'b n (t c) -> b n t c)', t=self.per_query_point)  # Bx100x6x256
+
         return decoder_outputs
