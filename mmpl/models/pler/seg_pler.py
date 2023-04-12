@@ -26,21 +26,9 @@ class SegPLer(BasePLer):
                  sam='vit_h',
                  sam_checkpoint='',
                  points_per_side=None,
-                 prompt_shape=(120, 6),
+                 sam_prompt_generator=None,
                  need_train_names=None,
-                 loss_mask=dict(
-                     type='CrossEntropyLoss',
-                     use_sigmoid=True,
-                     reduction='mean',
-                     loss_weight=5.0),
-                 loss_dice=dict(
-                     type='DiceLoss',
-                     use_sigmoid=True,
-                     activate=True,
-                     reduction='mean',
-                     naive_dice=True,
-                     eps=1.0,
-                     loss_weight=5.0),
+                 head=None,
                  ignore_index=255,
                  train_cfg=None,
                  test_cfg=None,
@@ -55,31 +43,12 @@ class SegPLer(BasePLer):
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
                 points_per_side, 0, 1)
-        self.prompt_shape = prompt_shape
-
-        self.decoder_input_projs = nn.ModuleList()
-        # from low resolution to high resolution
-        # for _ in range(num_transformer_feat_level):
-        #     if (self.decoder_embed_dims != feat_channels
-        #             or enforce_decoder_input_project):
-        #         self.decoder_input_projs.append(
-        #             Conv2d(
-        #                 feat_channels, self.decoder_embed_dims, kernel_size=1))
-        #     else:
-        #         self.decoder_input_projs.append(nn.Identity())
-
-        # num_channels = points_per_side*points_per_side
-        # self.soft_aggregation = nn.Sequential(
-        #     nn.Conv2d(num_channels, num_channels, 3),
-        #     nn.ReLU(),
-        #     nn.Conv2d(num_channels, num_channels, 3),
-        # )
-
-        # self.loss_mask = MODELS.build(loss_mask)
-        # self.loss_dice = MODELS.build(loss_dice)
+        if sam_prompt_generator is not None:
+            self.sam_prompt_generator = MODELS.build(sam_prompt_generator)
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
+        self.head = MODELS.build(head)
 
     def setup(self, stage: str) -> None:
         self._set_grad(self.need_train_names, [])
@@ -143,8 +112,7 @@ class SegPLer(BasePLer):
 
         with torch.no_grad():
             image_embeddings, inner_states = self.sam.image_encoder(img)  # Bx256x64x64
-        import ipdb;
-        ipdb.set_trace()
+        ponits_embeddings = self.sam_prompt_generator(inner_states)
 
         # if has points prompt, then get points embeddings
         if hasattr(self, 'point_grids'):
@@ -155,31 +123,30 @@ class SegPLer(BasePLer):
             in_points = rearrange(in_points, 'n c -> n () c')
             in_labels = rearrange(in_labels, 'n -> n ()')
             points = (in_points, in_labels)
-        else:
-            points = None
 
-        '''
-        torch.Tensor: sparse embeddings for the points and boxes, with shape
-            BxNx(embed_dim), where N is determined by the number of input points
-            and boxes.
-          torch.Tensor: dense embeddings for the masks, in the shape
-            Bx(embed_dim)x(embed_H)x(embed_W)
-        '''
-        sparse_embeddings, dense_embeddings = self.sam.prompt_encoder(
-            points=points,
-            boxes=None,
-            masks=None,
-        )  # 1024x2x256; 1024x256x64x64
+            sparse_embeddings, dense_embeddings = self.sam.prompt_encoder(
+                points=points,
+                boxes=None,
+                masks=None,
+            )  # 1024x2x256; 1024x256x64x64
+        else:
+            # ponits_embeddings B T N C
+            sparse_embeddings = ponits_embeddings
+            dense_embeddings = self.sam.prompt_encoder.no_mask_embed.weight.view(1, -1, 1, 1).expand(
+                sparse_embeddings.shape[0], sparse_embeddings.shape[1], -1,
+                self.sam.prompt_encoder.image_embedding_size[0], self.sam.prompt_encoder.image_embedding_size[1]
+                )
+
 
         n_img_masks = []
         n_iou_preds = []
         n_class_aware_probs = []
-        for curr_img_embedding in image_embeddings:
+        for curr_img_embedding, cur_s_emb, cur_d_emb in zip(image_embeddings, sparse_embeddings, dense_embeddings):
             lr_masks, iou_pred, class_aware_prob = self.sam.mask_decoder(
                 image_embeddings=curr_img_embedding.unsqueeze(0),
                 image_pe=self.sam.prompt_encoder.get_dense_pe(),
-                sparse_prompt_embeddings=sparse_embeddings,
-                dense_prompt_embeddings=dense_embeddings
+                sparse_prompt_embeddings=cur_s_emb,
+                dense_prompt_embeddings=cur_d_emb
             )
             mask_slice = slice(0, 1)
             masks = lr_masks[:, mask_slice, :, :]

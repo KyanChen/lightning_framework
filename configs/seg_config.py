@@ -2,10 +2,11 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_i
 # train max_num_instance=140
 # test max_num_instance=96
 sub_model = [
-        # 'sam.mask_decoder.iou_token',
-        # 'sam.mask_decoder.iou_prediction_head',
-        'sam.mask_decoder.class_aware_token',
-        'sam.mask_decoder.class_aware_head',
+    # 'sam.mask_decoder.iou_token',
+    # 'sam.mask_decoder.iou_prediction_head',
+    # 'sam.mask_decoder.class_aware_token',
+    # 'sam.mask_decoder.class_aware_head',
+    'sam_prompt_generator',
     ]
 max_epochs = 300
 
@@ -44,7 +45,7 @@ evaluator = dict(
     average='none'
 )
 
-
+num_classes = 2
 model_cfg = dict(
     type='SegPLer',
     hyperparameters=dict(
@@ -54,20 +55,57 @@ model_cfg = dict(
     ),
     sam='vit_h',
     sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
+    points_per_side=None,
     need_train_names=sub_model,
-    loss_mask=dict(
+    sam_prompt_generator=dict(
+        type='SAMPromptGenNeck',
+        prompt_shape=(100, 6),
+        img_feat_channels=1280,
+        out_put_channels=256,
+        num_img_feat_level=16,
+        img_feat_size=32,
+    ),
+    head=dict(
+        type='InstanceMatchingHead',
+        loss_cls=dict(
+            type='mmdet.CrossEntropyLoss',
+            use_sigmoid=False,
+            loss_weight=2.0,
+            reduction='mean'
+        ),
+        loss_mask=dict(
             type='mmdet.CrossEntropyLoss',
             use_sigmoid=True,
             reduction='mean',
-            loss_weight=1.0),
-    loss_dice=dict(
-        type='mmdet.DiceLoss',
-        use_sigmoid=True,
-        activate=True,
-        reduction='mean',
-        naive_dice=True,
-        eps=1.0,
-        loss_weight=1.0),
+            loss_weight=5.0),
+        loss_dice=dict(
+            type='mmdet.DiceLoss',
+            use_sigmoid=True,
+            activate=True,
+            reduction='mean',
+            naive_dice=True,
+            eps=1.0,
+            loss_weight=5.0),
+        train_cfg=dict(
+            num_points=12544,
+            oversample_ratio=3.0,
+            importance_sample_ratio=0.75,
+            assigner=dict(
+                type='mmdet.HungarianAssigner',
+                match_costs=[
+                    dict(type='mmdet.ClassificationCost', weight=2.0),
+                    dict(
+                        type='mmdet.CrossEntropyLossCost',
+                        weight=5.0,
+                        use_sigmoid=True),
+                    dict(
+                        type='mmdet.DiceCost',
+                        weight=5.0,
+                        pred_act=True,
+                        eps=1.0)
+                ]),
+            sampler=dict(type='mmdet.MaskPseudoSampler'))
+    ),
 )
 
 # logger = dict(
@@ -137,7 +175,7 @@ trainer_cfg = dict(
 crop_size = (1024, 1024)
 train_pipeline = [
     dict(type='mmseg.LoadImageFromFile'),
-    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False, label_id_map={255: 1}),
+    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False),
     # dict(
     #     type='mmseg.RandomResize',
     #     scale=(2048, 512),
@@ -146,7 +184,7 @@ train_pipeline = [
     # dict(type='mmseg.RandomCrop', crop_size=crop_size),
     dict(type='mmseg.Resize', scale=crop_size),
     dict(type='mmseg.RandomFlip', prob=0.5),
-    dict(type='mmseg.PhotoMetricDistortion'),
+    # dict(type='mmseg.PhotoMetricDistortion'),
     dict(type='mmseg.PackSegInputs')
 ]
 
@@ -155,7 +193,7 @@ test_pipeline = [
     dict(type='mmseg.Resize', scale=crop_size),
     # add loading annotation after ``Resize`` because ground truth
     # does not need to do resize data transform
-    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False, label_id_map={255: 1}),
+    dict(type='mmseg.LoadAnnotations', reduce_zero_label=False),
     dict(type='mmseg.PackSegInputs')
 ]
 
@@ -175,8 +213,8 @@ data_root = data_parent+'WHU/'
 train_data_prefix = 'train/'
 val_data_prefix = 'test/'
 
-dataset_type = 'mmseg.ADE20KDataset'
-metainfo = dict(classes=('building',), palette=[(0, 0, 255)])
+dataset_type = 'BuildingExtractionDataset'
+metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
 
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,

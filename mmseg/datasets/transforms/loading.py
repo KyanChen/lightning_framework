@@ -62,7 +62,7 @@ class LoadAnnotations(MMCV_LoadAnnotations):
 
     def __init__(
         self,
-        label_id_map={255: 1},
+        label_id_map={},
         reduce_zero_label=None,
         backend_args=None,
         imdecode_backend='pillow',
