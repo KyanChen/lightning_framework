@@ -115,9 +115,9 @@ class SegPLer(BasePLer):
         return batch_gt_instances, batch_img_metas
 
     def training_step(self, batch, batch_idx):
-        import ipdb; ipdb.set_trace()
-        cls_logits, masks, n_iou_preds = self.forward(batch)
+        cls_logits, masks, n_iou_preds = self.forward(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
         masks = masks.squeeze(2)
+        cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
         batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
             batch['data_samples'])
 

@@ -89,6 +89,8 @@ class InstanceMatchingHead(BaseModel):
             tuple[Tensor]: Loss components for outputs from a single decoder\
                 layer.
         """
+        import ipdb;
+        ipdb.set_trace()
         num_imgs = cls_scores.size(0)
         cls_scores_list = [cls_scores[i] for i in range(num_imgs)]
         mask_preds_list = [mask_preds[i] for i in range(num_imgs)]
