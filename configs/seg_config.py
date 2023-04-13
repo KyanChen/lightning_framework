@@ -135,7 +135,7 @@ callbacks = [
         type='ModelCheckpoint',
         save_last=True,
         mode='max',
-        monitor='val_metric_1',
+        monitor='valmulticlassjaccardindex_1',
         save_top_k=10,
         filename='epoch_{epoch}-iou_{metric_1:.4f}'
     ),

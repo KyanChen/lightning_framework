@@ -167,25 +167,27 @@ class BasePLer(pl.LightningModule, BaseModel):
                 f'but got {param_schedulers}')
 
     def on_validation_epoch_end(self) -> None:
-        import ipdb;
-        ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         if hasattr(self, 'val_evaluator'):
             metrics = self.val_evaluator.compute()
-            for i, data in enumerate(metrics):
-                self.log(f'val_metric_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
+            for k, v in metrics.items():
+                for i, data in enumerate(v):
+                    self.log(f'{k.lower()}_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
             self.val_evaluator.reset()
 
     def on_test_epoch_end(self) -> None:
         if hasattr(self, 'test_evaluator'):
             metrics = self.test_evaluator.compute()
-            for i, data in enumerate(metrics):
-                self.log(f'test_metric_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
+            for k, v in metrics.items():
+                for i, data in enumerate(v):
+                    self.log(f'{k.lower()}_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
             self.test_evaluator.reset()
 
     def on_train_epoch_end(self) -> None:
         import ipdb; ipdb.set_trace()
         if hasattr(self, 'train_evaluator'):
             metrics = self.train_evaluator.compute()
-            for i, data in enumerate(metrics):
-                self.log(f'train_metric_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
+            for k, v in metrics.items():
+                for i, data in enumerate(v):
+                    self.log(f'{k.lower()}_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
             self.train_evaluator.reset()
