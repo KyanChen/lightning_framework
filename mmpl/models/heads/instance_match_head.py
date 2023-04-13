@@ -59,6 +59,7 @@ class InstanceMatchingHead(BaseModel):
             self.importance_sample_ratio = self.train_cfg.get(
                 'importance_sample_ratio', 0.75)
 
+        self.class_weight = loss_cls.class_weight
         self.loss_cls = MODELS.build(loss_cls)
         self.loss_mask = MODELS.build(loss_mask)
         self.loss_dice = MODELS.build(loss_dice)
