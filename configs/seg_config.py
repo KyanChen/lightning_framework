@@ -90,7 +90,7 @@ model_cfg = dict(
             gamma=2.0,
             alpha=0.25,
             reduction='mean',
-            loss_weight=5.0),
+            loss_weight=10.0),
         loss_dice=dict(
             type='mmdet.DiceLoss',
             use_sigmoid=True,
@@ -106,7 +106,7 @@ model_cfg = dict(
             assigner=dict(
                 type='mmdet.HungarianAssigner',
                 match_costs=[
-                    dict(type='mmdet.ClassificationCost', weight=2.0),
+                    dict(type='mmdet.ClassificationCost', weight=4.0),
                     dict(
                         type='mmdet.CrossEntropyLossCost',
                         weight=5.0,
@@ -144,7 +144,7 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="cpu",
+    accelerator="gpu",
     strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
@@ -168,7 +168,7 @@ trainer_cfg = dict(
     # overfit_batches=0.0,
 
     # val_check_interval=None,
-    num_sanity_val_steps=0,
+    num_sanity_val_steps=2,
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
@@ -212,10 +212,10 @@ test_pipeline = [
 
 
 train_batch_size_per_gpu = 1
-train_num_workers = 0
+train_num_workers = 2
 test_batch_size_per_gpu = 1
-test_num_workers = 0
-persistent_workers = False
+test_num_workers = 2
+persistent_workers = True
 
 
 # data_parent = '/data1/kyanchen/datasets/'
