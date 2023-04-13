@@ -31,6 +31,7 @@ class SegPLer(BasePLer):
                  sam_prompt_generator=None,
                  need_train_names=None,
                  head=None,
+                 threshold=0.5,
                  ignore_index=255,
                  train_cfg=None,
                  test_cfg=None,
@@ -39,6 +40,7 @@ class SegPLer(BasePLer):
         self.save_hyperparameters()
         self.need_train_names = need_train_names
         self.ignore_index = ignore_index
+        self.threshold = threshold
 
         self.sam = sam_model_registry[sam](sam_checkpoint)
 
@@ -69,6 +71,7 @@ class SegPLer(BasePLer):
         masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
         # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
         seg_logits = self.post_process(cls_logits.detach(), masks.detach())
+        seg_logits = seg_logits > self.threshold
         self.val_evaluator.update(seg_logits, seg_label)
 
     def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any):
@@ -117,9 +120,9 @@ class SegPLer(BasePLer):
         masks = masks.squeeze(2)
         masks = F.interpolate(masks, size=[self.sam.image_encoder.img_size]*2, mode='bilinear', align_corners=True)
         # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
-        import ipdb; ipdb.set_trace()
         seg_logits = self.post_process(cls_logits.detach(), masks.detach())
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+        seg_logits = seg_logits > self.threshold
         self.train_evaluator.update(seg_logits, seg_label)
 
         batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
