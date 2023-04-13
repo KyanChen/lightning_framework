@@ -124,6 +124,9 @@ class SegPLer(BasePLer):
 
         losses = self.head.loss(cls_logits, masks, batch_gt_instances, batch_img_metas)
 
+        import ipdb;
+        ipdb.set_trace()
+
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
 
         losses = {}
