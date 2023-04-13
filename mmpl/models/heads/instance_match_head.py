@@ -112,7 +112,7 @@ class InstanceMatchingHead(BaseModel):
         cls_scores = cls_scores.flatten(0, 1)
         labels = labels.flatten(0, 1)
         label_weights = label_weights.flatten(0, 1)
-
+        import ipdb; ipdb.set_trace()
         class_weight = cls_scores.new_tensor(self.class_weight)
         loss_cls = self.loss_cls(
             cls_scores,
@@ -264,7 +264,7 @@ class InstanceMatchingHead(BaseModel):
         pred_instances = InstanceData(scores=cls_score, masks=mask_pred)
         downsampled_gt_instances = InstanceData(
             labels=gt_labels, masks=gt_masks_downsampled)
-        # assign and sample
+        # assign and sample # assign_result is the 1-based
         assign_result = self.assigner.assign(
             pred_instances=pred_instances,
             gt_instances=downsampled_gt_instances,
@@ -277,15 +277,17 @@ class InstanceMatchingHead(BaseModel):
         neg_inds = sampling_result.neg_inds
 
         # label target
-        labels = gt_labels.new_full((self.num_queries, ),
-                                    self.num_classes,
+        # 第0类为背景
+        num_queries = pred_instances.scores.shape[0]
+        labels = gt_labels.new_full((num_queries, ),
+                                    0,
                                     dtype=torch.long)
         labels[pos_inds] = gt_labels[sampling_result.pos_assigned_gt_inds]
-        label_weights = gt_labels.new_ones(self.num_queries)
+        label_weights = gt_labels.new_ones(num_queries)
 
         # mask target
         mask_targets = gt_masks[sampling_result.pos_assigned_gt_inds]
-        mask_weights = mask_pred.new_zeros((self.num_queries, ))
+        mask_weights = mask_pred.new_zeros((num_queries, ))
         mask_weights[pos_inds] = 1.0
 
         return (labels, label_weights, mask_targets, mask_weights, pos_inds,

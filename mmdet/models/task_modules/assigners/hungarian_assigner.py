@@ -102,6 +102,7 @@ class HungarianAssigner(BaseAssigner):
                                      device=device)
 
         if num_gts == 0 or num_preds == 0:
+            # import ipdb; ipdb.set_trace()
             # No ground truth or boxes, return empty assignment
             if num_gts == 0:
                 # No ground truth, assign all to background
