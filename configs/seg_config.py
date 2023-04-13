@@ -121,13 +121,13 @@ model_cfg = dict(
     ),
 )
 
-# logger = dict(
-#     type='WandbLogger',
-#     project='building',
-#     group='b_pred',
-#     name='E20230411_0'
-# )
-logger = False
+logger = dict(
+    type='WandbLogger',
+    project='building',
+    group='b_pred',
+    name='E20230411_0'
+)
+# logger = False
 
 
 callbacks = [
