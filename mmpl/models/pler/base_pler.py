@@ -167,7 +167,6 @@ class BasePLer(pl.LightningModule, BaseModel):
                 f'but got {param_schedulers}')
 
     def on_validation_epoch_end(self) -> None:
-        import ipdb; ipdb.set_trace()
         if hasattr(self, 'val_evaluator'):
             metrics = self.val_evaluator.compute()
             for k, v in metrics.items():
@@ -184,7 +183,6 @@ class BasePLer(pl.LightningModule, BaseModel):
             self.test_evaluator.reset()
 
     def on_train_epoch_end(self) -> None:
-        import ipdb; ipdb.set_trace()
         if hasattr(self, 'train_evaluator'):
             metrics = self.train_evaluator.compute()
             for k, v in metrics.items():
