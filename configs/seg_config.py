@@ -8,7 +8,7 @@ sub_model = [
     # 'sam.mask_decoder.class_aware_head',
     'sam_prompt_generator',
     ]
-max_epochs = 300
+max_epochs = 400
 
 optimizer = dict(
     type='AdamW',
@@ -66,7 +66,7 @@ model_cfg = dict(
         prompt_shape=(100, 6),
         img_feat_channels=1280,
         out_put_channels=256,
-        num_img_feat_level=16,
+        num_img_feat_level=20,
         img_feat_size=32,
         n_cls=num_classes,
     ),
@@ -106,7 +106,7 @@ model_cfg = dict(
             assigner=dict(
                 type='mmdet.HungarianAssigner',
                 match_costs=[
-                    dict(type='mmdet.ClassificationCost', weight=4.0),
+                    dict(type='mmdet.ClassificationCost', weight=2.0),
                     dict(
                         type='mmdet.CrossEntropyLossCost',
                         weight=5.0,
@@ -144,19 +144,19 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="gpu",
+    accelerator="auto",
     strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
-    # default_root_dir='results/building/E20230411_0',
+    devices=2,
+    # default_root_dir='results/building/E20230413_0',
     default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=1,
-    # check_val_every_n_epoch=1,
+    log_every_n_steps=20,
+    check_val_every_n_epoch=1,
     benchmark=True,
     # sync_batchnorm=True,
 
@@ -168,7 +168,7 @@ trainer_cfg = dict(
     # overfit_batches=0.0,
 
     # val_check_interval=None,
-    num_sanity_val_steps=2,
+    # num_sanity_val_steps=2,
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
@@ -220,8 +220,8 @@ persistent_workers = True
 
 # data_parent = '/data1/kyanchen/datasets/'
 # data_parent = '/Users/kyanchen/datasets/Building/'
-# data_parent = '/mnt/search01/dataset/cky_data/'
-data_parent = 'sample/'
+data_parent = '/mnt/search01/dataset/cky_data/'
+# data_parent = 'sample/'
 data_root = data_parent+'WHU/'
 train_data_prefix = 'train/'
 val_data_prefix = 'test/'
