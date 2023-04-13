@@ -47,7 +47,7 @@ class MaskDecoder(nn.Module):
         self.num_multimask_outputs = num_multimask_outputs
 
         self.iou_token = nn.Embedding(1, transformer_dim)
-        self.class_aware_token = nn.Embedding(1, transformer_dim)
+        # self.class_aware_token = nn.Embedding(1, transformer_dim)
 
         self.num_mask_tokens = num_multimask_outputs + 1
         self.mask_tokens = nn.Embedding(self.num_mask_tokens, transformer_dim)
