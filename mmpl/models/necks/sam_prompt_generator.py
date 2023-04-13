@@ -32,9 +32,9 @@ class SAMPromptGenNeck(nn.Module):
         for _ in range(num_img_feat_level):
             self.decoder_input_projs.append(
                 nn.Sequential(
-                    nn.Conv2d(img_feat_channels, 2 * decoder_embed_dims, kernel_size=1),
+                    nn.Conv2d(img_feat_channels, 4 * decoder_embed_dims, kernel_size=1),
                     nn.ReLU(inplace=True),
-                    nn.Conv2d(2 * decoder_embed_dims, 4 * decoder_embed_dims, kernel_size=2),
+                    nn.Conv2d(4 * decoder_embed_dims, 4 * decoder_embed_dims, kernel_size=2),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(4 * decoder_embed_dims, 2 * decoder_embed_dims, kernel_size=3, stride=2, padding=1)
                 ))
