@@ -125,7 +125,7 @@ logger = dict(
     type='WandbLogger',
     project='building',
     group='b_pred',
-    name='E20230411_0'
+    name='E20230413_0'
 )
 # logger = False
 
@@ -149,9 +149,9 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=2,
-    # default_root_dir='results/building/E20230413_0',
-    default_root_dir='results/tmp',
+    devices=8,
+    default_root_dir='results/building/E20230413_0',
+    # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
