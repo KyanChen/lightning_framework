@@ -181,6 +181,7 @@ class BasePLer(pl.LightningModule, BaseModel):
             self.test_evaluator.reset()
 
     def on_train_epoch_end(self) -> None:
+        import ipdb; ipdb.set_trace()
         if hasattr(self, 'train_evaluator'):
             metrics = self.train_evaluator.compute()
             for i, data in enumerate(metrics):
