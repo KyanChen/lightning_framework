@@ -116,7 +116,8 @@ class SegPLer(BasePLer):
 
     def training_step(self, batch, batch_idx):
         import ipdb; ipdb.set_trace()
-        cls_logits, masks = self.forward(batch)
+        cls_logits, masks, n_iou_preds = self.forward(batch)
+        masks = masks.squeeze(2)
         batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
             batch['data_samples'])
 
@@ -185,10 +186,13 @@ class SegPLer(BasePLer):
             masks = lr_masks[:, mask_slice, :, :]
             iou_pred = iou_pred[:, mask_slice]
             class_aware_prob = class_aware_prob[:, mask_slice]
-            n_img_masks.append(masks)
-        n_img_masks = torch.stack(n_img_masks, dim=0)
 
-        return cls_logits, n_img_masks
+            n_img_masks.append(masks)
+            n_iou_preds.append(iou_pred)
+        n_img_masks = torch.stack(n_img_masks, dim=0)
+        n_iou_preds = torch.stack(n_iou_preds, dim=0)
+
+        return cls_logits, n_img_masks, n_iou_preds
 
     def vis_inter_states(self, batch, masks, *args: Any, **kwargs: Any):
         folder = 'results/tmp'
