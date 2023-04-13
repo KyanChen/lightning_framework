@@ -38,7 +38,7 @@ class BasePLer(pl.LightningModule, BaseModel):
                     for metric_cfg in v:
                         metric = METRICS.build(metric_cfg)
                         metrics.append(metric)
-                setattr(self, k, MetricCollection(metrics, prefix=v.split('_')[0]))
+                setattr(self, k, MetricCollection(metrics, prefix=k.split('_')[0]))
 
     def _set_grad(self, need_train_names: list=[], noneed_train_names: list=[]):
         for name, param in self.named_parameters():
