@@ -64,6 +64,7 @@ model_cfg = dict(
         out_put_channels=256,
         num_img_feat_level=16,
         img_feat_size=32,
+        n_cls=num_classes,
     ),
     head=dict(
         type='InstanceMatchingHead',

@@ -14,6 +14,7 @@ class SAMPromptGenNeck(nn.Module):
             out_put_channels=256,
             num_img_feat_level=16,
             img_feat_size=32,
+            n_cls=2,
     ):
         super(SAMPromptGenNeck, self).__init__()
         self.prompt_shape = prompt_shape
@@ -23,6 +24,7 @@ class SAMPromptGenNeck(nn.Module):
         self.out_put_channels = out_put_channels
         self.num_img_feat_level = num_img_feat_level
         self.img_feat_size = img_feat_size
+        self.n_cls = n_cls
 
         decoder_embed_dims = out_put_channels // num_img_feat_level
         self.decoder_input_projs = nn.ModuleList()
@@ -45,7 +47,15 @@ class SAMPromptGenNeck(nn.Module):
         self.img_feats_pe = nn.Parameter(torch.zeros(1, out_put_channels, 32, 32))
         self.transformer = self.build_transformer()
         self.query_feat = nn.Embedding(self.num_queries, out_put_channels)
-        self.query_feat_refine = nn.Sequential(
+        self.cls_head = nn.Sequential(
+            nn.Linear(out_put_channels, out_put_channels),
+            nn.ReLU(),
+            nn.Linear(out_put_channels, n_cls)
+        )
+
+        self.point_emb = nn.Sequential(
+            nn.Linear(out_put_channels, out_put_channels),
+            nn.ReLU(),
             nn.Linear(out_put_channels, out_put_channels),
             nn.ReLU(),
             nn.Linear(out_put_channels, self.per_query_point * out_put_channels)
@@ -100,7 +110,8 @@ class SAMPromptGenNeck(nn.Module):
         decoder_outputs = self.transformer(
             src=decoder_inputs, tgt=query_feat
         )
-        decoder_outputs = self.query_feat_refine(decoder_outputs)
-        decoder_outputs = rearrange(decoder_outputs, 'b n (t c) -> b n t c', t=self.per_query_point)  # Bx100x6x256
+        cls_logits = self.cls_head(decoder_outputs)
+        point_embs = self.point_emb(decoder_outputs)
+        point_embs = rearrange(point_embs, 'b n (t c) -> b n t c', t=self.per_query_point)  # Bx100x6x256
 
-        return decoder_outputs
+        return point_embs, cls_logits

@@ -69,9 +69,10 @@ class MaskDecoder(nn.Module):
         self.iou_prediction_head = MLP(
             transformer_dim, iou_head_hidden_dim, self.num_mask_tokens, iou_head_depth
         )
-        self.class_aware_head = MLP(
-            transformer_dim, iou_head_hidden_dim, self.num_mask_tokens, iou_head_depth
-        )
+
+        # self.class_aware_head = MLP(
+        #     transformer_dim, iou_head_hidden_dim, self.num_mask_tokens, iou_head_depth
+        # )
 
     def forward(
         self,

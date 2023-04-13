@@ -7,8 +7,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 from einops import rearrange
+from mmengine.structures import InstanceData
 
 from mmpl.registry import MODELS
+from mmseg.utils import SampleList
 from ..builder import build_backbone, build_loss, build_neck, build_head
 from .base_pler import BasePLer
 from mmpl.structures import ClsDataSample
@@ -71,26 +73,56 @@ class SegPLer(BasePLer):
         self.evaluator.update(masks, seg_label)
 
     def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any):
-        masks = self.forward(batch)
+        cls_logits, n_img_masks = self.forward(batch)
+
+
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
         seg_label = seg_label.squeeze(1)
-        masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
+        masks = F.interpolate(n_img_masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
         masks = masks.squeeze(1) > 0
         self.evaluator.update(masks, seg_label)
 
-    def training_step(self, batch, batch_idx):
-        # import ipdb; ipdb.set_trace()
-        masks = self.forward(batch)
-        seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+    def _seg_data_to_instance_data(self, batch_data_samples: SampleList):
+        """Perform forward propagation to convert paradigm from MMSegmentation
+        to MMDetection to ensure ``MMDET_Mask2FormerHead`` could be called
+        normally. Specifically, ``batch_gt_instances`` would be added.
 
-        # folder = 'results/tmp'
-        # import cv2
-        # cv2.imwrite(os.path.join(folder, f'img.png'), batch['inputs'][0].permute((1, 2, 0)).detach().cpu().numpy())
-        # cv2.imwrite(os.path.join(folder, f'label_mask.png'), seg_label[0][0].detach().cpu().numpy() * 255)
-        # masks = masks > 0
-        # for idx, mask_pred in enumerate(masks[0]):
-        #     cv2.imwrite(os.path.join(folder, f'pred_mask_{idx}.png'), mask_pred[0].detach().cpu().numpy() * 255)
-        # import ipdb; ipdb.set_trace()
+        Args:
+            batch_data_samples (List[:obj:`SegDataSample`]): The Data
+                Samples. It usually includes information such as
+                `gt_sem_seg`.
+
+        Returns:
+            tuple[Tensor]: A tuple contains two lists.
+
+                - batch_gt_instances (list[:obj:`InstanceData`]): Batch of
+                    gt_instance. It usually includes ``labels``, each is
+                    unique ground truth label id of images, with
+                    shape (num_gt, ) and ``masks``, each is ground truth
+                    masks of each instances of a image, shape (num_gt, h, w).
+                - batch_img_metas (list[dict]): List of image meta information.
+        """
+        batch_img_metas = []
+        batch_gt_instances = []
+
+        for data_sample in batch_data_samples:
+            batch_img_metas.append(data_sample.metainfo)
+            gt_masks = data_sample.instances_data.long()
+            gt_labels = data_sample.instances_label.long()
+
+            instance_data = InstanceData(labels=gt_labels, masks=gt_masks)
+            batch_gt_instances.append(instance_data)
+        return batch_gt_instances, batch_img_metas
+
+    def training_step(self, batch, batch_idx):
+        import ipdb; ipdb.set_trace()
+        cls_logits, masks = self.forward(batch)
+        batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
+            batch['data_samples'])
+
+        losses = self.head.loss(cls_logits, masks, batch_gt_instances, batch_img_metas)
+
+        seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
 
         losses = {}
         loss_bce = F.binary_cross_entropy(masks, seg_label.float(), reduction='mean')
@@ -112,9 +144,8 @@ class SegPLer(BasePLer):
 
         with torch.no_grad():
             image_embeddings, inner_states = self.sam.image_encoder(img)  # Bx256x64x64
-        import ipdb;
-        ipdb.set_trace()
-        points_embeddings = self.sam_prompt_generator(inner_states)
+
+        point_embs, cls_logits = self.sam_prompt_generator(inner_states)
 
         # if has points prompt, then get points embeddings
         if hasattr(self, 'point_grids'):
@@ -133,8 +164,8 @@ class SegPLer(BasePLer):
             )  # 1024x2x256; 1024x256x64x64
         else:
             # ponits_embeddings B T N C
-            sparse_embeddings = points_embeddings
-            dense_embeddings = self.sam.prompt_encoder.no_mask_embed.weight.view(1, -1, 1, 1).expand(
+            sparse_embeddings = point_embs
+            dense_embeddings = self.sam.prompt_encoder.no_mask_embed.weight.view(1, 1, -1, 1, 1).expand(
                 sparse_embeddings.shape[0], sparse_embeddings.shape[1], -1,
                 self.sam.prompt_encoder.image_embedding_size[0], self.sam.prompt_encoder.image_embedding_size[1]
                 )
@@ -154,26 +185,20 @@ class SegPLer(BasePLer):
             masks = lr_masks[:, mask_slice, :, :]
             iou_pred = iou_pred[:, mask_slice]
             class_aware_prob = class_aware_prob[:, mask_slice]
-
-            # masks = torch.sigmoid(masks)
-            # iou_pred = torch.sigmoid(iou_pred)
-            # class_aware_prob = torch.sigmoid(class_aware_prob)
-            #
-            # class_aware_prob = class_aware_prob * iou_pred
-            #
-            # masks = einops.einsum(masks, class_aware_prob, 'b c h w, b c -> c h w')
-            # masks = F.interpolate(
-            #     masks.unsqueeze(0),
-            #     (self.sam.image_encoder.img_size, self.sam.image_encoder.img_size),
-            #     mode="bilinear",
-            #     align_corners=False,
-            # )
-            # masks = torch.clamp(masks.squeeze(0), 0, 1)
-
             n_img_masks.append(masks)
         n_img_masks = torch.stack(n_img_masks, dim=0)
 
-        return n_img_masks
+        return cls_logits, n_img_masks
+
+    def vis_inter_states(self, batch, masks, *args: Any, **kwargs: Any):
+        folder = 'results/tmp'
+        import cv2
+        cv2.imwrite(os.path.join(folder, f'img.png'), batch['inputs'][0].permute((1, 2, 0)).detach().cpu().numpy())
+        cv2.imwrite(os.path.join(folder, f'label_mask.png'), seg_label[0][0].detach().cpu().numpy() * 255)
+        masks = masks > 0
+        for idx, mask_pred in enumerate(masks[0]):
+            cv2.imwrite(os.path.join(folder, f'pred_mask_{idx}.png'), mask_pred[0].detach().cpu().numpy() * 255)
+        import ipdb; ipdb.set_trace()
 
 
 
