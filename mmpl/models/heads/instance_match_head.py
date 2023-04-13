@@ -113,7 +113,7 @@ class InstanceMatchingHead(BaseModel):
         cls_scores = cls_scores.flatten(0, 1)
         labels = labels.flatten(0, 1)
         label_weights = label_weights.flatten(0, 1)
-        import ipdb; ipdb.set_trace()
+
         class_weight = cls_scores.new_tensor(self.class_weight)
         loss_cls = self.loss_cls(
             cls_scores,
@@ -155,6 +155,8 @@ class InstanceMatchingHead(BaseModel):
         # shape (num_total_gts, h, w) -> (num_total_gts * h * w)
         mask_targets = mask_targets.reshape(-1)
         # target is (1 - mask_targets) !!!
+        import ipdb;
+        ipdb.set_trace()
         loss_mask = self.loss_mask(
             mask_preds, 1 - mask_targets, avg_factor=num_total_masks * h * w)
 
