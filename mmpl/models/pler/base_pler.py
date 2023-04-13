@@ -3,6 +3,9 @@ import torch.nn as nn
 from mmengine import OPTIM_WRAPPERS
 from mmengine.optim import build_optim_wrapper, _ParamScheduler
 import copy
+
+from torchmetrics import MetricCollection
+
 from mmpl.registry import MODELS, METRICS
 import lightning.pytorch as pl
 from mmengine.registry import OPTIMIZERS, PARAM_SCHEDULERS
@@ -26,8 +29,16 @@ class BasePLer(pl.LightningModule, BaseModel):
 
         evaluator_cfg = copy.deepcopy(self.hyperparameters.get('evaluator', None))
         if evaluator_cfg is not None:
-            self.evaluator = METRICS.build(evaluator_cfg)
-            # self.train_metrics = metrics.clone(prefix='train_')
+            for k, v in evaluator_cfg.items():
+                metrics = []
+                if isinstance(v, dict):
+                    metric = METRICS.build(v)
+                    metrics.append(metric)
+                elif isinstance(v, list):
+                    for metric_cfg in v:
+                        metric = METRICS.build(metric_cfg)
+                        metrics.append(metric)
+                setattr(self, k, MetricCollection(metrics, prefix=v.split('_')[0]))
 
     def _set_grad(self, need_train_names: list=[], noneed_train_names: list=[]):
         for name, param in self.named_parameters():
@@ -156,15 +167,22 @@ class BasePLer(pl.LightningModule, BaseModel):
                 f'but got {param_schedulers}')
 
     def on_validation_epoch_end(self) -> None:
-        if hasattr(self, 'evaluator'):
-            metrics = self.evaluator.compute()
+        if hasattr(self, 'val_evaluator'):
+            metrics = self.val_evaluator.compute()
             for i, data in enumerate(metrics):
                 self.log(f'metric_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
-            self.evaluator.reset()
+            self.val_evaluator.reset()
 
     def on_test_epoch_end(self) -> None:
-        if hasattr(self, 'evaluator'):
-            metrics = self.evaluator.compute()
+        if hasattr(self, 'test_evaluator'):
+            metrics = self.test_evaluator.compute()
             for i, data in enumerate(metrics):
                 self.log(f'metric_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
-            self.evaluator.reset()
+            self.test_evaluator.reset()
+
+    def on_train_epoch_end(self) -> None:
+        if hasattr(self, 'train_evaluator'):
+            metrics = self.train_evaluator.compute()
+            for i, data in enumerate(metrics):
+                self.log(f'metric_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
+            self.train_evaluator.reset()

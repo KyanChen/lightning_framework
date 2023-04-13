@@ -37,12 +37,16 @@ param_scheduler = [
     )
 ]
 
-evaluator = dict(
+evaluator_ = dict(
     type='JaccardIndex',
     task='multiclass',
     num_classes=2,
     ignore_index=255,
     average='none'
+)
+evaluator = dict(
+    train_evaluator=evaluator_,
+    val_evaluator=evaluator_,
 )
 
 num_classes = 2

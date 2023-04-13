@@ -63,18 +63,16 @@ class SegPLer(BasePLer):
         return self._set_train_module(mode)
 
     def validation_step(self, batch, batch_idx):
-        # import ipdb;
-        # ipdb.set_trace()
-        masks = self.forward(batch)
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-
+        cls_logits, masks, n_iou_preds = self.forward(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
+        masks = masks.squeeze(2)
         masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
-        masks = masks > 0.5
-        self.evaluator.update(masks, seg_label)
+        # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
+        seg_logits = self.post_process(cls_logits.detach(), masks.detach())
+        self.val_evaluator.update(seg_logits, seg_label)
 
     def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any):
         cls_logits, n_img_masks = self.forward(batch)
-
 
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
         seg_label = seg_label.squeeze(1)
@@ -118,28 +116,28 @@ class SegPLer(BasePLer):
         cls_logits, masks, n_iou_preds = self.forward(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
         masks = masks.squeeze(2)
         masks = F.interpolate(masks, size=[self.sam.image_encoder.img_size]*2, mode='bilinear', align_corners=True)
-        cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
+        # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
+        import ipdb; ipdb.set_trace()
+        seg_logits = self.post_process(cls_logits.detach(), masks.detach())
+        seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+        self.train_evaluator.update(seg_logits, seg_label)
+
         batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
             batch['data_samples'])
 
         losses = self.head.loss(cls_logits, masks, batch_gt_instances, batch_img_metas)
-
-        import ipdb;
-        ipdb.set_trace()
-
-        seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-
-        losses = {}
-        loss_bce = F.binary_cross_entropy(masks, seg_label.float(), reduction='mean')
-        # loss_dice = self.loss_dice(masks, seg_label)
-        losses['loss_bce'] = loss_bce
-        # losses['loss_dice'] = loss_dice
 
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'train_{k}': v for k, v in log_vars.items()}
         log_vars['loss'] = parsed_losses
         self.log_dict(log_vars, prog_bar=True)
         return log_vars
+
+    def post_process(self, mask_cls_results, mask_pred_results):
+        cls_score = F.softmax(mask_cls_results, dim=-1)[..., 1:2]
+        mask_pred = mask_pred_results.sigmoid()
+        seg_logits = torch.einsum('bqc, bqhw->bchw', cls_score, mask_pred)
+        return seg_logits
 
     def forward(self, batch, *args: Any, **kwargs: Any) -> Any:
         img = torch.stack(batch['inputs'], dim=0)  # B C H W
