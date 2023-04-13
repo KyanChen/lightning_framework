@@ -74,7 +74,7 @@ model_cfg = dict(
         head_module=dict(
             type='YOLOv8SIRENSHeadModule',
             num_classes=num_classes,
-            in_channels=[256, 512, last_stage_out_channels],
+            in_channels=[128, 256, 512],
             widen_factor=widen_factor,
             reg_max=16,
             norm_cfg=norm_cfg,
@@ -179,7 +179,7 @@ train_pipeline_stage2 = [
 #     group='test',
 #     name='E20230403_1'
 # )
-logger = None
+logger = False
 close_mosaic_epochs = 20
 callbacks = [
     dict(

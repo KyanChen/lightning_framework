@@ -3,6 +3,7 @@ from typing import List, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
+from einops import rearrange, repeat
 from mmcv.cnn import ConvModule
 
 from mmdet.models.dense_heads.base_dense_head import BaseDenseHead
@@ -48,15 +49,17 @@ class YOLOv8SIRENSHeadModule(BaseModule):
 
     def __init__(self,
                  num_classes: int,
-                 in_channels: Union[int, Sequence],
+                 in_channels: Union[int, Sequence] = [128, 256, 512],
+                 func_channels: int = 256,
                  widen_factor: float = 1.0,
                  num_base_priors: int = 1,
                  featmap_strides: Sequence[int] = (8, 16, 32),
                  reg_max: int = 16,
-                 feat_size: tuple = (128, 128),
+                 feat_size: tuple = (64, 64),
                  target_size: tuple = (512, 512),
                  interp_func: str = 'bilinear',
                  encoder_rgb: bool = True,
+                 encode_scale_ratio: bool = True,
                  encode_hr_coord: bool = True,
                  norm_cfg: ConfigType = dict(
                      type='BN', momentum=0.03, eps=0.001),
@@ -68,12 +71,23 @@ class YOLOv8SIRENSHeadModule(BaseModule):
         self.feat_size = feat_size
         self.encoder_rgb = encoder_rgb
         self.encode_hr_coord = encode_hr_coord
+        self.encode_scale_ratio = encode_scale_ratio
+
         decoder_in_dim = 2
         if self.encode_scale_ratio:
             decoder_in_dim += 2
         if self.encode_hr_coord:
             decoder_in_dim += 2
         self.decoder_in_dim = decoder_in_dim
+        self.modulation_dim = func_channels
+        self.modulation_base_dim = func_channels // 2
+
+        self.gather_func_maps = nn.Sequential(
+            nn.Conv2d(sum(in_channels), func_channels, kernel_size=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(func_channels, func_channels, kernel_size=3, padding=1),
+        )
 
         self.num_classes = num_classes
         self.featmap_strides = featmap_strides
@@ -107,17 +121,17 @@ class YOLOv8SIRENSHeadModule(BaseModule):
         self.cls_pred_head = ModulatedSirens(
             num_inner_layers=3,
             in_dim=self.decoder_in_dim,
-            modulation_dim=512,
+            modulation_dim=self.modulation_dim,
             out_dim=self.num_classes,
-            base_channels=64,
+            base_channels=self.modulation_base_dim,
             is_residual=True
         )
         self.reg_pred_head = ModulatedSirens(
             num_inner_layers=3,
             in_dim=self.decoder_in_dim,
-            modulation_dim=512,
+            modulation_dim=self.modulation_dim,
             out_dim=4 * self.reg_max,
-            base_channels=64,
+            base_channels=self.modulation_base_dim,
             is_residual=True
         )
 
@@ -125,25 +139,26 @@ class YOLOv8SIRENSHeadModule(BaseModule):
         self.register_buffer('proj', proj, persistent=False)
 
     def get_coordinate_map(self, lr_size, hr_size, device='cpu'):
-        def to_coordinates(size=(56, 56), device='cpu'):
-            feat_h, feat_w = size
-            shift_x = torch.arange(0., feat_w, device=device) / (feat_w - 1) - 0.5
-            shift_y = torch.arange(0., feat_h, device=device) / (feat_h - 1) - 0.5
+        def to_coordinates(size=(56, 56), device='cpu', return_map=True):
+            coordinates = torch.ones(size, device=device).nonzero().float()
+            # Normalize coordinates to lie in [-.5, .5]
+            coordinates[..., 0] = coordinates[..., 0] / (size[0] - 1) - 0.5
+            coordinates[..., 1] = coordinates[..., 1] / (size[1] - 1) - 0.5
+            # Convert to range [-1, 1]
+            coordinates *= 2
+            if return_map:
+                coordinates = rearrange(coordinates, '(H W) C -> H W C', H=size[0])
+            # [y, x]
+            return coordinates
 
-            shift_xx, shift_yy = torch.meshgrid(shift_x, shift_y)
-            shifts = torch.stack([shift_xx, shift_yy], dim=-1)
-            grid = 2 * shifts
-            # [x, y]
-            return grid
-
-        h_lr, w_hr = lr_size
+        h_lr, w_lr = lr_size
         h_hr, w_hr = hr_size
-        lr_coord = to_coordinates(lr_size, device=device)
-        hr_coord = to_coordinates(hr_size, device=device)
+        lr_coord = to_coordinates(lr_size, device=device).permute(2, 0, 1).unsqueeze(0)
+        hr_coord = to_coordinates(hr_size, device=device).permute(2, 0, 1).unsqueeze(0)
         # important! mode='nearest' gives inconsistent results
-        rel_grid = hr_coord - F.interpolate(lr_coord.unsqueeze(0), size=hr_size, mode='nearest-exact')
-        rel_grid[:, 0, :, :] *= w_hr
-        rel_grid[:, 1, :, :] *= h_hr
+        rel_grid = hr_coord - F.interpolate(lr_coord, size=hr_size, mode='nearest-exact')
+        rel_grid[:, 0, :, :] *= h_lr
+        rel_grid[:, 1, :, :] *= w_lr
 
         return rel_grid.contiguous().detach(), lr_coord.contiguous().detach(), hr_coord.contiguous().detach()
 
@@ -154,6 +169,7 @@ class YOLOv8SIRENSHeadModule(BaseModule):
             func_map = F.interpolate(func_map, size=self.feat_size, mode=self.interp_func, align_corners=True)
             func_maps.append(func_map)
         fused_funcs = torch.cat(func_maps, dim=1)  # [b, c, 128, 128]
+        fused_funcs = self.gather_func_maps(fused_funcs)
 
         rel_grid, lr_grid, hr_grid = self.get_coordinate_map(
             lr_size=self.feat_size,
@@ -162,17 +178,19 @@ class YOLOv8SIRENSHeadModule(BaseModule):
 
         local_input = rel_grid
         if self.encode_scale_ratio:
-            h_ratio = self.feat_size[0] / self.target_size[0]
-            w_ratio = self.feat_size[1] / self.target_size[1]
-            scale_ratio_map = torch.tensor([h_ratio, w_ratio]).view(1, -1, 1, 1).expand(bs, -1, *self.target_size).to(
+            w_ratio = self.feat_size[0] / self.target_size[0]
+            h_ratio = self.feat_size[1] / self.target_size[1]
+            scale_ratio_map = torch.tensor([h_ratio, w_ratio]).view(1, -1, 1, 1).expand(1, -1, *self.target_size).to(
                 fused_funcs.device)
             local_input = torch.cat([local_input, scale_ratio_map], dim=1)
         if self.encode_hr_coord:
             local_input = torch.cat([local_input, hr_grid], dim=1)
 
         h, w = self.target_size
-        cls_logit = self.cls_pred_head(x)
-        bbox_dist_preds = self.reg_pred_head(x)
+        local_input = repeat(local_input, 'b c h w -> (b bs) c h w', bs=bs)
+        fused_funcs = F.interpolate(fused_funcs, size=self.target_size, mode=self.interp_func, align_corners=True)
+        cls_logit = self.cls_pred_head(local_input, fused_funcs)
+        bbox_dist_preds = self.reg_pred_head(local_input, fused_funcs)
         if self.reg_max > 1:
             bbox_dist_preds = bbox_dist_preds.reshape(
                 [-1, 4, self.reg_max, h * w]).permute(0, 3, 1, 2)
@@ -182,7 +200,7 @@ class YOLOv8SIRENSHeadModule(BaseModule):
             # bbox_preds = bbox_dist_preds.softmax(3).matmul(self.proj)
             bbox_preds = bbox_dist_preds.softmax(3).matmul(
                 self.proj.view([-1, 1])).squeeze(-1)
-            bbox_preds = bbox_preds.transpose(1, 2).reshape(b, -1, h, w)
+            bbox_preds = bbox_preds.transpose(1, 2).reshape(bs, -1, h, w)
         else:
             bbox_preds = bbox_dist_preds
         if self.training:

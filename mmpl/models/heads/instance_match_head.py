@@ -32,14 +32,7 @@ class InstanceMatchingHead(BaseModel):
                 use_sigmoid=True,
                 reduction='mean',
                 loss_weight=5.0),
-            loss_dice: ConfigType = dict(
-                type='DiceLoss',
-                use_sigmoid=True,
-                activate=True,
-                reduction='mean',
-                naive_dice=True,
-                eps=1.0,
-                loss_weight=5.0),
+            loss_dice=None,
             train_cfg: OptConfigType = None,
             test_cfg: OptConfigType = None,
             init_cfg: Optional[dict] = None):
@@ -62,7 +55,8 @@ class InstanceMatchingHead(BaseModel):
         self.class_weight = loss_cls.class_weight
         self.loss_cls = MODELS.build(loss_cls)
         self.loss_mask = MODELS.build(loss_mask)
-        self.loss_dice = MODELS.build(loss_dice)
+        if loss_dice is not None:
+            self.loss_dice = MODELS.build(loss_dice)
 
     def forward(self, *args, **kwargs):
         pass
@@ -129,9 +123,16 @@ class InstanceMatchingHead(BaseModel):
 
         if mask_targets.shape[0] == 0:
             # zero match
-            loss_dice = mask_preds.sum()
+            if hasattr(self, 'loss_dice'):
+                loss_dice = mask_preds.sum()
+            else:
+                loss_dice = torch.zeros([]).to(mask_preds.device)
             loss_mask = mask_preds.sum()
-            return loss_cls, loss_mask, loss_dice
+            loss_dict = dict()
+            loss_dict['loss_cls'] = loss_cls
+            loss_dict['loss_mask'] = loss_mask
+            loss_dict['loss_dice'] = loss_dice
+            return loss_dict
 
         # upsample to shape of target
         # shape (num_total_gts, h, w)
@@ -142,8 +143,11 @@ class InstanceMatchingHead(BaseModel):
             align_corners=False).squeeze(1)
 
         # dice loss
-        loss_dice = self.loss_dice(
-            mask_preds, mask_targets, avg_factor=num_total_masks)
+        if hasattr(self, 'loss_dice'):
+            loss_dice = self.loss_dice(
+                mask_preds, mask_targets, avg_factor=num_total_masks)
+        else:
+            loss_dice = torch.zeros([]).to(mask_preds.device)
 
         # mask loss
         # FocalLoss support input of shape (n, num_class)
