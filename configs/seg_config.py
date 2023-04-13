@@ -75,9 +75,16 @@ model_cfg = dict(
             reduction='mean',
             class_weight=[0.3, 0.7]
         ),
+        # loss_mask=dict(
+        #     type='mmdet.CrossEntropyLoss',
+        #     use_sigmoid=True,
+        #     reduction='mean',
+        #     loss_weight=5.0),
         loss_mask=dict(
-            type='mmdet.CrossEntropyLoss',
+            type='mmdet.FocalLoss',
             use_sigmoid=True,
+            gamma=2.0,
+            alpha=0.25,
             reduction='mean',
             loss_weight=5.0),
         loss_dice=dict(
