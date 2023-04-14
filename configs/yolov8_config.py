@@ -292,10 +292,10 @@ test_pipeline = [
                    'scale_factor', 'pad_param'))
 ]
 
-train_batch_size_per_gpu = 8
-train_num_workers = 0
-test_batch_size_per_gpu = 8
-test_num_workers = 0
+train_batch_size_per_gpu = 4
+train_num_workers = 4
+test_batch_size_per_gpu = 4
+test_num_workers = 4
 persistent_workers = False
 
 data_parent = '/mnt/search01/dataset/cky_data'

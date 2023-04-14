@@ -21,3 +21,4 @@ imageio
 pycocotools
 shapely
 terminaltables
+albumentations
