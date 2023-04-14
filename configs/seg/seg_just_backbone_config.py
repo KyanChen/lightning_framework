@@ -75,8 +75,8 @@ model_cfg = dict(
             use_sigmoid=True,
             gamma=2.0,
             alpha=0.25,
-            reduction='mean',
-            loss_weight=10.0),
+            reduction='none',
+            loss_weight=1.0),
         loss_dice=dict(
             type='mmdet.DiceLoss',
             use_sigmoid=True,
@@ -94,7 +94,7 @@ logger = dict(
     group='b_pred',
     name='E20230414_0'
 )
-# logger = False
+logger = False
 
 
 callbacks = [
@@ -116,7 +116,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=1,
     default_root_dir='results/building/E20230414_0',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,

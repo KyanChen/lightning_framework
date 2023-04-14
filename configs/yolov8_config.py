@@ -118,7 +118,7 @@ model_cfg = dict(
         score_thr=0.001,  # Threshold to filter out boxes.
         nms=dict(type='nms', iou_threshold=0.7),  # NMS type and threshold
         max_per_img=300
-    ) # Max number of detections of each image,
+    )  # Max number of detections of each image,
 )
 
 img_scale = (512, 512)
@@ -209,13 +209,13 @@ trainer_cfg = dict(
     logger=logger,
     callbacks=callbacks,
     log_every_n_steps=1,
-    # check_val_every_n_epoch=1,
+    check_val_every_n_epoch=1,
     benchmark=True,
     # sync_batchnorm=True,
 
     # fast_dev_run=True,
-    limit_train_batches=1,
-    limit_val_batches=0,
+    # limit_train_batches=1,
+    # limit_val_batches=0,
     # limit_test_batches=None,
     # limit_predict_batches=None,
     # overfit_batches=0.0,
@@ -260,14 +260,14 @@ train_pipeline = [
 
 
 test_pipeline = [
-    dict(type='LoadImageFromFile', file_client_args=file_client_args),
-    dict(type='YOLOv5KeepRatioResize', scale=img_scale),
+    dict(type='mmyolo.LoadImageFromFile', file_client_args=file_client_args),
+    dict(type='mmyolo.YOLOv5KeepRatioResize', scale=img_scale),
     dict(
-        type='LetterResize',
+        type='mmyolo.LetterResize',
         scale=img_scale,
         allow_scale_up=False,
         pad_val=dict(img=114)),
-    dict(type='LoadAnnotations', with_bbox=True, _scope_='mmdet'),
+    dict(type='mmyolo.LoadAnnotations', with_bbox=True, _scope_='mmdet'),
     dict(
         type='mmdet.PackDetInputs',
         meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
@@ -294,6 +294,22 @@ val_ann_file = anno_path+'/test.json'
 
 dataset_type = 'mmyolo.YOLOv5CocoDataset'
 metainfo = dict(classes=('ship', ), palette=[(0, 0, 255)])
+val_loader = dict(
+        batch_size=test_batch_size_per_gpu,
+        num_workers=test_num_workers,
+        persistent_workers=persistent_workers,
+        pin_memory=True,
+        dataset=dict(
+            type=dataset_type,
+            metainfo=metainfo,
+            data_root=data_root,
+            ann_file=val_ann_file,
+            data_prefix=dict(img=val_data_prefix),
+            filter_cfg=dict(filter_empty_gt=False, min_size=32),
+            indices=4,
+            pipeline=test_pipeline)
+)
+
 datamodule_cfg = dict(
     type='PLDataModule',
     train_loader=dict(
@@ -312,5 +328,6 @@ datamodule_cfg = dict(
             indices=4,
             pipeline=train_pipeline)
     ),
+    val_loader=val_loader,
 )
 

@@ -8,8 +8,9 @@ from mmcv.cnn import ConvModule
 
 from mmdet.models.dense_heads.base_dense_head import BaseDenseHead
 from mmdet.models.utils import multi_apply
+from mmdet.structures import SampleList
 from mmdet.utils import (ConfigType, OptConfigType, OptInstanceList,
-                         OptMultiConfig)
+                         OptMultiConfig, InstanceList)
 from mmengine.dist import get_dist_info
 from mmengine.model import BaseModule
 from mmengine.structures import InstanceData
@@ -239,8 +240,6 @@ class YOLOv8SIRENSHead(BaseDenseHead):
         super(YOLOv8SIRENSHead, self).__init__(init_cfg)
         self.head_module = MODELS.build(head_module)
         self.num_classes = self.head_module.num_classes
-        self.featmap_strides = featmap_strides
-        self.num_levels = len(self.featmap_strides)
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
@@ -253,7 +252,7 @@ class YOLOv8SIRENSHead(BaseDenseHead):
         self.bbox_coder = TASK_UTILS.build(bbox_coder)
         self.num_base_priors = self.prior_generator.num_base_priors[0]
 
-        self.featmap_sizes = [torch.empty(1)] * self.num_levels
+        # self.featmap_sizes = [torch.empty(1)] * self.num_levels
 
         prior_match_thr: float = 4.0
         near_neighbor_thr: float = 0.5
@@ -456,3 +455,40 @@ class YOLOv8SIRENSHead(BaseDenseHead):
             loss_cls=loss_cls * num_imgs * world_size,
             loss_bbox=loss_bbox * num_imgs * world_size,
             loss_dfl=loss_dfl * num_imgs * world_size)
+
+    def predict(self,
+                x: Tuple[Tensor],
+                batch_data_samples: SampleList,
+                rescale: bool = False) -> InstanceList:
+        """Perform forward propagation of the detection head and predict
+        detection results on the features of the upstream network.
+
+        Args:
+            x (tuple[Tensor]): Multi-level features from the
+                upstream network, each is a 4D-tensor.
+            batch_data_samples (List[:obj:`DetDataSample`]): The Data
+                Samples. It usually includes information such as
+                `gt_instance`, `gt_panoptic_seg` and `gt_sem_seg`.
+            rescale (bool, optional): Whether to rescale the results.
+                Defaults to False.
+
+        Returns:
+            list[obj:`InstanceData`]: Detection results of each image
+            after the post process.
+        """
+        batch_img_metas = [
+            data_samples.metainfo for data_samples in batch_data_samples
+        ]
+
+        outs = self(x)
+
+        outs_ = []
+        for out in outs:
+            if isinstance(out, torch.Tensor):
+                outs_.append([out])
+            else:
+                outs_.append(out)
+
+        predictions = self.predict_by_feat(
+            *outs_, batch_img_metas=batch_img_metas, rescale=rescale)
+        return predictions

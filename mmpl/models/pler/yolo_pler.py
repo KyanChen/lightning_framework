@@ -6,6 +6,9 @@ import torch
 import torch.nn as nn
 from einops import rearrange
 
+from mmdet.models.utils import samplelist_boxtype2tensor
+from mmdet.structures import SampleList
+from mmdet.utils import InstanceList
 from mmpl.registry import MODELS
 from ..builder import build_backbone, build_loss, build_neck, build_head
 from .base_pler import BasePLer
@@ -39,28 +42,65 @@ class YoloPLer(BasePLer):
     def setup(self, stage: str) -> None:
         pass
 
-    def training_val_step(self, batch, batch_idx, prefix=''):
+    def add_pred_to_datasample(self, data_samples: SampleList,
+                               results_list: InstanceList) -> SampleList:
+        """Add predictions to `DetDataSample`.
+
+        Args:
+            data_samples (list[:obj:`DetDataSample`], optional): A batch of
+                data samples that contain annotations and predictions.
+            results_list (list[:obj:`InstanceData`]): Detection results of
+                each image.
+
+        Returns:
+            list[:obj:`DetDataSample`]: Detection results of the
+            input images. Each DetDataSample usually contain
+            'pred_instances'. And the ``pred_instances`` usually
+            contains following keys.
+
+                - scores (Tensor): Classification scores, has a shape
+                    (num_instance, )
+                - labels (Tensor): Labels of bboxes, has a shape
+                    (num_instances, ).
+                - bboxes (Tensor): Has a shape (num_instances, 4),
+                    the last dimension 4 arrange as (x1, y1, x2, y2).
+        """
+        for data_sample, pred_instances in zip(data_samples, results_list):
+            data_sample.pred_instances = pred_instances
+        samplelist_boxtype2tensor(data_samples)
+        return data_samples
+
+    def validation_step(self, batch, batch_idx):
+        data = self.data_preprocessor(batch, False)
+
+        img = data['inputs']
+        batch_data_samples = data['data_samples']
+
+        x = self.backbone(img)  # [torch.Size([2, 128, 64, 64]), torch.Size([2, 256, 32, 32]), torch.Size([2, 512, 16, 16])]
+        if hasattr(self, 'neck'):
+            x = self.neck(x)  # [torch.Size([2, 128, 64, 64]), torch.Size([2, 256, 32, 32]), torch.Size([2, 512, 16, 16])]
+        results_list = self.head.predict(x, batch_data_samples, rescale=True)
+        batch_data_samples = self.add_pred_to_datasample(
+            batch_data_samples, results_list)
+
+        return batch_data_samples
+
+    def training_step(self, batch, batch_idx):
         data = self.data_preprocessor(batch, True)
         img = data['inputs']
         batch_data_samples = data['data_samples']
-        x = self.backbone(img) # [torch.Size([2, 128, 64, 64]), torch.Size([2, 256, 32, 32]), torch.Size([2, 512, 16, 16])]
+        x = self.backbone(
+            img)  # [torch.Size([2, 128, 64, 64]), torch.Size([2, 256, 32, 32]), torch.Size([2, 512, 16, 16])]
         if hasattr(self, 'neck'):
-            x = self.neck(x)  # [torch.Size([2, 128, 64, 64]), torch.Size([2, 256, 32, 32]), torch.Size([2, 512, 16, 16])]
+            x = self.neck(
+                x)  # [torch.Size([2, 128, 64, 64]), torch.Size([2, 256, 32, 32]), torch.Size([2, 512, 16, 16])]
         losses = self.head.loss(x, batch_data_samples)
-        import ipdb;
-        ipdb.set_trace()
 
         parsed_losses, log_vars = self.parse_losses(losses)
-        log_vars = {f'{prefix}_{k}': v for k, v in log_vars.items()}
+        log_vars = {f'train_{k}': v for k, v in log_vars.items()}
         log_vars['loss'] = parsed_losses
         self.log_dict(log_vars, prog_bar=True)
         return log_vars
-
-    def validation_step(self, batch, batch_idx):
-        return self.training_val_step(batch, batch_idx, prefix='val')
-
-    def training_step(self, batch, batch_idx):
-        return self.training_val_step(batch, batch_idx, prefix='train')
 
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
