@@ -76,7 +76,6 @@ class SegPLer(BasePLer):
     def validation_step(self, batch, batch_idx):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
         if self.only_img_encoder:
-            import ipdb; ipdb.set_trace()
             masks_pred = self.forward_only_img_encoder(batch)
             masks_pred = F.interpolate(masks_pred, size=seg_label.shape[-2:], mode='bilinear',
                                        align_corners=True)
@@ -135,11 +134,13 @@ class SegPLer(BasePLer):
     def training_step(self, batch, batch_idx):
         if self.only_img_encoder:
             masks_pred = self.forward_only_img_encoder(batch)
-            masks_pred = F.interpolate(masks_pred, size=[self.sam.image_encoder.img_size]*2, mode='bilinear', align_corners=True)
-            masks_pred_result = masks_pred > 0
+            masks_pred = F.interpolate(masks_pred, size=[self.sam.img_size]*2, mode='bilinear', align_corners=True)
             seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-            self.train_evaluator.update(masks_pred_result.detach(), seg_label.detach())
             losses = self.head.loss(masks_pred, seg_label)
+
+            masks_pred_result = masks_pred > 0
+            self.train_evaluator.update(masks_pred_result.detach(), seg_label.detach())
+
         else:
             cls_logits, masks, n_iou_preds = self.forward(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
             masks = masks.squeeze(2)
