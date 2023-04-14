@@ -58,7 +58,7 @@ model_cfg = dict(
         evaluator=evaluator,
     ),
     sam='vit_h',
-    sam_checkpoint='../pretrain/sam/sam_vit_h_4b8939.pth',
+    sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
     points_per_side=None,
     only_img_encoder=True,
     global_prompt=True,
