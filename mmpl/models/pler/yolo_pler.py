@@ -62,27 +62,6 @@ class YoloPLer(BasePLer):
     def training_step(self, batch, batch_idx):
         return self.training_val_step(batch, batch_idx, prefix='train')
 
-    def forward(self, rot_6d_with_position_input, diff_root_zyx_input, *args: Any, **kwargs: Any) -> Any:
-        # min-max normalization
-        rot_6d_with_position_input = (rot_6d_with_position_input - self.min_rot_6d_with_position) / (
-                self.max_rot_6d_with_position - self.min_rot_6d_with_position)
-        rot_6d_with_position_input = rot_6d_with_position_input * 2 - 1
-
-        diff_root_zyx_input = (diff_root_zyx_input - self.min_diff_root_xz) / (
-                self.max_diff_root_xz - self.min_diff_root_xz)
-        diff_root_zyx_input = diff_root_zyx_input * 2 - 1
-
-        x_rot = self.rotation_proj(rot_6d_with_position_input)
-        x_pos = self.position_proj(diff_root_zyx_input)
-
-        x = torch.cat([x_rot, x_pos], dim=-2)
-        x = rearrange(x, 'b t j d -> (b t) j d')
-        x, _ = self.spatial_transformer(x)
-        x = rearrange(x, '(b t) d -> b t d', b=rot_6d_with_position_input.shape[0])
-
-        outputs = self.temporal_transformer(inputs_embeds=x)
-        x = outputs['last_hidden_state']
-        return x
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
         positions = batch['positions']

@@ -29,6 +29,8 @@ class SegPLer(BasePLer):
                  sam_checkpoint='',
                  points_per_side=None,
                  sam_prompt_generator=None,
+                 only_img_encoder=False,
+                 global_prompt=False,
                  need_train_names=None,
                  head=None,
                  threshold=0.5,
@@ -41,18 +43,25 @@ class SegPLer(BasePLer):
         self.need_train_names = need_train_names
         self.ignore_index = ignore_index
         self.threshold = threshold
+        self.only_img_encoder = only_img_encoder
+        self.global_prompt = global_prompt
 
-        self.sam = sam_model_registry[sam](sam_checkpoint)
+        if not self.only_img_encoder:
+            self.sam = sam_model_registry[sam](sam_checkpoint)
+        else:
+            self.sam = sam_model_registry[sam](sam_checkpoint).image_encoder
 
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
                 points_per_side, 0, 1)
         if sam_prompt_generator is not None:
             self.sam_prompt_generator = MODELS.build(sam_prompt_generator)
-
-        self.train_cfg = train_cfg
-        self.test_cfg = test_cfg
-        self.head = MODELS.build(head)
+        if head is not None:
+            head.update(train_cfg=train_cfg)
+            head.update(test_cfg=test_cfg)
+            self.head = MODELS.build(head)
+        if global_prompt is not None:
+            self.global_prompt = nn.Conv2d(256, 1, kernel_size=1)
 
     def setup(self, stage: str) -> None:
         self._set_grad(self.need_train_names, [])
@@ -66,12 +75,20 @@ class SegPLer(BasePLer):
 
     def validation_step(self, batch, batch_idx):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-        cls_logits, masks, n_iou_preds = self.forward(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
-        masks = masks.squeeze(2)
-        masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
-        # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
-        seg_logits = self.post_process(cls_logits.detach(), masks.detach())
-        seg_logits = seg_logits > self.threshold
+        if self.only_img_encoder:
+            import ipdb; ipdb.set_trace()
+            masks_pred = self.forward_only_img_encoder(batch)
+            masks_pred = F.interpolate(masks_pred, size=seg_label.shape[-2:], mode='bilinear',
+                                       align_corners=True)
+            seg_logits = masks_pred > 0
+        else:
+            cls_logits, masks, n_iou_preds = self.forward(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
+            masks = masks.squeeze(2)
+            masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
+            # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
+            seg_logits = self.post_process(cls_logits.detach(), masks.detach())
+            seg_logits = seg_logits > self.threshold
+
         self.val_evaluator.update(seg_logits, seg_label)
 
     def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any):
@@ -116,19 +133,27 @@ class SegPLer(BasePLer):
         return batch_gt_instances, batch_img_metas
 
     def training_step(self, batch, batch_idx):
-        cls_logits, masks, n_iou_preds = self.forward(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
-        masks = masks.squeeze(2)
-        masks = F.interpolate(masks, size=[self.sam.image_encoder.img_size]*2, mode='bilinear', align_corners=True)
-        # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
-        seg_logits = self.post_process(cls_logits.clone().detach(), masks.clone().detach())
-        seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-        seg_logits = seg_logits > self.threshold
-        self.train_evaluator.update(seg_logits, seg_label)
+        if self.only_img_encoder:
+            masks_pred = self.forward_only_img_encoder(batch)
+            masks_pred = F.interpolate(masks_pred, size=[self.sam.image_encoder.img_size]*2, mode='bilinear', align_corners=True)
+            masks_pred_result = masks_pred > 0
+            seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+            self.train_evaluator.update(masks_pred_result.detach(), seg_label.detach())
+            losses = self.head.loss(masks_pred, seg_label)
+        else:
+            cls_logits, masks, n_iou_preds = self.forward(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
+            masks = masks.squeeze(2)
+            masks = F.interpolate(masks, size=[self.sam.image_encoder.img_size]*2, mode='bilinear', align_corners=True)
+            # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
+            seg_logits = self.post_process(cls_logits.clone().detach(), masks.clone().detach())
+            seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+            seg_logits = seg_logits > self.threshold
+            self.train_evaluator.update(seg_logits, seg_label)
 
-        batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
-            batch['data_samples'])
+            batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
+                batch['data_samples'])
 
-        losses = self.head.loss(cls_logits, masks, batch_gt_instances, batch_img_metas)
+            losses = self.head.loss(cls_logits, masks, batch_gt_instances, batch_img_metas)
 
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'train_{k}': v for k, v in log_vars.items()}
@@ -141,6 +166,17 @@ class SegPLer(BasePLer):
         mask_pred = mask_pred_results.sigmoid()
         seg_logits = torch.einsum('bqc, bqhw->bchw', cls_score, mask_pred)
         return seg_logits
+
+    def forward_only_img_encoder(self, batch, *args: Any, **kwargs: Any) -> Any:
+        img = torch.stack(batch['inputs'], dim=0)  # B C H W
+        num_img = img.shape[0]
+        img = img[:, [2, 1, 0], :, :]  # BGR2RGB
+        img = (img - self.sam.pixel_mean) / self.sam.pixel_std
+
+        with torch.no_grad():
+            image_embeddings, inner_states = self.sam(img)  # Bx256x64x64
+        masks_pred = self.global_prompt(image_embeddings)
+        return masks_pred
 
     def forward(self, batch, *args: Any, **kwargs: Any) -> Any:
         img = torch.stack(batch['inputs'], dim=0)  # B C H W

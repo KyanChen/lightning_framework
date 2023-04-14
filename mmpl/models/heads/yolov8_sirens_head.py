@@ -51,9 +51,6 @@ class YOLOv8SIRENSHeadModule(BaseModule):
                  num_classes: int,
                  in_channels: Union[int, Sequence] = [128, 256, 512],
                  func_channels: int = 256,
-                 widen_factor: float = 1.0,
-                 num_base_priors: int = 1,
-                 featmap_strides: Sequence[int] = (8, 16, 32),
                  reg_max: int = 16,
                  feat_size: tuple = (64, 64),
                  target_size: tuple = (512, 512),
@@ -85,36 +82,17 @@ class YOLOv8SIRENSHeadModule(BaseModule):
         self.gather_func_maps = nn.Sequential(
             nn.Conv2d(sum(in_channels), func_channels, kernel_size=1),
             nn.BatchNorm2d(256),
-            nn.ReLU(),
+            nn.SiLU(),
             nn.Conv2d(func_channels, func_channels, kernel_size=3, padding=1),
         )
 
         self.num_classes = num_classes
-        self.featmap_strides = featmap_strides
-        self.num_levels = len(self.featmap_strides)
-        self.num_base_priors = num_base_priors
         self.norm_cfg = norm_cfg
         self.act_cfg = act_cfg
         self.in_channels = in_channels
         self.reg_max = reg_max
 
-        in_channels = []
-        for channel in self.in_channels:
-            channel = make_divisible(channel, widen_factor)
-            in_channels.append(channel)
-        self.in_channels = in_channels
-
         self._init_layers()
-
-    def init_weights(self, prior_prob=0.01):
-        """Initialize the weight and bias of PPYOLOE head."""
-        super().init_weights()
-        for reg_pred, cls_pred, stride in zip(self.reg_preds, self.cls_preds,
-                                              self.featmap_strides):
-            reg_pred[-1].bias.data[:] = 1.0  # box
-            # cls (.01 objects, 80 classes, 640 img)
-            cls_pred[-1].bias.data[:self.num_classes] = math.log(
-                5 / self.num_classes / (640 / stride)**2)
 
     def _init_layers(self):
         """initialize conv layers in YOLOv8 head."""
@@ -232,6 +210,7 @@ class YOLOv8SIRENSHead(BaseDenseHead):
     """
 
     def __init__(self,
+                 featmap_strides,
                  head_module: ConfigType,
                  prior_generator: ConfigType = dict(
                      type='mmdet.MlvlPointGenerator',
@@ -260,7 +239,7 @@ class YOLOv8SIRENSHead(BaseDenseHead):
         super(YOLOv8SIRENSHead, self).__init__(init_cfg)
         self.head_module = MODELS.build(head_module)
         self.num_classes = self.head_module.num_classes
-        self.featmap_strides = self.head_module.featmap_strides
+        self.featmap_strides = featmap_strides
         self.num_levels = len(self.featmap_strides)
 
         self.train_cfg = train_cfg
@@ -325,9 +304,16 @@ class YOLOv8SIRENSHead(BaseDenseHead):
             dict: A dictionary of loss components.
         """
         outs = self(x)
+        outs_ = []
+        for out in outs:
+            if isinstance(out, torch.Tensor):
+                outs_.append([out])
+            else:
+                outs_.append(out)
+
         # Fast version
-        loss_inputs = outs + (batch_data_samples['bboxes_labels'],
-                              batch_data_samples['img_metas'])
+        loss_inputs = outs_ + [batch_data_samples['bboxes_labels'],
+                              batch_data_samples['img_metas']]
         losses = self.loss_by_feat(*loss_inputs)
 
         return losses

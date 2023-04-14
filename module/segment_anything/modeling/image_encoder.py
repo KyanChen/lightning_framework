@@ -102,6 +102,10 @@ class ImageEncoderViT(nn.Module):
             ),
             LayerNorm2d(out_chans),
         )
+        pixel_mean = [123.675, 116.28, 103.53]
+        pixel_std = [58.395, 57.12, 57.375]
+        self.register_buffer("pixel_mean", torch.tensor(pixel_mean).view(1, 3, 1, 1))
+        self.register_buffer("pixel_std", torch.tensor(pixel_std).view(1, 3, 1, 1))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.patch_embed(x)

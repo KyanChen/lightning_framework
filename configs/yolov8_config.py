@@ -71,17 +71,17 @@ model_cfg = dict(
     ),
     head=dict(
         type='YOLOv8SIRENSHead',
+        featmap_strides=strides,
         head_module=dict(
             type='YOLOv8SIRENSHeadModule',
             num_classes=num_classes,
             in_channels=[128, 256, 512],
-            widen_factor=widen_factor,
             reg_max=16,
             norm_cfg=norm_cfg,
-            act_cfg=dict(type='SiLU', inplace=True),
-            featmap_strides=strides),
+            act_cfg=dict(type='SiLU', inplace=True)
+        ),
         prior_generator=dict(
-            type='mmdet.MlvlPointGenerator', offset=0.5, strides=strides),
+            type='mmdet.MlvlPointGenerator', offset=0.5, strides=[1]),
         bbox_coder=dict(type='mmyolo.DistancePointBBoxCoder'),
         # scaled based on number of detection layers
         loss_cls=dict(

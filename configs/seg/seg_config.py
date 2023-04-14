@@ -91,14 +91,14 @@ model_cfg = dict(
             alpha=0.25,
             reduction='mean',
             loss_weight=10.0),
-        # loss_dice=dict(
-        #     type='mmdet.DiceLoss',
-        #     use_sigmoid=True,
-        #     activate=True,
-        #     reduction='mean',
-        #     naive_dice=True,
-        #     eps=1.0,
-        #     loss_weight=5.0),
+        loss_dice=dict(
+            type='mmdet.DiceLoss',
+            use_sigmoid=True,
+            activate=True,
+            reduction='mean',
+            naive_dice=True,
+            eps=1.0,
+            loss_weight=5.0),
         train_cfg=dict(
             num_points=12544,
             oversample_ratio=3.0,
@@ -111,11 +111,11 @@ model_cfg = dict(
                         type='mmdet.CrossEntropyLossCost',
                         weight=5.0,
                         use_sigmoid=True),
-                    # dict(
-                    #     type='mmdet.DiceCost',
-                    #     weight=5.0,
-                    #     pred_act=True,
-                    #     eps=1.0)
+                    dict(
+                        type='mmdet.DiceCost',
+                        weight=5.0,
+                        pred_act=True,
+                        eps=1.0)
                 ]),
             sampler=dict(type='mmdet.MaskPseudoSampler'))
     ),
