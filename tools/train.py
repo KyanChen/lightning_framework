@@ -13,8 +13,8 @@ register_all_modules()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a pl model')
-    # parser.add_argument('--config', default='../configs/yolov8_config.py', help='train config file path')
-    parser.add_argument('--config', default='configs/seg/seg_just_backbone_config.py', help='train config file path')
+    parser.add_argument('--config', default='../configs/yolov8_config.py', help='train config file path')
+    # parser.add_argument('--config', default='configs/seg/seg_just_backbone_config.py', help='train config file path')
     # parser.add_argument('--config', default='configs/seg_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/seg_mask2former_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/motiongpt_config.py', help='train config file path')

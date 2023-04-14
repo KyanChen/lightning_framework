@@ -227,7 +227,8 @@ class YOLOv8Head(YOLOv5Head):
                      loss_weight=1.5 / 4),
                  train_cfg: OptConfigType = None,
                  test_cfg: OptConfigType = None,
-                 init_cfg: OptMultiConfig = None):
+                 init_cfg: OptMultiConfig = None
+                 ):
         super().__init__(
             head_module=head_module,
             prior_generator=prior_generator,
@@ -247,6 +248,7 @@ class YOLOv8Head(YOLOv5Head):
 
         The special_init function is designed to deal with this situation.
         """
+
         if self.train_cfg:
             self.assigner = TASK_UTILS.build(self.train_cfg.assigner)
 

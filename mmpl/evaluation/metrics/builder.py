@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import lightning
 import torchmetrics
+import torchmetrics.detection
 
 from mmengine.config import Config, ConfigDict
 from mmpl.registry import METRICS
@@ -18,13 +19,14 @@ def register_pl_metrics() -> List[str]:
         List[str]: A list of registered optimizers' name.
     """
     pl_metrics = []
-    for module_name in dir(torchmetrics):
-        if module_name.startswith('__'):
-            continue
-        _metric = getattr(torchmetrics, module_name)
-        if inspect.isclass(_metric):
-            METRICS.register_module(module=_metric)
-            pl_metrics.append(module_name)
+    for modules in [torchmetrics, torchmetrics.detection]:
+        for module_name in dir(modules):
+            if module_name.startswith('__'):
+                continue
+            _metric = getattr(modules, module_name)
+            if inspect.isclass(_metric):
+                METRICS.register_module(module=_metric)
+                pl_metrics.append(module_name)
     return pl_metrics
 
 

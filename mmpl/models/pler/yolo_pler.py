@@ -82,8 +82,21 @@ class YoloPLer(BasePLer):
         results_list = self.head.predict(x, batch_data_samples, rescale=True)
         batch_data_samples = self.add_pred_to_datasample(
             batch_data_samples, results_list)
-
-        return batch_data_samples
+        preds = []
+        targets = []
+        for data_sample in batch_data_samples:
+            result = dict()
+            pred = data_sample.pred_instances
+            result['boxes'] = pred['bboxes']
+            result['scores'] = pred['scores']
+            result['labels'] = pred['labels']
+            preds.append(result)
+            # parse gt
+            gt = dict()
+            gt['boxes'] = data_sample.gt_instances['bboxes']
+            gt['labels'] = data_sample.gt_instances['labels']
+            targets.append(gt)
+        self.val_evaluator.update(preds, targets)
 
     def training_step(self, batch, batch_idx):
         data = self.data_preprocessor(batch, True)

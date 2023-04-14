@@ -170,6 +170,7 @@ class BasePLer(pl.LightningModule, BaseModel):
         if hasattr(self, 'val_evaluator'):
             metrics = self.val_evaluator.compute()
             for k, v in metrics.items():
+                v = v.view(-1)
                 for i, data in enumerate(v):
                     self.log(f'{k.lower()}_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
             self.val_evaluator.reset()
@@ -178,6 +179,7 @@ class BasePLer(pl.LightningModule, BaseModel):
         if hasattr(self, 'test_evaluator'):
             metrics = self.test_evaluator.compute()
             for k, v in metrics.items():
+                v = v.view(-1)
                 for i, data in enumerate(v):
                     self.log(f'{k.lower()}_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
             self.test_evaluator.reset()
@@ -186,6 +188,7 @@ class BasePLer(pl.LightningModule, BaseModel):
         if hasattr(self, 'train_evaluator'):
             metrics = self.train_evaluator.compute()
             for k, v in metrics.items():
+                v = v.view(-1)
                 for i, data in enumerate(v):
                     self.log(f'{k.lower()}_{i}', data, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
             self.train_evaluator.reset()
