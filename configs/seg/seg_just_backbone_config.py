@@ -111,12 +111,12 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="gpu",
+    accelerator="auto",
     strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=2,
     # default_root_dir='results/building/E20230413_1',
     default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -178,17 +178,17 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 2
-train_num_workers = 0
-test_batch_size_per_gpu = 2
-test_num_workers = 0
-persistent_workers = False
+train_batch_size_per_gpu = 4
+train_num_workers = 2
+test_batch_size_per_gpu = 4
+test_num_workers = 2
+persistent_workers = True
 
 
 # data_parent = '/data1/kyanchen/datasets/'
 # data_parent = '/Users/kyanchen/datasets/Building/'
-# data_parent = '/mnt/search01/dataset/cky_data/'
-data_parent = '../sample/'
+data_parent = '/mnt/search01/dataset/cky_data/'
+# data_parent = '../sample/'
 data_root = data_parent+'WHU/'
 train_data_prefix = 'train/'
 val_data_prefix = 'test/'
