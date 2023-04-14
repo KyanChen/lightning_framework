@@ -88,13 +88,13 @@ model_cfg = dict(
     )
 )
 
-# logger = dict(
-#     type='WandbLogger',
-#     project='building',
-#     group='b_pred',
-#     name='E20230413_1'
-# )
-logger = False
+logger = dict(
+    type='WandbLogger',
+    project='building',
+    group='b_pred',
+    name='E20230414_0'
+)
+# logger = False
 
 
 callbacks = [
@@ -116,9 +116,9 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=2,
-    # default_root_dir='results/building/E20230413_1',
-    default_root_dir='results/tmp',
+    devices=8,
+    default_root_dir='results/building/E20230414_0',
+    # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
@@ -178,9 +178,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 8
+train_batch_size_per_gpu = 6
 train_num_workers = 2
-test_batch_size_per_gpu = 8
+test_batch_size_per_gpu = 6
 test_num_workers = 2
 persistent_workers = True
 
