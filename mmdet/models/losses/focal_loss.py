@@ -219,8 +219,6 @@ class FocalLoss(nn.Module):
         Returns:
             torch.Tensor: The calculated loss
         """
-        import ipdb
-        ipdb.set_trace()
         assert reduction_override in (None, 'none', 'mean', 'sum')
         reduction = (
             reduction_override if reduction_override else self.reduction)
