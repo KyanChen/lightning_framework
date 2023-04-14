@@ -1,7 +1,7 @@
 custom_imports = dict(imports=['mmyolo.datasets'], allow_failed_imports=False)
 
 optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
-max_epochs = 300
+max_epochs = 400
 param_scheduler = [
     # warm up learning rate scheduler
     dict(
@@ -195,7 +195,7 @@ train_pipeline_stage2 = [
 #     name='E20230403_1'
 # )
 logger = False
-close_mosaic_epochs = 20
+close_mosaic_epochs = 40
 callbacks = [
     dict(
         type='ModelCheckpoint',
@@ -221,7 +221,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=2,
     default_root_dir='results/exp',
     max_epochs=max_epochs,
     logger=logger,
@@ -232,8 +232,8 @@ trainer_cfg = dict(
     # sync_batchnorm=True,
 
     # fast_dev_run=True,
-    # limit_train_batches=1,
-    # limit_val_batches=0,
+    limit_train_batches=5,
+    limit_val_batches=5,
     # limit_test_batches=None,
     # limit_predict_batches=None,
     # overfit_batches=0.0,
@@ -296,7 +296,7 @@ train_batch_size_per_gpu = 4
 train_num_workers = 4
 test_batch_size_per_gpu = 4
 test_num_workers = 4
-persistent_workers = False
+persistent_workers = True
 
 data_parent = '/mnt/search01/dataset/cky_data'
 # data_parent = '/expand_data/datasets'
