@@ -188,13 +188,13 @@ train_pipeline_stage2 = [
     *last_transform
 ]
 
-# logger = dict(
-#     type='WandbLogger',
-#     project='MotionGPT',
-#     group='test',
-#     name='E20230403_1'
-# )
-logger = False
+logger = dict(
+    type='WandbLogger',
+    project='DyTiSDet',
+    group='yolov8_dynamic',
+    name='E20230414_0'
+)
+# logger = False
 close_mosaic_epochs = 40
 callbacks = [
     dict(
@@ -222,7 +222,7 @@ trainer_cfg = dict(
     # precision='32',
     # precision='16-mixed',
     devices=2,
-    default_root_dir='results/exp',
+    default_root_dir='results/DyTiSDet/E20230414_0',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
@@ -232,8 +232,8 @@ trainer_cfg = dict(
     # sync_batchnorm=True,
 
     # fast_dev_run=True,
-    limit_train_batches=5,
-    limit_val_batches=5,
+    # limit_train_batches=5,
+    # limit_val_batches=5,
     # limit_test_batches=None,
     # limit_predict_batches=None,
     # overfit_batches=0.0,
@@ -293,9 +293,9 @@ test_pipeline = [
 ]
 
 train_batch_size_per_gpu = 4
-train_num_workers = 4
+train_num_workers = 2
 test_batch_size_per_gpu = 4
-test_num_workers = 4
+test_num_workers = 2
 persistent_workers = True
 
 data_parent = '/mnt/search01/dataset/cky_data'
