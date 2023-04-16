@@ -82,8 +82,8 @@ class BasePLer(pl.LightningModule, BaseModel):
 
     def configure_optimizers(self):
         optimizer_cfg = copy.deepcopy(self.hyperparameters.get('optimizer'))
-        base_lr = optimizer_cfg.pop('lr')
-        base_wd = optimizer_cfg.pop('weight_decay', None)
+        base_lr = optimizer_cfg.get('lr')
+        base_wd = optimizer_cfg.get('weight_decay', None)
 
         sub_models = optimizer_cfg.pop('sub_model', None)
         if sub_models is None:
@@ -124,7 +124,9 @@ class BasePLer(pl.LightningModule, BaseModel):
 
         optimizer = OPTIMIZERS.build(optimizer_cfg)
 
-        schedulers = copy.deepcopy(self.hyperparameters.get('param_scheduler'))
+        schedulers = copy.deepcopy(self.hyperparameters.get('param_scheduler', None))
+        if schedulers is None:
+            return [optimizer]
         param_schedulers = []
         for scheduler in schedulers:
             if isinstance(scheduler, _ParamScheduler):
@@ -145,9 +147,9 @@ class BasePLer(pl.LightningModule, BaseModel):
         return [optimizer], param_schedulers
 
     def lr_scheduler_step(self, scheduler, metric):
-        param_schedulers = [scheduler] if not isinstance(scheduler, list) else scheduler
-        if param_schedulers is None:
+        if scheduler is None:
             return
+        param_schedulers = [scheduler] if not isinstance(scheduler, list) else scheduler
 
         def step(param_schedulers):
             assert isinstance(param_schedulers, list)
@@ -158,8 +160,8 @@ class BasePLer(pl.LightningModule, BaseModel):
         if isinstance(param_schedulers, list):
             step(param_schedulers)
         elif isinstance(param_schedulers, dict):
-            for param_schedulers in param_schedulers.values():
-                step(param_schedulers)
+            for param_scheduler in param_schedulers.values():
+                step(param_scheduler)
         else:
             raise TypeError(
                 'runner.param_schedulers should be list of ParamScheduler or '
