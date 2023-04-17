@@ -89,6 +89,8 @@ def init_clip_model(clip_config, device='cuda:0'):
     model = CLIPModel.from_pretrained(clip_config).to(device)
     tokenizer = AutoTokenizer.from_pretrained(clip_config)
     inputs = tokenizer("a photo of a building", return_tensors="pt")
+    for k, v in inputs.items():
+        inputs[k] = v.to(device)
     text_features = model.get_text_features(**inputs).detach()  # 1, 512
     processor = AutoProcessor.from_pretrained(clip_config).to(device)
     size = (processor.image_processor.crop_size['width'], processor.image_processor.crop_size['height'])
