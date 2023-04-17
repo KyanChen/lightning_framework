@@ -25,9 +25,7 @@ def parse_args():
     parser.add_argument(
         '--phase',
         '-p',
-        default='train',
-        type=str,
-        choices=['train', 'test', 'val', 'all'],
+        default=['train', 'test'],
         help='phase of dataset to visualize, accept "train" "test" and "val".'
         ' Defaults to "train".')
 
@@ -124,10 +122,9 @@ def main():
     mmengine.mkdir_or_exist(args.output_dir)
     # register all modules in mmcls into the registries
     register_all_modules()
-    if args.phase == 'all':
-        phases = ['train', 'val', 'test']
-    else:
+    if isinstance(args.phase, str):
         phases = [args.phase]
+
     clip_config_ = 'pretrain/clip/models--openai--clip-vit-large-patch14-336/blobs'
 
     model, tokenizer, text_features, size, mean, std = init_clip_model(clip_config_)
