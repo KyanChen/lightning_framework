@@ -57,8 +57,8 @@ class BuildingExtractionDataset(BaseSegDataset):
         label = torch.ones(all_instances.shape[0], dtype=torch.long)
         results['data_samples'].set_data(dict(instances_data=all_instances, instances_label=label))
 
-        if self.load_clip_cache_from is not None:
-
-            results['data_samples'].set_data(dict(clip_dense_embs=img_dense_embs[0], logits_per_image=logits_per_image[0]))
+        # if self.load_clip_cache_from is not None:
+        #
+        #     results['data_samples'].set_data(dict(clip_dense_embs=img_dense_embs[0], logits_per_image=logits_per_image[0]))
 
         return results
