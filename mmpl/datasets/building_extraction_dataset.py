@@ -19,6 +19,7 @@ class BuildingExtractionDataset(BaseSegDataset):
                  seg_map_suffix='.png',
                  reduce_zero_label=True,
                  load_clip_cache_from=None,
+                 phrase='train',
                  **kwargs) -> None:
         super().__init__(
             img_suffix=img_suffix,
@@ -26,6 +27,7 @@ class BuildingExtractionDataset(BaseSegDataset):
             reduce_zero_label=reduce_zero_label,
             **kwargs)
         self.load_clip_cache_from = load_clip_cache_from
+        self.phrase = phrase
 
 
     def prepare_data(self, idx) -> Any:
@@ -61,7 +63,7 @@ class BuildingExtractionDataset(BaseSegDataset):
 
         if self.load_clip_cache_from is not None:
             img_path = results['data_samples'].img_path
-            cache_data = mmengine.load(f"{self.load_clip_cache_from}/{os.path.splitext(os.path.basename(img_path))[0]}.pkl")
+            cache_data = mmengine.load(f"{self.load_clip_cache_from}/{self.phrase}_{os.path.splitext(os.path.basename(img_path))[0]}.pkl")
             results['data_samples'].set_data(dict(clip_dense_embs=cache_data['img_dense_embs'][0], logits_per_image=cache_data['logits_per_image'][0]))
 
         return results
