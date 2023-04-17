@@ -1,6 +1,6 @@
 custom_imports = dict(imports=['mmyolo.datasets'], allow_failed_imports=False)
 
-base_lr = 0.001
+base_lr = 0.005
 lr_factor = 0.01
 weight_decay = 0.0005
 # optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
@@ -81,6 +81,7 @@ model_cfg = dict(
             in_channels=[256, 512, last_stage_out_channels],
             widen_factor=widen_factor,
             reg_max=16,
+            decouple_head=True,
             target_size=(64, 64),
             norm_cfg=norm_cfg,
             act_cfg=dict(type='SiLU', inplace=True),
@@ -181,7 +182,7 @@ logger = dict(
     type='WandbLogger',
     project='DyTiSDet',
     group='yolov8_dynamic',
-    name='E20230417_0'
+    name='E20230417_1'
 )
 # logger = None
 
@@ -228,7 +229,7 @@ trainer_cfg = dict(
     # precision='32',
     # precision='16-mixed',
     devices=8,
-    default_root_dir='results/DyTiSDet/E20230417_0',
+    default_root_dir='results/DyTiSDet/E20230417_1',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,

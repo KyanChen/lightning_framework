@@ -65,6 +65,7 @@ class YOLOv8SIRENSHeadModule(BaseModule):
                  encoder_rgb: bool = True,
                  encode_scale_ratio: bool = True,
                  encode_hr_coord: bool = True,
+                 decouple_head: bool = True,
 
                  featmap_strides: Sequence[int] = [8, 16, 32],
                  norm_cfg: ConfigType = dict(
@@ -87,6 +88,8 @@ class YOLOv8SIRENSHeadModule(BaseModule):
         self.num_inner_layers = num_inner_layers
         self.featmap_strides = featmap_strides
         self.num_levels = len(self.in_channels)
+        self.decouple_head = decouple_head
+
 
         decoder_in_dim = 2
         if self.encode_scale_ratio:
@@ -106,8 +109,10 @@ class YOLOv8SIRENSHeadModule(BaseModule):
                     nn.Conv2d(self.modulation_dim, self.modulation_dim, 3, padding=1)
                 )
             )
-
-        self._init_layers()
+        if self.decouple_head:
+            self._init_decopule_layers()
+        else:
+            self._init_layers()
 
     def _init_layers(self):
         """initialize conv layers in YOLOv8 head."""
@@ -127,6 +132,41 @@ class YOLOv8SIRENSHeadModule(BaseModule):
             base_channels=self.modulation_base_dim,
             is_residual=True
         )
+
+        proj = torch.arange(self.reg_max, dtype=torch.float)
+        self.register_buffer('proj', proj, persistent=False)
+
+    def _init_decopule_layers(self):
+        """initialize conv layers in YOLOv8 head."""
+        # Init decouple head
+        self.cls_preds = nn.ModuleList()
+        self.reg_preds = nn.ModuleList()
+
+        # reg_out_channels = max(
+        #     (16, self.in_channels[0] // 4, self.reg_max * 4))
+        # cls_out_channels = max(self.in_channels[0], self.num_classes)
+
+        for i in range(self.num_levels):
+            self.reg_preds.append(
+                ModulatedSirens(
+                    num_inner_layers=self.num_inner_layers,
+                    in_dim=self.decoder_in_dim,
+                    modulation_dim=self.modulation_dim,
+                    out_dim=4 * self.reg_max,
+                    base_channels=self.modulation_base_dim,
+                    is_residual=True
+                )
+            )
+            self.cls_preds.append(
+                ModulatedSirens(
+                    num_inner_layers=self.num_inner_layers,
+                    in_dim=self.decoder_in_dim,
+                    modulation_dim=self.modulation_dim,
+                    out_dim=self.num_classes,
+                    base_channels=self.modulation_base_dim,
+                    is_residual=True
+                )
+            )
 
         proj = torch.arange(self.reg_max, dtype=torch.float)
         self.register_buffer('proj', proj, persistent=False)
@@ -175,9 +215,11 @@ class YOLOv8SIRENSHeadModule(BaseModule):
 
     def forward(self, x):
         assert len(x) == self.num_levels
+        if self.decouple_head:
+            return multi_apply(self.forward_single, x, self.channel_resize_modules, self.cls_preds, self.reg_preds)
         return multi_apply(self.forward_single, x, self.channel_resize_modules)
 
-    def forward_single(self, x: torch.Tensor, channel_resize_module) -> Tuple:
+    def forward_single(self, x: torch.Tensor, channel_resize_module, cls_pred_head=None, reg_pred_head=None) -> Tuple:
         b, _, h, w = x.shape
         x = channel_resize_module(x)
         func_map = F.interpolate(x, size=self.target_size, mode=self.interp_func, align_corners=True)
@@ -198,8 +240,12 @@ class YOLOv8SIRENSHeadModule(BaseModule):
 
         h, w = self.target_size
         local_input = repeat(local_input, 'b c h w -> (b bs) c h w', bs=b)
-        cls_logit = self.cls_pred_head(local_input, func_map)
-        bbox_dist_preds = self.reg_pred_head(local_input, func_map)
+        if self.decouple_head:
+            cls_logit = cls_pred_head(local_input, func_map)
+            bbox_dist_preds = reg_pred_head(local_input, func_map)
+        else:
+            cls_logit = self.cls_pred_head(local_input, func_map)
+            bbox_dist_preds = self.reg_pred_head(local_input, func_map)
 
         if self.reg_max > 1:
             bbox_dist_preds = bbox_dist_preds.reshape(
