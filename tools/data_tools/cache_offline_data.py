@@ -124,6 +124,8 @@ def main():
     register_all_modules()
     if isinstance(args.phase, str):
         phases = [args.phase]
+    else:
+        phases = args.phase
 
     clip_config_ = 'pretrain/clip/models--openai--clip-vit-large-patch14-336/blobs'
 
