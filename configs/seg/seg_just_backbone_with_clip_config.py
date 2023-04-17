@@ -1,18 +1,18 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_imports=False)
 # train max_num_instance=140
 # test max_num_instance=96
-sub_model = [
-    # 'sam.mask_decoder.iou_token',
-    # 'sam.mask_decoder.iou_prediction_head',
-    # 'sam.mask_decoder.class_aware_token',
-    # 'sam.mask_decoder.class_aware_head',
-    'global_prompt',
-    ]
+# sub_model = [
+#     # 'sam.mask_decoder.iou_token',
+#     # 'sam.mask_decoder.iou_prediction_head',
+#     # 'sam.mask_decoder.class_aware_token',
+#     # 'sam.mask_decoder.class_aware_head',
+#     'global_prompt',
+#     ]
 max_epochs = 500
 
 optimizer = dict(
     type='AdamW',
-    sub_model=sub_model,
+    # sub_model=sub_model,
     lr=0.0001,
     weight_decay=1e-3
 )
@@ -57,12 +57,11 @@ model_cfg = dict(
         param_scheduler=param_scheduler,
         evaluator=evaluator,
     ),
-    sam='vit_h',
-    sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
+    with_clip=True,
     points_per_side=None,
     only_img_encoder=True,
     global_prompt=True,
-    need_train_names=sub_model,
+    # need_train_names=sub_model,
     head=dict(
         type='BinarySemanticSegHead',
         # loss_mask=dict(
@@ -84,17 +83,17 @@ model_cfg = dict(
             reduction='mean',
             naive_dice=True,
             eps=1.0,
-            loss_weight=5.0),
+            loss_weight=1.0),
     )
 )
 
 logger = dict(
     type='WandbLogger',
     project='building',
-    group='b_pred',
-    name='E20230414_0'
+    group='clip',
+    name='E20230417_0'
 )
-logger = False
+# logger = None
 
 
 callbacks = [
@@ -103,9 +102,13 @@ callbacks = [
         save_last=True,
         mode='max',
         monitor='valmulticlassjaccardindex_1',
-        save_top_k=10,
+        save_top_k=6,
         filename='epoch_{epoch}-iou_{metric_1:.4f}'
     ),
+    dict(
+        type='LearningRateMonitor',
+        logging_interval='step'
+    )
 ]
 
 
@@ -117,8 +120,8 @@ trainer_cfg = dict(
     # precision='32',
     # precision='16-mixed',
     devices=1,
-    default_root_dir='results/building/E20230414_0',
-    # default_root_dir='results/tmp',
+    # default_root_dir='results/building/E20230414_0',
+    default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
@@ -144,7 +147,7 @@ trainer_cfg = dict(
     # gradient_clip_algorithm=None,
     # deterministic=None,
     # inference_mode: bool=True,
-    # use_distributed_sampler=True,
+    use_distributed_sampler=True,
     # profiler="simple",
     # detect_anomaly=False,
     # barebones=False,
@@ -178,10 +181,10 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 6
-train_num_workers = 2
-test_batch_size_per_gpu = 6
-test_num_workers = 2
+train_batch_size_per_gpu = 128
+train_num_workers = 4
+test_batch_size_per_gpu = 128
+test_num_workers = 4
 persistent_workers = True
 
 

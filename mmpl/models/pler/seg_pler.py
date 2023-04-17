@@ -25,7 +25,7 @@ from module.segment_anything.utils.amg import build_all_layer_point_grids
 @MODELS.register_module()
 class SegPLer(BasePLer):
     def __init__(self,
-                 sam='vit_h',
+                 sam=None,
                  sam_checkpoint='',
                  points_per_side=None,
                  sam_prompt_generator=None,
@@ -33,6 +33,7 @@ class SegPLer(BasePLer):
                  global_prompt=False,
                  need_train_names=None,
                  head=None,
+                 with_clip=False,
                  threshold=0.5,
                  ignore_index=255,
                  train_cfg=None,
@@ -46,10 +47,11 @@ class SegPLer(BasePLer):
         self.only_img_encoder = only_img_encoder
         self.global_prompt = global_prompt
 
-        if not self.only_img_encoder:
-            self.sam = sam_model_registry[sam](sam_checkpoint)
-        else:
-            self.sam = sam_model_registry[sam](sam_checkpoint).image_encoder
+        if sam is not None:
+            if not self.only_img_encoder:
+                self.sam = sam_model_registry[sam](sam_checkpoint)
+            else:
+                self.sam = sam_model_registry[sam](sam_checkpoint).image_encoder
 
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
@@ -60,18 +62,40 @@ class SegPLer(BasePLer):
             head.update(train_cfg=train_cfg)
             head.update(test_cfg=test_cfg)
             self.head = MODELS.build(head)
+        self.with_clip = with_clip
         if global_prompt is not None:
-            self.global_prompt = nn.Conv2d(256, 1, kernel_size=1)
+            if with_clip:
+                self.logits_prompt = nn.Sequential(
+                    nn.Linear(1, 8),
+                    nn.ReLU(),
+                    nn.Linear(8, 16)
+                )
+                self.global_prompt = nn.Sequential(
+                    nn.Conv2d(768+16, 256, kernel_size=3, padding=1),
+                    nn.ReLU(),
+                    nn.Conv2d(256, 256, kernel_size=3, padding=1),
+                    nn.ReLU(),
+                    nn.Conv2d(256, 1, kernel_size=3, padding=1),
+                )
+            else:
+                self.global_prompt = nn.Conv2d(256, 1, kernel_size=1)
 
     def setup(self, stage: str) -> None:
-        self._set_grad(self.need_train_names, [])
+        if self.need_train_names is not None:
+            self._set_grad(self.need_train_names, [])
 
     def init_weights(self):
         import ipdb; ipdb.set_trace()
         pass
 
     def train(self, mode=True):
-        return self._set_train_module(mode)
+        if self.need_train_names is not None:
+            return self._set_train_module(mode)
+        else:
+            self.training = mode
+            for name, module in self.named_children():
+                module.train(mode)
+            return self
 
     def validation_step(self, batch, batch_idx):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
@@ -134,10 +158,9 @@ class SegPLer(BasePLer):
     def training_step(self, batch, batch_idx):
         if self.only_img_encoder:
             masks_pred = self.forward_only_img_encoder(batch)
-            masks_pred = F.interpolate(masks_pred, size=[self.sam.img_size]*2, mode='bilinear', align_corners=True)
             seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+            masks_pred = F.interpolate(masks_pred, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
             losses = self.head.loss(masks_pred, seg_label)
-
             masks_pred_result = masks_pred > 0
             self.train_evaluator.update(masks_pred_result.detach(), seg_label.detach())
 
@@ -169,14 +192,22 @@ class SegPLer(BasePLer):
         return seg_logits
 
     def forward_only_img_encoder(self, batch, *args: Any, **kwargs: Any) -> Any:
-        img = torch.stack(batch['inputs'], dim=0)  # B C H W
-        num_img = img.shape[0]
-        img = img[:, [2, 1, 0], :, :]  # BGR2RGB
-        img = (img - self.sam.pixel_mean) / self.sam.pixel_std
+        if self.with_clip:
+            clip_dense_embs = torch.stack([x.clip_dense_embs for x in batch['data_samples']], dim=0)
+            logits_per_images = torch.stack([x.logits_per_image for x in batch['data_samples']], dim=0)
+            logits_per_images = self.logits_prompt(logits_per_images)  # Bx576x16
+            clip_dense_embs = torch.cat([clip_dense_embs, logits_per_images], dim=-1)
+            clip_dense_embs = rearrange(clip_dense_embs, 'b (h w) c -> b c h w', h=int(clip_dense_embs.shape[1]**0.5))
+            masks_pred = self.global_prompt(clip_dense_embs)
+        else:
+            img = torch.stack(batch['inputs'], dim=0)  # B C H W
+            num_img = img.shape[0]
+            img = img[:, [2, 1, 0], :, :]  # BGR2RGB
+            img = (img - self.sam.pixel_mean) / self.sam.pixel_std
 
-        with torch.no_grad():
-            image_embeddings, inner_states = self.sam(img)  # Bx256x64x64
-        masks_pred = self.global_prompt(image_embeddings)
+            with torch.no_grad():
+                image_embeddings, inner_states = self.sam(img)  # Bx256x64x64
+            masks_pred = self.global_prompt(image_embeddings)
         return masks_pred
 
     def forward(self, batch, *args: Any, **kwargs: Any) -> Any:

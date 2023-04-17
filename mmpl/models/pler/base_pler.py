@@ -67,11 +67,11 @@ class BasePLer(pl.LightningModule, BaseModel):
             print(f"Turning on gradients for names: {need_train_names}")
             print(f"Turning off gradients for not specific names: {not_specific_names}")
 
-    def _set_train_module(self, mode=True):
+    def _set_train_module(self, mode=True, need_train_names: list=[]):
         self.training = mode
         for name, module in self.named_children():
             flag = False
-            for need_train_name in self.need_train_names:
+            for need_train_name in need_train_names:
                 if need_train_name in name:
                     flag = True
             if flag:

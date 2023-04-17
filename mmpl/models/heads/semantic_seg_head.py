@@ -73,8 +73,7 @@ class BinarySemanticSegHead(BaseModel):
         # shape (num_total_gts, h, w) -> (num_total_gts * h * w)
         mask_targets = seg_labels.reshape(-1, 1)
         # target is (1 - mask_targets) !!!
-        loss_mask = self.loss_mask(
-            mask_preds, mask_targets, avg_factor=h * w)
+        loss_mask = self.loss_mask(mask_preds, mask_targets, avg_factor=h * w)
 
         loss_dict = dict()
         loss_dict['loss_mask'] = loss_mask
