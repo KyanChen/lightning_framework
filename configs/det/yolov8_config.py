@@ -1,6 +1,6 @@
 custom_imports = dict(imports=['mmyolo.datasets'], allow_failed_imports=False)
 
-base_lr = 0.05
+base_lr = 0.001
 lr_factor = 0.01
 weight_decay = 0.0005
 # optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
