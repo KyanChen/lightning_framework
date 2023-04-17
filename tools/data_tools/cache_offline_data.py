@@ -98,8 +98,8 @@ def init_clip_model(clip_config, device='cuda:0'):
     std = torch.tensor(processor.image_processor.image_std, device=device).view(1, 3, 1, 1)
     return model, tokenizer, text_features, size, mean, std
 
-def model_forward(results, model, tokenizer, text_features, size, mean, std):
-    image = results['inputs'].unsqueeze(0).clone().detach().float()
+def model_forward(results, model, tokenizer, text_features, size, mean, std, device='cuda:0'):
+    image = results['inputs'].unsqueeze(0).clone().detach().float().to(device)
     image = F.interpolate(image, size=size, mode='bicubic', align_corners=False)
     image = image / 255.
     image = (image - mean) / std
@@ -143,7 +143,6 @@ def main():
     for dataset in cache_datasets:
         progress_bar = ProgressBar(len(dataset))
         for i, item in zip(range(len(dataset)), dataset):
-            import ipdb; ipdb.set_trace()
             progress_bar.update()
             cache_data = model_forward(item, model, tokenizer, text_features, size, mean, std)
             mmengine.dump(cache_data, f"{args.out_dir}/_.pkl")
