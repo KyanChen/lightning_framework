@@ -199,7 +199,7 @@ val_data_prefix = 'test/'
 dataset_type = 'BuildingExtractionDataset'
 metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
 
-clip_config_ = 'pretrain/clip/models--openai--clip-vit-large-patch14-336/snapshots/ce19dc912ca5cd21c8a653c79e251e808ccabcd1'
+clip_config_ = 'pretrain/clip/models--openai--clip-vit-large-patch14-336/blobs'
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,
         num_workers=test_num_workers,
