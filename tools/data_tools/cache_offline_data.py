@@ -87,7 +87,7 @@ def parse_args():
 def init_clip_model(clip_config, device='cuda:0'):
     from transformers import AutoProcessor, CLIPModel, AutoTokenizer
     model = CLIPModel.from_pretrained(clip_config).to(device)
-    tokenizer = AutoTokenizer.from_pretrained(clip_config).to(device)
+    tokenizer = AutoTokenizer.from_pretrained(clip_config)
     inputs = tokenizer("a photo of a building", return_tensors="pt")
     text_features = model.get_text_features(**inputs).detach()  # 1, 512
     processor = AutoProcessor.from_pretrained(clip_config).to(device)
