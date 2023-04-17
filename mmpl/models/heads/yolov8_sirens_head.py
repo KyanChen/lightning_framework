@@ -74,6 +74,7 @@ class YOLOv8SIRENSHeadModule(BaseModule):
         super().__init__(init_cfg=init_cfg)
         self.num_classes = num_classes
         self.in_channels = [int(x*widen_factor) for x in in_channels]
+
         self.widen_factor = widen_factor
         self.reg_max = reg_max
         self.modulation_dim = modulation_dim
@@ -85,6 +86,7 @@ class YOLOv8SIRENSHeadModule(BaseModule):
         self.encode_hr_coord = encode_hr_coord
         self.num_inner_layers = num_inner_layers
         self.featmap_strides = featmap_strides
+        self.num_levels = len(self.in_channels)
 
         decoder_in_dim = 2
         if self.encode_scale_ratio:
@@ -95,12 +97,15 @@ class YOLOv8SIRENSHeadModule(BaseModule):
         
         self.modulation_base_dim = modulation_dim // 2
 
-        self.gather_func_maps = nn.Sequential(
-            nn.Conv2d(sum(self.in_channels), modulation_dim, kernel_size=1),
-            nn.BatchNorm2d(256),
-            nn.SiLU(),
-            nn.Conv2d(modulation_dim, modulation_dim, kernel_size=3, padding=1),
-        )
+        self.channel_resize_modules = nn.ModuleList()
+        for channel in self.in_channels:
+            self.channel_resize_modules.append(
+                nn.Sequential(
+                    nn.Conv2d(channel, self.modulation_dim, 1),
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(self.modulation_dim, self.modulation_dim, 3, padding=1)
+                )
+            )
 
         self._init_layers()
 
@@ -126,17 +131,35 @@ class YOLOv8SIRENSHeadModule(BaseModule):
         proj = torch.arange(self.reg_max, dtype=torch.float)
         self.register_buffer('proj', proj, persistent=False)
 
+    def _meshgrid(self,
+                  x: Tensor,
+                  y: Tensor,
+                  row_major: bool = True) -> Tuple[Tensor, Tensor]:
+        yy, xx = torch.meshgrid(y, x)
+        if row_major:
+            # warning .flatten() would cause error in ONNX exporting
+            # have to use reshape here
+            return xx.reshape(-1), yy.reshape(-1)
+
+        else:
+            return yy.reshape(-1), xx.reshape(-1)
+
     def get_coordinate_map(self, lr_size, hr_size, device='cpu'):
-        def to_coordinates(size=(56, 56), device='cpu', return_map=True):
-            coordinates = torch.ones(size, device=device).nonzero().float()
+        def to_coordinates(size=(56, 56), device='cpu', return_map=True, offset=0.5):
+            shift_x = torch.arange(0, size[0], device=device) + offset
+            shift_y = torch.arange(0, size[1], device=device) + offset
+            shift_xx, shift_yy = self._meshgrid(shift_x, shift_y)
+
+            coordinates = torch.stack([shift_xx, shift_yy], dim=-1)
+
             # Normalize coordinates to lie in [-.5, .5]
             coordinates[..., 0] = coordinates[..., 0] / (size[0] - 1) - 0.5
             coordinates[..., 1] = coordinates[..., 1] / (size[1] - 1) - 0.5
             # Convert to range [-1, 1]
             coordinates *= 2
             if return_map:
-                coordinates = rearrange(coordinates, '(H W) C -> H W C', H=size[0])
-            # [y, x]
+                coordinates = rearrange(coordinates, '(H W) C -> H W C', H=size[1])
+            # [x, y]
             return coordinates
 
         h_lr, w_lr = lr_size
@@ -151,34 +174,33 @@ class YOLOv8SIRENSHeadModule(BaseModule):
         return rel_grid.contiguous().detach(), lr_coord.contiguous().detach(), hr_coord.contiguous().detach()
 
     def forward(self, x):
-        bs = x[0].shape[0]
-        func_maps = []
-        for func_map in x:
-            func_map = F.interpolate(func_map, size=self.func_size, mode=self.interp_func, align_corners=True)
-            func_maps.append(func_map)
-        fused_funcs = torch.cat(func_maps, dim=1)  # [b, c, 128, 128]
-        fused_funcs = self.gather_func_maps(fused_funcs)
+        assert len(x) == self.num_levels
+        return multi_apply(self.forward_single, x, self.channel_resize_modules)
 
+    def forward_single(self, x: torch.Tensor, channel_resize_module) -> Tuple:
+        b, _, h, w = x.shape
+        x = channel_resize_module(x)
+        func_map = F.interpolate(x, size=self.target_size, mode=self.interp_func, align_corners=True)
         rel_grid, lr_grid, hr_grid = self.get_coordinate_map(
-            lr_size=self.func_size,
+            lr_size=(w, h),
             hr_size=self.target_size,
-            device=fused_funcs.device)
+            device=x.device)
 
         local_input = rel_grid
         if self.encode_scale_ratio:
-            w_ratio = self.func_size[0] / self.target_size[0]
-            h_ratio = self.func_size[1] / self.target_size[1]
+            w_ratio = w / self.target_size[0]
+            h_ratio = h / self.target_size[1]
             scale_ratio_map = torch.tensor([h_ratio, w_ratio]).view(1, -1, 1, 1).expand(1, -1, *self.target_size).to(
-                fused_funcs.device)
+                x.device)
             local_input = torch.cat([local_input, scale_ratio_map], dim=1)
         if self.encode_hr_coord:
             local_input = torch.cat([local_input, hr_grid], dim=1)
 
         h, w = self.target_size
-        local_input = repeat(local_input, 'b c h w -> (b bs) c h w', bs=bs)
-        fused_funcs = F.interpolate(fused_funcs, size=self.target_size, mode=self.interp_func, align_corners=True)
-        cls_logit = self.cls_pred_head(local_input, fused_funcs)
-        bbox_dist_preds = self.reg_pred_head(local_input, fused_funcs)
+        local_input = repeat(local_input, 'b c h w -> (b bs) c h w', bs=b)
+        cls_logit = self.cls_pred_head(local_input, func_map)
+        bbox_dist_preds = self.reg_pred_head(local_input, func_map)
+
         if self.reg_max > 1:
             bbox_dist_preds = bbox_dist_preds.reshape(
                 [-1, 4, self.reg_max, h * w]).permute(0, 3, 1, 2)
@@ -188,14 +210,13 @@ class YOLOv8SIRENSHeadModule(BaseModule):
             # bbox_preds = bbox_dist_preds.softmax(3).matmul(self.proj)
             bbox_preds = bbox_dist_preds.softmax(3).matmul(
                 self.proj.view([-1, 1])).squeeze(-1)
-            bbox_preds = bbox_preds.transpose(1, 2).reshape(bs, -1, h, w)
+            bbox_preds = bbox_preds.transpose(1, 2).reshape(b, -1, h, w)
         else:
             bbox_preds = bbox_dist_preds
         if self.training:
-            return [cls_logit], [bbox_preds], [bbox_dist_preds]
+            return cls_logit, bbox_preds, bbox_dist_preds
         else:
-            return [cls_logit], [bbox_preds]
-
+            return cls_logit, bbox_preds
 
 @MODELS.register_module()
 class YOLOv8SIRENSHead(YOLOv8Head):

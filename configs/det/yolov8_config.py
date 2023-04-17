@@ -1,31 +1,19 @@
 custom_imports = dict(imports=['mmyolo.datasets'], allow_failed_imports=False)
 
-optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
-max_epochs = 400
-param_scheduler = [
-    # warm up learning rate scheduler
-    dict(
-        type='LinearLR',
-        start_factor=1e-4,
-        by_epoch=True,
-        begin=0,
-        end=1,
-        # update by iter
-        convert_to_iter_based=True),
-    # main learning rate scheduler
-    dict(
-        type='CosineAnnealingLR',
-        T_max=max_epochs,
-        by_epoch=True,
-        begin=1,
-        end=max_epochs,
-    )
-]
+base_lr = 0.05
+lr_factor = 0.01
+weight_decay = 0.0005
+# optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
+optimizer = dict(type='SGD', lr=base_lr, momentum=0.937, weight_decay=weight_decay, nesterov=True)
+
+max_epochs = 600
+param_scheduler = None
 
 
 last_stage_out_channels = 1024
 deepen_factor = 0.33
 widen_factor = 0.5
+num_det_layers = 3
 norm_cfg = dict(type='BN', momentum=0.03, eps=0.001)
 num_classes = 1
 tal_topk = 10  # Number of bbox selected in each level
@@ -93,11 +81,12 @@ model_cfg = dict(
             in_channels=[256, 512, last_stage_out_channels],
             widen_factor=widen_factor,
             reg_max=16,
+            target_size=(64, 64),
             norm_cfg=norm_cfg,
             act_cfg=dict(type='SiLU', inplace=True),
-            featmap_strides=[1]),
+            featmap_strides=[512//64]*3),
         prior_generator=dict(
-            type='mmdet.MlvlPointGenerator', offset=0.5, strides=[1]),
+            type='mmdet.MlvlPointGenerator', offset=0.5, strides=[512//64]*3),
         bbox_coder=dict(type='mmyolo.DistancePointBBoxCoder'),
         # scaled based on number of detection layers
         loss_cls=dict(
@@ -192,9 +181,10 @@ logger = dict(
     type='WandbLogger',
     project='DyTiSDet',
     group='yolov8_dynamic',
-    name='E20230414_0'
+    name='E20230417_0'
 )
-# logger = False
+# logger = None
+
 close_mosaic_epochs = 40
 callbacks = [
     dict(
@@ -202,15 +192,31 @@ callbacks = [
         monitor='valmap_50_0',
         save_last=True,
         mode='max',
-        save_top_k=10,
+        save_top_k=6,
         filename='epoch_{epoch}-map50_{valmap_50_0:.4f}'
+    ),
+    dict(
+        type='LearningRateMonitor',
+        logging_interval='step'
     ),
     dict(
         type='PipelineSwitchHook',
         # switch_epoch=0,
         switch_epoch=max_epochs - close_mosaic_epochs,
         switch_pipeline=train_pipeline_stage2
-    )
+    ),
+    dict(
+        type='YOLOv5ParamSchedulerHook',
+        scheduler_type='linear',
+        lr_factor=lr_factor,
+        max_epochs=max_epochs),
+    dict(
+        type='EMAHook',
+        ema_type='mmyolo.ExpMomentumEMA',
+        momentum=0.0001,
+        update_buffers=True,
+        strict_load=False
+    ),
 ]
 
 
@@ -222,14 +228,15 @@ trainer_cfg = dict(
     # precision='32',
     # precision='16-mixed',
     devices=8,
-    default_root_dir='results/DyTiSDet/E20230414_0',
+    default_root_dir='results/DyTiSDet/E20230417_0',
+    # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
     log_every_n_steps=20,
     check_val_every_n_epoch=1,
     benchmark=True,
-    # sync_batchnorm=True,
+    sync_batchnorm=True,
 
     # fast_dev_run=True,
     # limit_train_batches=5,
@@ -244,11 +251,11 @@ trainer_cfg = dict(
     # enable_progress_bar=None,
     # enable_model_summary=None,
     # accumulate_grad_batches=1,
-    # gradient_clip_val=None,
-    # gradient_clip_algorithm=None,
+    gradient_clip_val=25,
+    gradient_clip_algorithm='norm',
     # deterministic=None,
     # inference_mode: bool=True,
-    # use_distributed_sampler=True,
+    use_distributed_sampler=True,
     # profiler="simple",
     # detect_anomaly=False,
     # barebones=False,
@@ -292,21 +299,22 @@ test_pipeline = [
                    'scale_factor', 'pad_param'))
 ]
 
-train_batch_size_per_gpu = 4
-train_num_workers = 2
-test_batch_size_per_gpu = 4
-test_num_workers = 2
+train_batch_size_per_gpu = 128
+train_num_workers = 4
+test_batch_size_per_gpu = 128
+test_num_workers = 4
 persistent_workers = True
 
 data_parent = '/mnt/search01/dataset/cky_data'
-# data_parent = '/expand_data/datasets'
 # data_parent = '/Users/kyanchen/datasets'
+# data_parent = '/expand_data/datasets'
 data_root = data_parent+'/Levir-ShipV2_Slices/train_test_slices_split/'
 train_data_prefix = 'train/'  # Prefix of train image path
 val_data_prefix = 'test/'  # Prefix of val image path
 anno_path = '/mnt/search01/usr/chenkeyan/codes/dytisdet/DyTiSDet_yolo/data_infos/DyTiSDet/annotations'
-# anno_path = '/data/kyanchen/dytisdet/DyTiSDet_yolo/data_infos/DyTiSDet/annotations'
 # anno_path = '/Users/kyanchen/codes/dytisdet/DyTiSDet_yolo/data_infos/DyTiSDet/annotations'
+# anno_path = '/data/kyanchen/dytisdet/DyTiSDet_yolo/data_infos/DyTiSDet/annotations'
+
 train_ann_file = anno_path+'/train.json'
 val_ann_file = anno_path+'/test.json'
 
@@ -324,7 +332,7 @@ val_loader = dict(
             ann_file=val_ann_file,
             data_prefix=dict(img=val_data_prefix),
             filter_cfg=dict(filter_empty_gt=False, min_size=32),
-            # indices=4,
+            # indices=8,
             pipeline=test_pipeline)
 )
 
@@ -343,7 +351,7 @@ datamodule_cfg = dict(
             ann_file=train_ann_file,
             data_prefix=dict(img=train_data_prefix),
             filter_cfg=dict(filter_empty_gt=False, min_size=32),
-            # indices=4,
+            # indices=8,
             pipeline=train_pipeline)
     ),
     val_loader=val_loader,
