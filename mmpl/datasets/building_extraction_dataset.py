@@ -16,13 +16,14 @@ class BuildingExtractionDataset(BaseSegDataset):
                  img_suffix='.jpg',
                  seg_map_suffix='.png',
                  reduce_zero_label=True,
-                 clip_config="openai/clip-vit-large-patch14-336",
+                 load_clip_cache_from=None,
                  **kwargs) -> None:
         super().__init__(
             img_suffix=img_suffix,
             seg_map_suffix=seg_map_suffix,
             reduce_zero_label=reduce_zero_label,
             **kwargs)
+        self.load_clip_cache_from = load_clip_cache_from
 
 
     def prepare_data(self, idx) -> Any:
@@ -56,21 +57,8 @@ class BuildingExtractionDataset(BaseSegDataset):
         label = torch.ones(all_instances.shape[0], dtype=torch.long)
         results['data_samples'].set_data(dict(instances_data=all_instances, instances_label=label))
 
-        # if self.clip_config is not None:
-        #     image = results['inputs'].unsqueeze(0).clone().detach().float()
-        #     image = F.interpolate(image, size=self.size, mode='bicubic', align_corners=False)
-        #     image = image / 255.
-        #     image = (image - self.mean) / self.std
-        #     image = image[:, [2, 1, 0], :, :]
-        #     pixel_values = image
-        #     vision_outputs = self.model.vision_model(pixel_values=pixel_values)
-        #     img_dense_embs = vision_outputs['last_hidden_state'][:, 1:, :]
-        #     img_dense_embs = self.model.visual_projection(img_dense_embs)
-        #     img_dense_embs = img_dense_embs / img_dense_embs.norm(p=2, dim=-1, keepdim=True)
-        #     text_embeds = self.text_features / self.text_features.norm(p=2, dim=-1, keepdim=True)
-        #     # cosine similarity as logits
-        #     logit_scale = self.model.logit_scale.exp()
-        #     logits_per_image = torch.matmul(img_dense_embs, text_embeds.t()) * logit_scale
-        #     results['data_samples'].set_data(dict(clip_dense_embs=img_dense_embs[0], logits_per_image=logits_per_image[0]))
+        if self.load_clip_cache_from is not None:
+
+            results['data_samples'].set_data(dict(clip_dense_embs=img_dense_embs[0], logits_per_image=logits_per_image[0]))
 
         return results

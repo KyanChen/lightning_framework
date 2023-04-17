@@ -199,7 +199,7 @@ val_data_prefix = 'test/'
 dataset_type = 'BuildingExtractionDataset'
 metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
 
-load_clip_cache_from = ''
+load_clip_cache_from = 'cache_data/clip_data'
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,
         num_workers=test_num_workers,
@@ -207,7 +207,7 @@ val_loader = dict(
         pin_memory=True,
         dataset=dict(
             type=dataset_type,
-            clip_config=clip_config_,
+            load_clip_cache_from=load_clip_cache_from,
             img_suffix='.tif',
             seg_map_suffix='.tif',
             reduce_zero_label=False,
@@ -229,7 +229,7 @@ datamodule_cfg = dict(
         pin_memory=True,
         dataset=dict(
             type=dataset_type,
-            clip_config=clip_config_,
+            load_clip_cache_from=load_clip_cache_from,
             img_suffix='.tif',
             seg_map_suffix='.tif',
             reduce_zero_label=False,
