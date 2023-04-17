@@ -140,13 +140,13 @@ def main():
         # dataset_cfg['data_root'] = '../'+dataset_cfg['data_root']
         dataset = build_dataset(dataset_cfg)
         cache_datasets.append(dataset)
-    for dataset in cache_datasets:
+    for idx, dataset in enumerate(cache_datasets):
         progress_bar = ProgressBar(len(dataset))
         for i, item in zip(range(len(dataset)), dataset):
             progress_bar.update()
             cache_data = model_forward(item, model, tokenizer, text_features, size, mean, std)
             img_path = item['data_samples'].img_path
-            mmengine.dump(cache_data, f"{args.output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
+            mmengine.dump(cache_data, f"{args.output_dir}/{phases[idx]}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
 
 
 if __name__ == '__main__':
