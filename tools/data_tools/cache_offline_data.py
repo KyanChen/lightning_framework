@@ -118,7 +118,7 @@ def main():
     cfg = Config.fromfile(args.config)
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
-    mmengine.mkdir_or_exist(args.out_dir)
+    mmengine.mkdir_or_exist(args.output_dir)
     # register all modules in mmcls into the registries
     register_all_modules()
     if args.phase == 'all':
