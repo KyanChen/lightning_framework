@@ -146,7 +146,7 @@ def main():
             progress_bar.update()
             cache_data = model_forward(item, model, tokenizer, text_features, size, mean, std)
             img_path = item['data_samples'].img_path
-            mmengine.dump(cache_data, f"{args.out_dir}/{osp.splitext(osp.basename(img_path))[0]}.pkl")
+            mmengine.dump(cache_data, f"{args.output_dir}/{osp.splitext(osp.basename(img_path))[0]}.pkl")
 
 
 if __name__ == '__main__':
