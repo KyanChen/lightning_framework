@@ -1,5 +1,7 @@
 import glob
 import os
+
+import torch
 from mmengine import ProgressBar
 import mmengine
 
@@ -10,7 +12,7 @@ for file in files:
     par.update()
     data = mmengine.load(file)
     for k, v in data.items():
-        if isinstance(v, mmengine.Tensor):
+        if isinstance(v, torch.Tensor):
             data[k] = v.cpu()
     mmengine.dump(data, file)
 
