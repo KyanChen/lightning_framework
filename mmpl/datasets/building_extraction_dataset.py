@@ -64,6 +64,6 @@ class BuildingExtractionDataset(BaseSegDataset):
         if self.load_clip_cache_from is not None:
             img_path = results['data_samples'].img_path
             cache_data = mmengine.load(f"{self.load_clip_cache_from}/{self.phrase}_{os.path.splitext(os.path.basename(img_path))[0]}.pkl")
-            results['data_samples'].set_data(dict(clip_dense_embs=cache_data['img_dense_embs'][0].cpu(), logits_per_image=cache_data['logits_per_image'][0].cpu()))
+            results['data_samples'].set_data(dict(clip_dense_embs=cache_data['img_dense_embs'][0], logits_per_image=cache_data['logits_per_image'][0]))
 
         return results
