@@ -92,10 +92,10 @@ def init_clip_model(clip_config, device='cuda:0'):
     for k, v in inputs.items():
         inputs[k] = v.to(device)
     text_features = model.get_text_features(**inputs).detach()  # 1, 512
-    processor = AutoProcessor.from_pretrained(clip_config).to(device)
+    processor = AutoProcessor.from_pretrained(clip_config)
     size = (processor.image_processor.crop_size['width'], processor.image_processor.crop_size['height'])
-    mean = torch.tensor(processor.image_processor.image_mean).view(1, 3, 1, 1)
-    std = torch.tensor(processor.image_processor.image_std).view(1, 3, 1, 1)
+    mean = torch.tensor(processor.image_processor.image_mean, device=device).view(1, 3, 1, 1)
+    std = torch.tensor(processor.image_processor.image_std, device=device).view(1, 3, 1, 1)
     return model, tokenizer, text_features, size, mean, std
 
 def model_forward(results, model, tokenizer, text_features, size, mean, std):
