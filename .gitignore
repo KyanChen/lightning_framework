@@ -6,3 +6,4 @@ results
 *.pth
 pretrain
 *.ckpt
+cache_data
