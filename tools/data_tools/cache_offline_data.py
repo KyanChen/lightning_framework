@@ -1,6 +1,7 @@
 import argparse
 import os.path as osp
 import sys
+sys.path.insert(0, sys.path[0]+'/../..')
 import mmengine
 import torch
 
