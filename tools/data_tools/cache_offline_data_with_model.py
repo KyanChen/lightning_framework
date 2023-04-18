@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument(
         '--phase',
         '-p',
-        default=['val'],
+        default=['train', 'val'],
         help='phase of dataset to visualize, accept "train" "test" and "val".'
         ' Defaults to "train".')
 
@@ -102,6 +102,7 @@ def model_forward_save(all_results_list, model, output_dir, phase, device='cuda:
         img_path = results['data_samples'].img_path
         if isinstance(inner_states, list):
             inner_states = [inner_state.cpu() for inner_state in inner_states]
+        inner_states = [inner_state for idx, inner_state in enumerate(inner_states) if idx >= 16]
         cache_data = {'image_embeddings': image_embeddings.cpu(), 'inner_states': inner_states}
         torch.save(cache_data, f"{output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pt")
         # mmengine.dump(cache_data, f"{output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
