@@ -134,7 +134,9 @@ def main():
     num_workers = 4
     for idx, dataset in enumerate(cache_datasets):
         all_items = []
+        pbar = ProgressBar(len(dataset))
         for i, item in zip(range(len(dataset)), dataset):
+            pbar.update()
             all_items.append(item)
 
         num_p_list = []
