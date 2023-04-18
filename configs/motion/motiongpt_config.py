@@ -1,6 +1,6 @@
 optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
 
-max_epochs = 500
+max_epochs = 400
 param_scheduler = [
     # warm up learning rate scheduler
     dict(
