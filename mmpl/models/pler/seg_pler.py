@@ -176,10 +176,10 @@ class SegPLer(BasePLer):
         elif self.only_decoder:
             cls_logits, masks, n_iou_preds = self.forward_sam_prompt_generator(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
             masks = masks.squeeze(2)
-            masks = F.interpolate(masks, size=[self.sam.image_encoder.img_size]*2, mode='bilinear', align_corners=True)
+            seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+            masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
             # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
             seg_logits = self.post_process(cls_logits.clone().detach(), masks.clone().detach())
-            seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
             seg_logits = seg_logits > self.threshold
             self.train_evaluator.update(seg_logits, seg_label)
 

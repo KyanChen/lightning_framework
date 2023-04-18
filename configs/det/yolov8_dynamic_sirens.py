@@ -301,9 +301,9 @@ test_pipeline = [
                    'scale_factor', 'pad_param'))
 ]
 
-train_batch_size_per_gpu = 58
+train_batch_size_per_gpu = 56
 train_num_workers = 4
-test_batch_size_per_gpu = 58
+test_batch_size_per_gpu = 56
 test_num_workers = 4
 persistent_workers = True
 
