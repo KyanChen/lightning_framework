@@ -1,6 +1,6 @@
 optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
 
-max_epochs = 300
+max_epochs = 200
 param_scheduler = [
     # warm up learning rate scheduler
     dict(
@@ -80,24 +80,29 @@ model_cfg = dict(
     head=dict(
         type='MotionGPTHead',
         in_channels=768,
-        out_channels=dict(
-            rot_6d=22*6,
-            diff_root_zyx=3,
-        ),
-        loss='certainty_loss',
+        # out_channels=dict(
+        #     rot_6d=22*6,
+        #     diff_root_zyx=3,
+        # ),
+        # loss='uncertainty_loss',
+        # global_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
         # rotation_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
+        # root_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
+        out_channels=dict(
+            rot_6d=22*6*2,
+            diff_root_zyx=3*2,
+        ),
+        loss='uncertainty_loss',
         global_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
-        rotation_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
-        root_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0)
-        # rotation_loss=dict(type='UncertaintyRegressionLoss', choice='smooth_l1', loss_weight=1.0),
-        # root_position_loss=dict(type='UncertaintyRegressionLoss', choice='smooth_l1', loss_weight=1.0)
+        rotation_loss=dict(type='UncertaintyRegressionLoss', choice='l2', loss_weight=1.0),
+        root_position_loss=dict(type='UncertaintyRegressionLoss', choice='l2', loss_weight=1.0)
     ),
 )
-exp_name = 'E20230418_0'
+exp_name = 'E20230418_1'
 logger = dict(
     type='WandbLogger',
     project='MotionGPT',
-    group='certain',
+    group='uncertain',
     name=exp_name
 )
 # logger = None
