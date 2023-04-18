@@ -8,7 +8,7 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_i
 #     # 'sam.mask_decoder.class_aware_head',
 #     'global_prompt',
 #     ]
-max_epochs = 500
+max_epochs = 400
 
 optimizer = dict(
     type='AdamW',
@@ -86,12 +86,12 @@ model_cfg = dict(
             loss_weight=1.0),
     )
 )
-
+exp_name = 'E20230418_0'
 logger = dict(
     type='WandbLogger',
     project='building',
     group='clip',
-    name='E20230417_0'
+    name=exp_name
 )
 # logger = None
 
@@ -102,7 +102,7 @@ callbacks = [
         save_last=True,
         mode='max',
         monitor='valmulticlassjaccardindex_1',
-        save_top_k=6,
+        save_top_k=5,
         filename='epoch_{epoch}-iou_{metric_1:.4f}'
     ),
     dict(
@@ -120,15 +120,15 @@ trainer_cfg = dict(
     # precision='32',
     # precision='16-mixed',
     devices=4,
-    # default_root_dir='results/building/E20230414_0',
-    default_root_dir='results/tmp',
+    default_root_dir=f'results/building/{exp_name}',
+    # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=10,
+    log_every_n_steps=5,
     check_val_every_n_epoch=1,
     benchmark=True,
-    # sync_batchnorm=True,
+    sync_batchnorm=True,
 
     # fast_dev_run=True,
     # limit_train_batches=1,

@@ -1,6 +1,6 @@
 optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
 
-max_epochs = 400
+max_epochs = 300
 param_scheduler = [
     # warm up learning rate scheduler
     dict(
@@ -20,6 +20,9 @@ param_scheduler = [
         end=max_epochs,
     )
 ]
+param_scheduler_callback = dict(
+    type='ParamSchedulerHook'
+)
 
 block_size = 256
 model_cfg = dict(
@@ -100,6 +103,7 @@ logger = dict(
 # logger = None
 
 callbacks = [
+    param_scheduler_callback,
     dict(
         type='ModelCheckpoint',
         monitor='val_loss',
@@ -147,7 +151,7 @@ trainer_cfg = dict(
     # overfit_batches=0.0,
 
     # val_check_interval=None,
-    # num_sanity_val_steps=2,
+    # num_sanity_val_steps=0,
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
@@ -156,7 +160,7 @@ trainer_cfg = dict(
     # gradient_clip_algorithm=None,
     # deterministic=None,
     # inference_mode: bool=True,
-    # use_distributed_sampler=True,
+    use_distributed_sampler=True,
     # profiler="simple",
     # detect_anomaly=True,
     # barebones=False,
@@ -164,6 +168,7 @@ trainer_cfg = dict(
     # reload_dataloaders_every_n_epochs=0,
 )
 
+# train_batch_size_per_gpu = 32
 train_batch_size_per_gpu = 32
 train_num_workers = 4
 test_batch_size_per_gpu = 32

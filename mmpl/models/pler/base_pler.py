@@ -151,26 +151,7 @@ class BasePLer(pl.LightningModule, BaseModel):
         return [optimizer], param_schedulers
 
     def lr_scheduler_step(self, scheduler, metric):
-        if scheduler is None:
-            return
-        param_schedulers = [scheduler] if not isinstance(scheduler, list) else scheduler
-
-        def step(param_schedulers):
-            assert isinstance(param_schedulers, list)
-            for scheduler in param_schedulers:
-                if not scheduler.by_epoch:
-                    scheduler.step()
-
-        if isinstance(param_schedulers, list):
-            step(param_schedulers)
-        elif isinstance(param_schedulers, dict):
-            for param_scheduler in param_schedulers.values():
-                step(param_scheduler)
-        else:
-            raise TypeError(
-                'runner.param_schedulers should be list of ParamScheduler or '
-                'a dict containing list of ParamScheduler, '
-                f'but got {param_schedulers}')
+        pass
 
     def on_validation_epoch_end(self) -> None:
         if hasattr(self, 'val_evaluator'):

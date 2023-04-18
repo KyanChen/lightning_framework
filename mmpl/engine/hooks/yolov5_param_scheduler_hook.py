@@ -1,15 +1,9 @@
 import math
 from typing import Optional
 import numpy as np
-from lightning import Callback
-from mmengine.runner import Runner
-from mmyolo.registry import HOOKS
-
 from typing import Dict, Optional, Union
-
-from mmengine.optim import _ParamScheduler
 from mmengine.registry import HOOKS
-from mmengine.utils import is_list_of
+from .param_scheduler_hook import ParamSchedulerHook
 
 DATA_BATCH = Optional[Union[dict, tuple, list]]
 
@@ -23,69 +17,6 @@ def cosine_fn(lr_factor: float, max_epochs: int):
     """Generate cosine function."""
     return lambda x: (
         (1 - math.cos(x * math.pi / max_epochs)) / 2) * (lr_factor - 1) + 1
-
-
-class ParamSchedulerHook(Callback):
-    """A hook to update some hyper-parameters in optimizer, e.g., learning rate
-    and momentum."""
-
-    priority = 'LOW'
-
-    def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Call step function for each scheduler after each training epoch.
-
-        Args:
-            runner (Runner): The runner of the training process.
-        """
-        scheduler = trainer.lr_scheduler_configs
-        param_schedulers = [scheduler] if not isinstance(scheduler, list) else scheduler
-        if param_schedulers is None:
-            return
-
-        def step(param_schedulers):
-            assert isinstance(param_schedulers, list)
-            for scheduler in param_schedulers:
-                if not scheduler.by_epoch:
-                    scheduler.step()
-
-        if isinstance(param_schedulers, list):
-            step(param_schedulers)
-        elif isinstance(scheduler, dict):
-            for param_scheduler in scheduler.values():
-                step(param_scheduler)
-        else:
-            raise TypeError(
-                'trainer.param_schedulers should be list of ParamScheduler or '
-                'a dict containing list of ParamScheduler, '
-                f'but got {param_schedulers}')
-
-    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Call step function for each scheduler after each training epoch.
-
-        Args:
-            runner (Runner): The runner of the training process.
-        """
-        scheduler = trainer
-        param_schedulers = [scheduler] if not isinstance(scheduler, list) else scheduler
-        if param_schedulers is None:
-            return
-
-        def step(param_schedulers):
-            assert isinstance(param_schedulers, list)
-            for scheduler in param_schedulers:
-                if scheduler.by_epoch:
-                    scheduler.step()
-
-        if isinstance(param_schedulers, list):
-            step(param_schedulers)
-        elif isinstance(scheduler, dict):
-            for param_scheduler in scheduler.values():
-                step(param_scheduler)
-        else:
-            raise TypeError(
-                'trainer.param_schedulers should be list of ParamScheduler or '
-                'a dict containing list of ParamScheduler, '
-                f'but got {param_schedulers}')
 
 
 @HOOKS.register_module()
