@@ -1,10 +1,8 @@
 import argparse
 import os.path as osp
 import sys
-
-from mmpl.models import build_pler
-
 sys.path.insert(0, sys.path[0]+'/../..')
+from mmpl.models import build_pler
 import mmengine
 import torch
 
