@@ -159,7 +159,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=2,
     # default_root_dir=f'results/building/{exp_name}',
     default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -221,9 +221,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 32
+train_batch_size_per_gpu = 16
 train_num_workers = 4
-test_batch_size_per_gpu = 32
+test_batch_size_per_gpu = 16
 test_num_workers = 4
 persistent_workers = True
 
