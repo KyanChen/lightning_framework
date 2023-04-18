@@ -64,8 +64,6 @@ class SegPLer(BasePLer):
         if sam_prompt_generator is not None:
             self.sam_prompt_generator = MODELS.build(sam_prompt_generator)
         if head is not None:
-            head.update(train_cfg=train_cfg)
-            head.update(test_cfg=test_cfg)
             self.head = MODELS.build(head)
         self.with_clip = with_clip
         if global_prompt is not None:
