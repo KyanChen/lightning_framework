@@ -61,8 +61,8 @@ model_cfg = dict(
         param_scheduler=param_scheduler,
         evaluator=evaluator,
     ),
-    sam='vit_h',
-    sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
+    # sam='vit_h',
+    # sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
     points_per_side=None,
     only_img_encoder=True,
     global_prompt=True,
@@ -93,15 +93,15 @@ model_cfg = dict(
     )
 )
 
-exp_name = 'E20230418_0'
-# logger = dict(
-#     type='WandbLogger',
-#     project='building',
-#     group='sam',
-#     name=exp_name
-# )
+exp_name = 'E20230418_1'
+logger = dict(
+    type='WandbLogger',
+    project='building',
+    group='sam',
+    name=exp_name
+)
 
-logger = None
+# logger = None
 
 
 callbacks = [
@@ -128,9 +128,9 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
-    # default_root_dir=f'results/building/{exp_name}',
-    default_root_dir='results/tmp',
+    devices=4,
+    default_root_dir=f'results/building/{exp_name}',
+    # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
