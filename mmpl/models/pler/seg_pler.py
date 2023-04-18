@@ -204,13 +204,7 @@ class SegPLer(BasePLer):
             clip_dense_embs = rearrange(clip_dense_embs, 'b (h w) c -> b c h w', h=int(clip_dense_embs.shape[1]**0.5))
             masks_pred = self.global_prompt(clip_dense_embs)
         else:
-            img = torch.stack(batch['inputs'], dim=0)  # B C H W
-            num_img = img.shape[0]
-            img = img[:, [2, 1, 0], :, :]  # BGR2RGB
-            img = (img - self.sam.pixel_mean) / self.sam.pixel_std
-
-            with torch.no_grad():
-                image_embeddings, inner_states = self.sam(img)  # Bx256x64x64
+            image_embeddings = torch.stack([x.image_embeddings for x in batch['data_samples']], dim=0)
             masks_pred = self.global_prompt(image_embeddings)
         return masks_pred
 
