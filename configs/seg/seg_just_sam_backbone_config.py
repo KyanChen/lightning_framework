@@ -175,7 +175,7 @@ train_pipeline = [
     #     keep_ratio=True),
     # dict(type='mmseg.RandomCrop', crop_size=crop_size),
     dict(type='mmseg.Resize', scale=crop_size),
-    dict(type='mmseg.RandomFlip', prob=0.5),
+    # dict(type='mmseg.RandomFlip', prob=0.5),
     # dict(type='mmseg.PhotoMetricDistortion'),
     dict(type='mmseg.PackSegInputs')
 ]

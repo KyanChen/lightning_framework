@@ -12,6 +12,7 @@ from mmengine.utils import ProgressBar
 
 from mmpl.datasets.builder import build_dataset
 from mmpl.utils import register_all_modules
+import multiprocessing
 
 
 def parse_args():
@@ -89,15 +90,21 @@ def init_model(cfg, device='cuda:0'):
     return model
 
 
-def model_forward(results, model, device='cuda:0'):
-    image = results['inputs'].unsqueeze(0).clone().detach().float().to(device)
-    img = F.interpolate(image, size=(model.sam.img_size, model.sam.img_size), mode='bicubic', align_corners=False)
-    img = img[:, [2, 1, 0], :, :]  # BGR2RGB
-    img = (img - model.sam.pixel_mean) / model.sam.pixel_std
-    with torch.no_grad():
-        image_embeddings, inner_states = model.sam(img)  # Bx256x64x64
-
-    return {'image_embeddings': image_embeddings.cpu()}
+def model_forward_save(results, model, output_dir, phase, device='cuda:0', local_rank_id=0,):
+    pbar = ProgressBar(len(results))
+    for i, item in enumerate(results):
+        pbar.update()
+        image = results['inputs'].unsqueeze(0).clone().detach().float().to(device)
+        img = F.interpolate(image, size=(model.sam.img_size, model.sam.img_size), mode='bicubic', align_corners=False)
+        img = img[:, [2, 1, 0], :, :]  # BGR2RGB
+        img = (img - model.sam.pixel_mean) / model.sam.pixel_std
+        with torch.no_grad():
+            image_embeddings, inner_states = model.sam(img)  # Bx256x64x64
+        img_path = item['data_samples'].img_path
+        if isinstance(inner_states, list):
+            inner_states = [inner_state.cpu() for inner_state in inner_states]
+        cache_data = {'image_embeddings': image_embeddings.cpu(), 'inner_states': inner_states}
+        mmengine.dump(cache_data, f"{output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
 
 def main():
     args = parse_args()
@@ -111,8 +118,8 @@ def main():
         phases = [args.phase]
     else:
         phases = args.phase
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    model = init_model(cfg, device=device)
+    is_cuda = torch.cuda.is_available()
+    # model = init_model(cfg, device=device)
 
     cache_datasets = []
     for phase in phases:
@@ -123,13 +130,29 @@ def main():
         # dataset_cfg['data_root'] = '../'+dataset_cfg['data_root']
         dataset = build_dataset(dataset_cfg)
         cache_datasets.append(dataset)
+
+    num_workers = 4
     for idx, dataset in enumerate(cache_datasets):
-        progress_bar = ProgressBar(len(dataset))
+        all_items = []
         for i, item in zip(range(len(dataset)), dataset):
-            progress_bar.update()
-            cache_data = model_forward(item, model, device=device)
-            img_path = item['data_samples'].img_path
-            mmengine.dump(cache_data, f"{args.output_dir}/{phases[idx]}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
+            all_items.append(item)
+
+        num_p_list = []
+        slice_len = len(all_items) // num_workers
+        for local_rank_id in range(num_workers):
+            if is_cuda:
+                device = f'cuda:{local_rank_id}'
+            else:
+                device = 'cpu'
+            model = init_model(cfg, device=device)
+            slice_items = all_items[local_rank_id * slice_len: (local_rank_id + 1) * slice_len]
+            if local_rank_id == num_workers - 1:
+                slice_items = all_items[local_rank_id * slice_len:]
+            p = multiprocessing.Process(target=model_forward_save, args=(slice_items, model, args.output_dir, phases[idx], device, local_rank_id))
+            num_p_list.append(p)
+            p.start()
+        for p in num_p_list:
+            p.join()
 
 
 if __name__ == '__main__':
