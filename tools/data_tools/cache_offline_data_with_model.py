@@ -102,7 +102,7 @@ def model_forward_save(all_results_list, model, output_dir, phase, device='cuda:
         img_path = results['data_samples'].img_path
         if isinstance(inner_states, list):
             inner_states = [inner_state.cpu() for inner_state in inner_states]
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         inner_states = [inner_state for idx, inner_state in enumerate(inner_states) if idx >= 32-4]
         cache_data = {'image_embeddings': image_embeddings.cpu(), 'inner_states': inner_states}
         torch.save(cache_data, f"{output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pt")
@@ -135,7 +135,7 @@ def main():
         cache_datasets.append(dataset)
 
     # ctx = torch.multiprocessing.get_context("spawn")
-    num_workers = 1
+    num_workers = 8
     for idx, dataset in enumerate(cache_datasets):
         all_items = []
         pbar = ProgressBar(len(dataset))
@@ -154,12 +154,12 @@ def main():
             slice_items = all_items[local_rank_id * slice_len: (local_rank_id + 1) * slice_len]
             if local_rank_id == num_workers - 1:
                 slice_items = all_items[local_rank_id * slice_len:]
-            model_forward_save(slice_items, model, args.output_dir, phases[idx], device, local_rank_id)
-        #     p = torch.multiprocessing.Process(target=model_forward_save, args=(slice_items, model, args.output_dir, phases[idx], device, local_rank_id))
-        #     p.start()
-        #     num_p_list.append(p)
-        # for p in num_p_list:
-        #     p.join()
+            # model_forward_save(slice_items, model, args.output_dir, phases[idx], device, local_rank_id)
+            p = torch.multiprocessing.Process(target=model_forward_save, args=(slice_items, model, args.output_dir, phases[idx], device, local_rank_id))
+            p.start()
+            num_p_list.append(p)
+        for p in num_p_list:
+            p.join()
 
 
 if __name__ == '__main__':
