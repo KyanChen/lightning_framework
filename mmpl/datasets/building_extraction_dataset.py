@@ -73,7 +73,7 @@ class BuildingExtractionDataset(BaseSegDataset):
             cache_data = torch.load(f"{self.load_sam_cache_from}/{self.phrase}_{os.path.splitext(os.path.basename(img_path))[0]}.pt")
             inner_states = cache_data['inner_states']
             if isinstance(inner_states, list):
-                inner_states = [x.detach() for x in inner_states]
+                inner_states = [x[0].detach() for x in inner_states]
             results['data_samples'].set_data(dict(image_embeddings=cache_data['image_embeddings'][0].detach(), inner_states=inner_states))
 
         return results

@@ -215,7 +215,6 @@ class SegPLer(BasePLer):
 
     def forward_sam_prompt_generator(self, batch, *args: Any, **kwargs: Any) -> Any:
         inner_states = [x.inner_states for x in batch['data_samples']]
-        import ipdb; ipdb.set_trace()
         image_embeddings = torch.stack([x.image_embeddings for x in batch['data_samples']], dim=0)
 
         inner_states_tmp = []
