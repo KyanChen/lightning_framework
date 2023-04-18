@@ -128,6 +128,7 @@ class BasePLer(pl.LightningModule, BaseModel):
         if schedulers is None:
             return [optimizer]
         param_schedulers = []
+        total_step = self.trainer.estimated_stepping_batches
         for scheduler in schedulers:
             if isinstance(scheduler, _ParamScheduler):
                 param_schedulers.append(scheduler)
@@ -138,7 +139,10 @@ class BasePLer(pl.LightningModule, BaseModel):
                         _scheduler,
                         default_args=dict(
                             optimizer=optimizer,
-                            epoch_length=self.trainer.max_epochs)))
+                            epoch_length=self.trainer.num_training_batches,
+                        )
+                    )
+                )
             else:
                 raise TypeError(
                     'scheduler should be a _ParamScheduler object or dict, '

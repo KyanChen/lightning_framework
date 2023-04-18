@@ -55,10 +55,13 @@ class MotionGPTPLer(BasePLer):
         zero_mask = self.max_diff_root_xz - self.min_diff_root_xz == 0
         self.max_diff_root_xz[zero_mask] = 1
         self.min_diff_root_xz[zero_mask] = 0
+        zero_mask = self.std_rot_6d_with_position == 0
+        self.std_rot_6d_with_position[zero_mask] = 1
+        zero_mask = self.std_diff_root_xz == 0
+        self.std_diff_root_xz[zero_mask] = 1
         # if self.local_rank == 0:
         #     assert torch.all(self.max_rot_6d_with_position - self.min_rot_6d_with_position > 0)
         #     assert torch.all(self.max_diff_root_xz - self.min_diff_root_xz > 0)
-
 
     def training_val_step(self, batch, batch_idx, prefix=''):
         positions = batch['positions']
@@ -82,11 +85,17 @@ class MotionGPTPLer(BasePLer):
 
         losses = self.head.loss(
             x,
+            # normalization_info=dict(
+            #     max_rot_6d_with_position=self.max_rot_6d_with_position,
+            #     min_rot_6d_with_position=self.min_rot_6d_with_position,
+            #     max_diff_root_xz=self.max_diff_root_xz,
+            #     min_diff_root_xz=self.min_diff_root_xz,
+            # ),
             normalization_info=dict(
-                max_rot_6d_with_position=self.max_rot_6d_with_position,
-                min_rot_6d_with_position=self.min_rot_6d_with_position,
-                max_diff_root_xz=self.max_diff_root_xz,
-                min_diff_root_xz=self.min_diff_root_xz,
+                mean_rot_6d_with_position=self.mean_rot_6d_with_position,
+                std_rot_6d_with_position=self.std_rot_6d_with_position,
+                mean_diff_root_xz=self.mean_diff_root_xz,
+                std_diff_root_xz=self.std_diff_root_xz,
             ),
             block_size=self.block_size,
             parents=parents,
@@ -111,13 +120,16 @@ class MotionGPTPLer(BasePLer):
 
     def forward(self, rot_6d_with_position_input, diff_root_zyx_input, *args: Any, **kwargs: Any) -> Any:
         # min-max normalization
-        rot_6d_with_position_input = (rot_6d_with_position_input - self.min_rot_6d_with_position) / (
-                self.max_rot_6d_with_position - self.min_rot_6d_with_position)
-        rot_6d_with_position_input = rot_6d_with_position_input * 2 - 1
+        # rot_6d_with_position_input = (rot_6d_with_position_input - self.min_rot_6d_with_position) / (
+        #         self.max_rot_6d_with_position - self.min_rot_6d_with_position)
+        # rot_6d_with_position_input = rot_6d_with_position_input * 2 - 1
+        #
+        # diff_root_zyx_input = (diff_root_zyx_input - self.min_diff_root_xz) / (
+        #         self.max_diff_root_xz - self.min_diff_root_xz)
+        # diff_root_zyx_input = diff_root_zyx_input * 2 - 1
 
-        diff_root_zyx_input = (diff_root_zyx_input - self.min_diff_root_xz) / (
-                self.max_diff_root_xz - self.min_diff_root_xz)
-        diff_root_zyx_input = diff_root_zyx_input * 2 - 1
+        rot_6d_with_position_input = (rot_6d_with_position_input - self.mean_rot_6d_with_position) / self.std_rot_6d_with_position
+        diff_root_zyx_input = (diff_root_zyx_input - self.mean_diff_root_xz) / self.std_diff_root_xz
 
         x_rot = self.rotation_proj(rot_6d_with_position_input)
         x_pos = self.position_proj(diff_root_zyx_input)

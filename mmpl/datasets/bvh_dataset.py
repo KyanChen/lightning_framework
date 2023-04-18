@@ -19,6 +19,7 @@ class BvhDataset(_BaseDataset):
                  data_root: str = '../data/lafan1/',
                  test_mode: bool = False,
                  n_offset=20,
+                 phase='train',
                  n_prompt_frames: int = 5,
                  pipeline=[],
                  **kwargs):
@@ -27,7 +28,8 @@ class BvhDataset(_BaseDataset):
         self.n_prompt_frames = n_prompt_frames
         self.n_offset = n_offset
         assert self.n_prompt_frames > 0
-        if self.test_mode:
+        self.phase = phase
+        if self.test_mode or phase in ['predict', 'val']:
             self.actors = ['subject5']
         else:
             self.actors = ['subject1', 'subject2', 'subject3', 'subject4']
@@ -140,7 +142,7 @@ class BvhDataset(_BaseDataset):
         return x
 
     def __getitem__(self, idx):
-        if self.test_mode:
+        if self.phase == 'predict':
             return self.get_test_item(idx)
         return self.get_train_item(idx)
 

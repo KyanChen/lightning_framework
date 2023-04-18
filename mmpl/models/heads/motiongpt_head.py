@@ -116,11 +116,17 @@ class MotionGPTHead(BaseModel):
     def get_certainty_loss(
             self,
             x,
+            # normalization_info=dict(
+            # max_rot_6d_with_position=0,
+            # min_rot_6d_with_position=0,
+            # max_diff_root_xz=0,
+            # min_diff_root_xz=0,
+            # ),
             normalization_info=dict(
-            max_rot_6d_with_position=0,
-            min_rot_6d_with_position=0,
-            max_diff_root_xz=0,
-            min_diff_root_xz=0,
+                mean_rot_6d_with_position=0,
+                std_rot_6d_with_position=0,
+                mean_diff_root_xz=0,
+                std_diff_root_xz=0,
             ),
             block_size=64,
             parents=[],
@@ -136,14 +142,18 @@ class MotionGPTHead(BaseModel):
         pred_rot_6d, pred_diff_root_zyx = self.forward(x)
         pred_rot_6d = rearrange(pred_rot_6d, 'b t (n_j c) -> b t n_j c', c=6)
 
-        pred_rot_6d = (pred_rot_6d + 1) / 2
-        pred_rot_6d = pred_rot_6d * (normalization_info['max_rot_6d_with_position'][:, :6] - normalization_info['min_rot_6d_with_position'][:, :6]) + \
-                      normalization_info['min_rot_6d_with_position'][:, :6]
+        # pred_rot_6d = (pred_rot_6d + 1) / 2
+        # pred_rot_6d = pred_rot_6d * (normalization_info['max_rot_6d_with_position'][:, :6] - normalization_info['min_rot_6d_with_position'][:, :6]) + \
+        #               normalization_info['min_rot_6d_with_position'][:, :6]
+        pred_rot_6d = pred_rot_6d * normalization_info['std_rot_6d_with_position'][:, :6] + \
+                        normalization_info['mean_rot_6d_with_position'][:, :6]
 
         pred_diff_root_zyx = rearrange(pred_diff_root_zyx, 'b t (n_j c) -> b t n_j c', n_j=1)
-        pred_diff_root_zyx = (pred_diff_root_zyx + 1) / 2
-        pred_diff_root_zyx = pred_diff_root_zyx * (normalization_info['max_diff_root_xz'] - normalization_info['min_diff_root_xz']) + \
-                             normalization_info['min_diff_root_xz']
+        # pred_diff_root_zyx = (pred_diff_root_zyx + 1) / 2
+        # pred_diff_root_zyx = pred_diff_root_zyx * (normalization_info['max_diff_root_xz'] - normalization_info['min_diff_root_xz']) + \
+        #                      normalization_info['min_diff_root_xz']
+        pred_diff_root_zyx = pred_diff_root_zyx * normalization_info['std_diff_root_xz'] + \
+                                normalization_info['mean_diff_root_xz']
 
         # local rotation loss
         gt_rotation_6d = rot_6d_with_position[:, -block_size:, :, :6].detach()  # B, T, N_j, 6

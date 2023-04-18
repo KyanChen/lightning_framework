@@ -1,6 +1,6 @@
 optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
 
-max_epochs = 600
+max_epochs = 500
 param_scheduler = [
     # warm up learning rate scheduler
     dict(
@@ -26,7 +26,7 @@ model_cfg = dict(
     type='MotionGPTPLer',
     block_size=block_size,
     max_frames_predict=64,
-    mean_std_info=f'../data/lafan1_train_mean_std_info_{block_size}.pkl',
+    mean_std_info=f'data/lafan1_train_mean_std_info_{block_size}.pkl',
     hyperparameters=dict(
         optimizer=optimizer,
         param_scheduler=param_scheduler,
@@ -90,14 +90,14 @@ model_cfg = dict(
         # root_position_loss=dict(type='UncertaintyRegressionLoss', choice='smooth_l1', loss_weight=1.0)
     ),
 )
-
-# logger = dict(
-#     type='WandbLogger',
-#     project='MotionGPT',
-#     group='test',
-#     name='E20230403_1'
-# )
-logger = None
+exp_name = 'E20230418_0'
+logger = dict(
+    type='WandbLogger',
+    project='MotionGPT',
+    group='certain',
+    name=exp_name
+)
+# logger = None
 
 callbacks = [
     dict(
@@ -121,14 +121,14 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="cpu",
+    accelerator="auto",
     strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
-    default_root_dir='results/tmp',
-    # default_root_dir='results/DyTiSDet/E20230417_1',
+    devices=4,
+    # default_root_dir='results/tmp',
+    default_root_dir=f'results/motiongpt/{exp_name}',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
@@ -164,11 +164,11 @@ trainer_cfg = dict(
     # reload_dataloaders_every_n_epochs=0,
 )
 
-train_batch_size_per_gpu = 4
-train_num_workers = 0
-test_batch_size_per_gpu = 4
-test_num_workers = 0
-persistent_workers = False
+train_batch_size_per_gpu = 128
+train_num_workers = 4
+test_batch_size_per_gpu = 128
+test_num_workers = 4
+persistent_workers = True
 datamodule_cfg = dict(
     type='PLDataModule',
     train_loader=dict(
@@ -176,11 +176,12 @@ datamodule_cfg = dict(
         num_workers=train_num_workers,
         persistent_workers=persistent_workers,
         pin_memory=True,
+        collate_fn=dict(type='default_collate'),
         dataset=dict(
             type='BvhDataset',
             block_size=block_size,
             test_mode=False,
-            data_root='../data/lafan1/',
+            data_root='data/lafan1/',
             n_offset=10,
         )
     ),
@@ -189,12 +190,14 @@ datamodule_cfg = dict(
         num_workers=test_num_workers,
         persistent_workers=persistent_workers,
         pin_memory=True,
+        collate_fn=dict(type='default_collate'),
         dataset=dict(
             type='BvhDataset',
             block_size=block_size,
             test_mode=False,
-            data_root='../data/lafan1/',
-            n_offset=1000,
+            phase='val',
+            data_root='data/lafan1/',
+            n_offset=50,
         )
     ),
     predict_loader=dict(
@@ -202,13 +205,15 @@ datamodule_cfg = dict(
         num_workers=test_num_workers,
         persistent_workers=persistent_workers,
         pin_memory=True,
+        collate_fn=dict(type='default_collate'),
         dataset=dict(
             type='BvhDataset',
             block_size=block_size,
             test_mode=True,
-            data_root='../data/lafan1/',
+            phase='predict',
+            data_root='data/lafan1/',
             n_prompt_frames=10,
-            n_offset=1000,
+            n_offset=100,
         )
     )
 )
