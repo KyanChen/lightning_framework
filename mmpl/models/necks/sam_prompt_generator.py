@@ -32,11 +32,11 @@ class SAMPromptGenNeck(nn.Module):
         for _ in range(num_img_feat_level):
             self.decoder_input_projs.append(
                 nn.Sequential(
-                    nn.Conv2d(img_feat_channels, 4 * decoder_embed_dims, kernel_size=1),
+                    nn.Conv2d(img_feat_channels, 2 * decoder_embed_dims, kernel_size=1),
                     nn.ReLU(inplace=True),
-                    nn.Conv2d(4 * decoder_embed_dims, 4 * decoder_embed_dims, kernel_size=2),
+                    nn.Conv2d(2 * decoder_embed_dims, 2 * decoder_embed_dims, kernel_size=2),
                     nn.ReLU(inplace=True),
-                    nn.Conv2d(4 * decoder_embed_dims, 2 * decoder_embed_dims, kernel_size=3, stride=2, padding=1)
+                    nn.Conv2d(2 * decoder_embed_dims, 2 * decoder_embed_dims, kernel_size=3, stride=2, padding=1)
                 ))
         self.level_embed = nn.Embedding(self.num_img_feat_level, 2 * decoder_embed_dims)
         self.gather_img_feats = nn.Sequential(
@@ -88,7 +88,7 @@ class SAMPromptGenNeck(nn.Module):
                 nn.init.xavier_uniform_(p)
 
     def forward(self, inputs):
-        inner_states = [x.permute(0, 3, 1, 2) for x in inputs]  # from low 2 high, all 32 layers
+        inner_states = [x.permute(0, 3, 1, 2) for x in inputs]  # from low2high, all 4 layers
         bs = inner_states[0].shape[0]
         # inputs: list([B, C, H, W])
         num_layers = len(inputs)

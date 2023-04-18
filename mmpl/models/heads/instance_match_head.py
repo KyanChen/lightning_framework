@@ -155,10 +155,10 @@ class InstanceMatchingHead(BaseModel):
         # shape (num_total_gts, h, w) -> (num_total_gts * h * w, 1)
         mask_preds = mask_preds.reshape(-1, 1)
         # shape (num_total_gts, h, w) -> (num_total_gts * h * w)
-        mask_targets = mask_targets.reshape(-1)
+        mask_targets = mask_targets.reshape(-1, 1)
         # target is (1 - mask_targets) !!!
         loss_mask = self.loss_mask(
-            mask_preds, 1 - mask_targets, avg_factor=num_total_masks * h * w)
+            mask_preds, mask_targets, avg_factor=num_total_masks * h * w)
 
         loss_dict = dict()
         loss_dict['loss_cls'] = loss_cls

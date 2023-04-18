@@ -30,7 +30,8 @@ class SegPLer(BasePLer):
                  points_per_side=None,
                  sam_prompt_generator=None,
                  only_img_encoder=False,
-                 global_prompt=False,
+                 only_decoder=False,
+                 global_prompt=None,
                  need_train_names=None,
                  head=None,
                  with_clip=False,
@@ -45,13 +46,17 @@ class SegPLer(BasePLer):
         self.ignore_index = ignore_index
         self.threshold = threshold
         self.only_img_encoder = only_img_encoder
+        self.only_decoder = only_decoder
         self.global_prompt = global_prompt
 
         if sam is not None:
-            if not self.only_img_encoder:
-                self.sam = sam_model_registry[sam](sam_checkpoint)
-            else:
+            if self.only_img_encoder:
                 self.sam = sam_model_registry[sam](sam_checkpoint).image_encoder
+            elif self.only_decoder:
+                self.prompt_encoder = sam_model_registry[sam](sam_checkpoint).prompt_encoder
+                self.mask_decoder = sam_model_registry[sam](sam_checkpoint).mask_decoder
+            else:
+                raise NotImplementedError
 
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
@@ -108,8 +113,8 @@ class SegPLer(BasePLer):
             masks_pred = F.interpolate(masks_pred, size=seg_label.shape[-2:], mode='bilinear',
                                        align_corners=True)
             seg_logits = masks_pred > 0
-        else:
-            cls_logits, masks, n_iou_preds = self.forward(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
+        elif self.only_decoder:
+            cls_logits, masks, n_iou_preds = self.forward_sam_prompt_generator(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
             masks = masks.squeeze(2)
             masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
             # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
@@ -168,8 +173,8 @@ class SegPLer(BasePLer):
             masks_pred_result = masks_pred > 0
             self.train_evaluator.update(masks_pred_result.detach(), seg_label.detach())
 
-        else:
-            cls_logits, masks, n_iou_preds = self.forward(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
+        elif self.only_decoder:
+            cls_logits, masks, n_iou_preds = self.forward_sam_prompt_generator(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
             masks = masks.squeeze(2)
             masks = F.interpolate(masks, size=[self.sam.image_encoder.img_size]*2, mode='bilinear', align_corners=True)
             # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
@@ -208,16 +213,16 @@ class SegPLer(BasePLer):
             masks_pred = self.global_prompt(image_embeddings)
         return masks_pred
 
-    def forward(self, batch, *args: Any, **kwargs: Any) -> Any:
-        img = torch.stack(batch['inputs'], dim=0)  # B C H W
-        num_img = img.shape[0]
-        img = img[:, [2, 1, 0], :, :]  # BGR2RGB
-        img = (img - self.sam.pixel_mean) / self.sam.pixel_std
+    def forward_sam_prompt_generator(self, batch, *args: Any, **kwargs: Any) -> Any:
 
-        with torch.no_grad():
-            image_embeddings, inner_states = self.sam.image_encoder(img)  # Bx256x64x64
+        inner_states = [x.inner_states for x in batch['data_samples']]
+        image_embeddings = torch.stack([x.image_embeddings for x in batch['data_samples']], dim=0)
 
-        point_embs, cls_logits = self.sam_prompt_generator(inner_states)
+        inner_states_tmp = []
+        for idx in range(len(inner_states[0])):
+            inner_states_tmp.append(torch.stack([x[idx] for x in inner_states], dim=0))
+
+        point_embs, cls_logits = self.sam_prompt_generator(inner_states_tmp)
 
         # if has points prompt, then get points embeddings
         if hasattr(self, 'point_grids'):
@@ -237,9 +242,9 @@ class SegPLer(BasePLer):
         else:
             # ponits_embeddings B T N C
             sparse_embeddings = point_embs
-            dense_embeddings = self.sam.prompt_encoder.no_mask_embed.weight.view(1, 1, -1, 1, 1).expand(
+            dense_embeddings = self.prompt_encoder.no_mask_embed.weight.view(1, 1, -1, 1, 1).expand(
                 sparse_embeddings.shape[0], sparse_embeddings.shape[1], -1,
-                self.sam.prompt_encoder.image_embedding_size[0], self.sam.prompt_encoder.image_embedding_size[1]
+                self.prompt_encoder.image_embedding_size[0], self.prompt_encoder.image_embedding_size[1]
                 )
 
 
@@ -247,9 +252,9 @@ class SegPLer(BasePLer):
         n_iou_preds = []
         n_class_aware_probs = []
         for curr_img_embedding, cur_s_emb, cur_d_emb in zip(image_embeddings, sparse_embeddings, dense_embeddings):
-            lr_masks, iou_pred, class_aware_prob = self.sam.mask_decoder(
+            lr_masks, iou_pred, class_aware_prob = self.mask_decoder(
                 image_embeddings=curr_img_embedding.unsqueeze(0),
-                image_pe=self.sam.prompt_encoder.get_dense_pe(),
+                image_pe=self.prompt_encoder.get_dense_pe(),
                 sparse_prompt_embeddings=cur_s_emb,
                 dense_prompt_embeddings=cur_d_emb
             )

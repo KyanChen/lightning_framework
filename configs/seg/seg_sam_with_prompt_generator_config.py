@@ -2,14 +2,10 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_i
 # train max_num_instance=140
 # test max_num_instance=96
 sub_model = [
-    # 'sam.mask_decoder.iou_token',
-    # 'sam.mask_decoder.iou_prediction_head',
-    # 'sam.mask_decoder.class_aware_token',
-    # 'sam.mask_decoder.class_aware_head',
-    'global_prompt',
-    ]
+    'sam_prompt_generator',
+]
 
-max_epochs = 300
+max_epochs = 400
 
 optimizer = dict(
     type='AdamW',
@@ -61,15 +57,32 @@ model_cfg = dict(
         param_scheduler=param_scheduler,
         evaluator=evaluator,
     ),
-    # sam='vit_h',
-    # sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
-    points_per_side=None,
-    only_img_encoder=True,
-    global_prompt=True,
+    sam='vit_h',
+    sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
     with_clip=False,
+    points_per_side=None,
+    only_img_encoder=False,
+    only_decoder=True,
+    global_prompt=None,
     need_train_names=sub_model,
+    sam_prompt_generator=dict(
+        type='SAMPromptGenNeck',
+        prompt_shape=(100, 6),
+        img_feat_channels=1280,
+        out_put_channels=256,
+        num_img_feat_level=4,
+        img_feat_size=32,
+        n_cls=num_classes,
+    ),
     head=dict(
-        type='BinarySemanticSegHead',
+        type='InstanceMatchingHead',
+        loss_cls=dict(
+            type='mmdet.CrossEntropyLoss',
+            use_sigmoid=False,
+            loss_weight=2.0,
+            reduction='mean',
+            class_weight=[0.4, 0.6]
+        ),
         # loss_mask=dict(
         #     type='mmdet.CrossEntropyLoss',
         #     use_sigmoid=True,
@@ -80,8 +93,8 @@ model_cfg = dict(
             use_sigmoid=True,
             gamma=2.0,
             alpha=0.25,
-            reduction='none',
-            loss_weight=1.0),
+            reduction='mean',
+            loss_weight=10.0),
         loss_dice=dict(
             type='mmdet.DiceLoss',
             use_sigmoid=True,
@@ -89,19 +102,37 @@ model_cfg = dict(
             reduction='mean',
             naive_dice=True,
             eps=1.0,
-            loss_weight=1.0),
+            loss_weight=5.0),
+        train_cfg=dict(
+            num_points=12544,
+            oversample_ratio=3.0,
+            importance_sample_ratio=0.75,
+            assigner=dict(
+                type='mmdet.HungarianAssigner',
+                match_costs=[
+                    dict(type='mmdet.ClassificationCost', weight=2.0),
+                    dict(
+                        type='mmdet.CrossEntropyLossCost',
+                        weight=5.0,
+                        use_sigmoid=True),
+                    dict(
+                        type='mmdet.DiceCost',
+                        weight=5.0,
+                        pred_act=True,
+                        eps=1.0)
+                ]),
+            sampler=dict(type='mmdet.MaskPseudoSampler'))
     )
 )
+exp_name = 'E20230418_2'
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='sam_prompt_generator',
+#     name=exp_name
+# )
 
-exp_name = 'E20230418_1'
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='sam',
-    name=exp_name
-)
-
-# logger = None
+logger = None
 
 
 callbacks = [
@@ -128,13 +159,13 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=4,
-    default_root_dir=f'results/building/{exp_name}',
-    # default_root_dir='results/tmp',
+    devices=2,
+    # default_root_dir=f'results/building/{exp_name}',
+    default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=10,
+    log_every_n_steps=5,
     check_val_every_n_epoch=1,
     benchmark=True,
     sync_batchnorm=True,
@@ -190,9 +221,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 64
+train_batch_size_per_gpu = 32
 train_num_workers = 4
-test_batch_size_per_gpu = 64
+test_batch_size_per_gpu = 32
 test_num_workers = 4
 persistent_workers = True
 
@@ -207,8 +238,8 @@ val_data_prefix = 'test/'
 
 dataset_type = 'BuildingExtractionDataset'
 metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
-load_sam_cache_from = 'cache_data/sam_data'
 
+load_sam_cache_from = 'cache_data/sam_data'
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,
         num_workers=test_num_workers,
@@ -253,6 +284,6 @@ datamodule_cfg = dict(
         )
     ),
     val_loader=val_loader,
-    test_loader=val_loader
+    # test_loader=val_loader
 )
 
