@@ -8,7 +8,8 @@ sub_model = [
     # 'sam.mask_decoder.class_aware_head',
     'global_prompt',
     ]
-max_epochs = 500
+
+max_epochs = 400
 
 optimizer = dict(
     type='AdamW',
@@ -36,6 +37,9 @@ param_scheduler = [
         end=max_epochs,
     )
 ]
+param_scheduler_callback = dict(
+    type='ParamSchedulerHook'
+)
 
 evaluator_ = dict(
     type='JaccardIndex',
@@ -62,6 +66,7 @@ model_cfg = dict(
     points_per_side=None,
     only_img_encoder=True,
     global_prompt=True,
+    with_clip=False,
     need_train_names=sub_model,
     head=dict(
         type='BinarySemanticSegHead',
@@ -84,28 +89,35 @@ model_cfg = dict(
             reduction='mean',
             naive_dice=True,
             eps=1.0,
-            loss_weight=5.0),
+            loss_weight=1.0),
     )
 )
 
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='b_pred',
-    name='E20230414_0'
-)
-logger = False
+exp_name = 'E20230418_0'
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='sam',
+#     name=exp_name
+# )
+
+logger = None
 
 
 callbacks = [
+    param_scheduler_callback,
     dict(
         type='ModelCheckpoint',
         save_last=True,
         mode='max',
         monitor='valmulticlassjaccardindex_1',
-        save_top_k=10,
+        save_top_k=5,
         filename='epoch_{epoch}-iou_{metric_1:.4f}'
     ),
+    dict(
+        type='LearningRateMonitor',
+        logging_interval='step'
+    )
 ]
 
 
@@ -117,15 +129,15 @@ trainer_cfg = dict(
     # precision='32',
     # precision='16-mixed',
     devices=1,
-    default_root_dir='results/building/E20230414_0',
-    # default_root_dir='results/tmp',
+    # default_root_dir=f'results/building/{exp_name}',
+    default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
     log_every_n_steps=20,
     check_val_every_n_epoch=1,
     benchmark=True,
-    # sync_batchnorm=True,
+    sync_batchnorm=True,
 
     # fast_dev_run=True,
     # limit_train_batches=1,
@@ -144,7 +156,7 @@ trainer_cfg = dict(
     # gradient_clip_algorithm=None,
     # deterministic=None,
     # inference_mode: bool=True,
-    # use_distributed_sampler=True,
+    use_distributed_sampler=True,
     # profiler="simple",
     # detect_anomaly=False,
     # barebones=False,

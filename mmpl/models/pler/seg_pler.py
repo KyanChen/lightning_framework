@@ -78,7 +78,11 @@ class SegPLer(BasePLer):
                     nn.Conv2d(256, 1, kernel_size=3, padding=1),
                 )
             else:
-                self.global_prompt = nn.Conv2d(256, 1, kernel_size=1)
+                self.global_prompt = nn.Sequential(
+                    nn.Conv2d(256, 128, kernel_size=3, padding=1),
+                    nn.ReLU(),
+                    nn.Conv2d(128, 1, kernel_size=3, padding=1),
+                )
 
     def setup(self, stage: str) -> None:
         if self.need_train_names is not None:

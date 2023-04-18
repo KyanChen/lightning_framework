@@ -1,6 +1,9 @@
 import argparse
 import os.path as osp
 import sys
+
+from mmpl.models import build_pler
+
 sys.path.insert(0, sys.path[0]+'/../..')
 import mmengine
 import torch
@@ -15,11 +18,11 @@ from mmpl.utils import register_all_modules
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Browse a dataset')
-    parser.add_argument('--config', default='configs/seg/seg_just_backbone_with_clip_config.py', help='train config file path')
+    parser.add_argument('--config', default='configs/seg/seg_just_sam_backbone_config.py', help='train config file path')
     parser.add_argument(
         '--output-dir',
         '-o',
-        default='cache_data/clip_data',
+        default='cache_data/sam_data',
         type=str,
         help='If there is no display interface, you can save it.')
     parser.add_argument(
@@ -82,37 +85,21 @@ def parse_args():
     return args
 
 
-def init_clip_model(clip_config, device='cuda:0'):
-    from transformers import AutoProcessor, CLIPModel, AutoTokenizer
-    model = CLIPModel.from_pretrained(clip_config).to(device)
-    model = model.eval()
-    tokenizer = AutoTokenizer.from_pretrained(clip_config)
-    inputs = tokenizer("a photo of a building", return_tensors="pt")
-    for k, v in inputs.items():
-        inputs[k] = v.to(device)
-    text_features = model.get_text_features(**inputs).detach()  # 1, 512
-    processor = AutoProcessor.from_pretrained(clip_config)
-    size = (processor.image_processor.crop_size['width'], processor.image_processor.crop_size['height'])
-    mean = torch.tensor(processor.image_processor.image_mean, device=device).view(1, 3, 1, 1)
-    std = torch.tensor(processor.image_processor.image_std, device=device).view(1, 3, 1, 1)
-    return model, tokenizer, text_features, size, mean, std
+def init_model(cfg, device='cuda:0'):
+    model = build_pler(cfg.model_cfg).to(device)
+    model.eval()
+    return model
 
-def model_forward(results, model, tokenizer, text_features, size, mean, std, device='cuda:0'):
+
+def model_forward(results, model, device='cuda:0'):
     image = results['inputs'].unsqueeze(0).clone().detach().float().to(device)
-    image = F.interpolate(image, size=size, mode='bicubic', align_corners=False)
-    image = image / 255.
-    image = (image - mean) / std
-    image = image[:, [2, 1, 0], :, :]
-    pixel_values = image
-    vision_outputs = model.vision_model(pixel_values=pixel_values)
-    img_dense_embs = vision_outputs['last_hidden_state'][:, 1:, :]
-    img_dense_embs = model.visual_projection(img_dense_embs)
-    img_dense_embs = img_dense_embs / img_dense_embs.norm(p=2, dim=-1, keepdim=True)
-    text_embeds = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
-    # cosine similarity as logits
-    logit_scale = model.logit_scale.exp()
-    logits_per_image = torch.matmul(img_dense_embs, text_embeds.t()) * logit_scale
-    return {'img_dense_embs': img_dense_embs.cpu(), 'logits_per_image': logits_per_image.cpu()}
+    img = F.interpolate(image, size=(model.sam.img_size, model.sam.img_size), mode='bicubic', align_corners=False)
+    img = img[:, [2, 1, 0], :, :]  # BGR2RGB
+    img = (img - model.sam.pixel_mean) / model.sam.pixel_std
+    with torch.no_grad():
+        image_embeddings, inner_states = model.sam(img)  # Bx256x64x64
+
+    return {'image_embeddings': image_embeddings.cpu()}
 
 def main():
     args = parse_args()
@@ -126,10 +113,8 @@ def main():
         phases = [args.phase]
     else:
         phases = args.phase
-
-    clip_config_ = 'pretrain/clip/models--openai--clip-vit-large-patch14-336/blobs'
-
-    model, tokenizer, text_features, size, mean, std = init_clip_model(clip_config_)
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    model = init_model(cfg, device=device)
 
     cache_datasets = []
     for phase in phases:
@@ -144,7 +129,7 @@ def main():
         progress_bar = ProgressBar(len(dataset))
         for i, item in zip(range(len(dataset)), dataset):
             progress_bar.update()
-            cache_data = model_forward(item, model, tokenizer, text_features, size, mean, std)
+            cache_data = model_forward(item, model, device=device)
             img_path = item['data_samples'].img_path
             mmengine.dump(cache_data, f"{args.output_dir}/{phases[idx]}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
 
