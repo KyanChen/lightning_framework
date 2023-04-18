@@ -121,7 +121,8 @@ model_cfg = dict(
                         pred_act=True,
                         eps=1.0)
                 ]),
-            sampler=dict(type='mmdet.MaskPseudoSampler'))
+            sampler=dict(type='mmdet.MaskPseudoSampler')
+        )
     )
 )
 exp_name = 'E20230418_2'
