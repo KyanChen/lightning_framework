@@ -131,7 +131,6 @@ def main():
         cache_datasets.append(dataset)
 
     # ctx = torch.multiprocessing.get_context("spawn")
-    torch.multiprocessing.set_start_method('spawn')
     num_workers = 4
     for idx, dataset in enumerate(cache_datasets):
         all_items = []
@@ -159,4 +158,5 @@ def main():
 
 
 if __name__ == '__main__':
+    torch.multiprocessing.set_start_method('spawn')
     main()
