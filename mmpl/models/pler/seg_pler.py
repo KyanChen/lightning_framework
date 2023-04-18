@@ -219,7 +219,7 @@ class SegPLer(BasePLer):
 
         inner_states_tmp = []
         for idx in range(len(inner_states[0])):
-            inner_states_tmp.append(torch.stack([x[idx] for x in inner_states], dim=0))
+            inner_states_tmp.append(torch.stack([x[idx] for x in inner_states], dim=0).to(image_embeddings.device))
 
         point_embs, cls_logits = self.sam_prompt_generator(inner_states_tmp)
 
