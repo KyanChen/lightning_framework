@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument(
         '--phase',
         '-p',
-        default=['train'],
+        default=['val'],
         help='phase of dataset to visualize, accept "train" "test" and "val".'
         ' Defaults to "train".')
 
@@ -106,7 +106,7 @@ def model_forward_save(all_results_list, model, output_dir, phase, device='cuda:
         mmengine.dump(cache_data, f"{output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
 
 def main():
-    ctx = torch.multiprocessing.set_start_method('spawn', force=True)
+    # ctx = torch.multiprocessing.set_start_method('spawn', force=True)
     args = parse_args()
     cfg = Config.fromfile(args.config)
     if args.cfg_options is not None:
