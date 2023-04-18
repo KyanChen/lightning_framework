@@ -103,7 +103,8 @@ def model_forward_save(all_results_list, model, output_dir, phase, device='cuda:
         if isinstance(inner_states, list):
             inner_states = [inner_state.cpu() for inner_state in inner_states]
         cache_data = {'image_embeddings': image_embeddings.cpu(), 'inner_states': inner_states}
-        mmengine.dump(cache_data, f"{output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
+        torch.save(cache_data, f"{output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pt")
+        # mmengine.dump(cache_data, f"{output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
 
 def main():
     ctx = torch.multiprocessing.set_start_method('spawn', force=True)
