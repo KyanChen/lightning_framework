@@ -12,7 +12,6 @@ from mmengine.utils import ProgressBar
 
 from mmpl.datasets.builder import build_dataset
 from mmpl.utils import register_all_modules
-import multiprocessing
 
 
 def parse_args():
@@ -131,6 +130,8 @@ def main():
         dataset = build_dataset(dataset_cfg)
         cache_datasets.append(dataset)
 
+    # ctx = torch.multiprocessing.get_context("spawn")
+    torch.multiprocessing.set_start_method('spawn')
     num_workers = 4
     for idx, dataset in enumerate(cache_datasets):
         all_items = []
@@ -150,7 +151,7 @@ def main():
             slice_items = all_items[local_rank_id * slice_len: (local_rank_id + 1) * slice_len]
             if local_rank_id == num_workers - 1:
                 slice_items = all_items[local_rank_id * slice_len:]
-            p = multiprocessing.Process(target=model_forward_save, args=(slice_items, model, args.output_dir, phases[idx], device, local_rank_id))
+            p = torch.multiprocessing.Process(target=model_forward_save, args=(slice_items, model, args.output_dir, phases[idx], device, local_rank_id))
             p.start()
             num_p_list.append(p)
         for p in num_p_list:
