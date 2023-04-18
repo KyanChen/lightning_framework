@@ -17,6 +17,7 @@ class MotionGPTHead(BaseModel):
                 rot_6d=22 * 6 * 2,
                 diff_root_zyx=3 * 2,
             ),
+            loss='certainty_loss',
             num_layers: int = 2,
             rotation_loss: dict = dict(type='SmoothL1Loss', loss_weight=1.0),
             global_position_loss: dict = dict(type='SmoothL1Loss', loss_weight=1.0),
@@ -42,6 +43,7 @@ class MotionGPTHead(BaseModel):
         self.rotation_loss = MODELS.build(rotation_loss)
         self.global_position_loss = MODELS.build(global_position_loss)
         self.root_position_loss = MODELS.build(root_position_loss)
+        self.get_loss = getattr(self, f'get_{loss}')
 
     def forward(self, x):
         rot_6d = self.rot_6d(x)
@@ -49,7 +51,7 @@ class MotionGPTHead(BaseModel):
         return rot_6d, diff_root_zyx
 
     def loss(self, *args, **kwargs):
-        return self.get_certainty_loss(*args, **kwargs)
+        return self.get_loss(*args, **kwargs)
 
     def get_uncertainty_loss(self,
              x,
