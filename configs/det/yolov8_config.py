@@ -1,14 +1,13 @@
 custom_imports = dict(imports=['mmyolo.datasets'], allow_failed_imports=False)
 
-base_lr = 0.005
+base_lr = 0.0001
 lr_factor = 0.01
 weight_decay = 0.0005
-# optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
-optimizer = dict(type='SGD', lr=base_lr, momentum=0.937, weight_decay=weight_decay, nesterov=True)
+optimizer = dict(type='AdamW', lr=base_lr, weight_decay=1e-3)
+# optimizer = dict(type='SGD', lr=base_lr, momentum=0.937, weight_decay=weight_decay, nesterov=True)
 
-max_epochs = 600
+max_epochs = 400
 param_scheduler = None
-
 
 last_stage_out_channels = 1024
 deepen_factor = 0.33
@@ -178,11 +177,13 @@ train_pipeline_stage2 = [
     *last_transform
 ]
 
+exp_name = 'E20230418_0'
+
 logger = dict(
     type='WandbLogger',
     project='DyTiSDet',
     group='yolov8_dynamic',
-    name='E20230417_1'
+    name=exp_name
 )
 # logger = None
 
@@ -229,7 +230,7 @@ trainer_cfg = dict(
     # precision='32',
     # precision='16-mixed',
     devices=8,
-    default_root_dir='results/DyTiSDet/E20230417_1',
+    default_root_dir=f'results/DyTiSDet/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
