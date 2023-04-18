@@ -164,9 +164,9 @@ trainer_cfg = dict(
     # reload_dataloaders_every_n_epochs=0,
 )
 
-train_batch_size_per_gpu = 64
+train_batch_size_per_gpu = 32
 train_num_workers = 4
-test_batch_size_per_gpu = 64
+test_batch_size_per_gpu = 32
 test_num_workers = 4
 persistent_workers = True
 datamodule_cfg = dict(
