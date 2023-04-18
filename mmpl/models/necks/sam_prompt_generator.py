@@ -12,7 +12,7 @@ class SAMPromptGenNeck(nn.Module):
             prompt_shape=(100, 6),
             img_feat_channels=1280,
             out_put_channels=256,
-            num_img_feat_level=16,
+            num_img_feat_level=4,
             img_feat_size=32,
             n_cls=2,
     ):
@@ -92,7 +92,7 @@ class SAMPromptGenNeck(nn.Module):
         bs = inner_states[0].shape[0]
         # inputs: list([B, C, H, W])
         num_layers = len(inputs)
-
+        import ipdb; ipdb.set_trace()
         # select the feature maps from the selected layers
         layer_start_id = num_layers - self.num_img_feat_level
         decoder_inputs = []
