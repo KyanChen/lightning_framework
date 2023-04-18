@@ -9,7 +9,7 @@ sub_model = [
     'global_prompt',
     ]
 
-max_epochs = 400
+max_epochs = 300
 
 optimizer = dict(
     type='AdamW',
@@ -190,10 +190,10 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 6
-train_num_workers = 2
-test_batch_size_per_gpu = 6
-test_num_workers = 2
+train_batch_size_per_gpu = 64
+train_num_workers = 4
+test_batch_size_per_gpu = 64
+test_num_workers = 4
 persistent_workers = True
 
 
@@ -207,6 +207,7 @@ val_data_prefix = 'test/'
 
 dataset_type = 'BuildingExtractionDataset'
 metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
+load_sam_cache_from = 'cache_data/sam_data'
 
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,
@@ -215,6 +216,8 @@ val_loader = dict(
         pin_memory=True,
         dataset=dict(
             type=dataset_type,
+            phrase='train',
+            load_sam_cache_from=load_sam_cache_from,
             img_suffix='.tif',
             seg_map_suffix='.tif',
             reduce_zero_label=False,
@@ -236,6 +239,8 @@ datamodule_cfg = dict(
         pin_memory=True,
         dataset=dict(
             type=dataset_type,
+            phrase='val',
+            load_sam_cache_from=load_sam_cache_from,
             img_suffix='.tif',
             seg_map_suffix='.tif',
             reduce_zero_label=False,

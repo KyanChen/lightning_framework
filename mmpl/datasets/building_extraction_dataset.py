@@ -70,7 +70,7 @@ class BuildingExtractionDataset(BaseSegDataset):
 
         if self.load_sam_cache_from is not None:
             img_path = results['data_samples'].img_path
-            cache_data = mmengine.load(f"{self.load_sam_cache_from}/{self.phrase}_{os.path.splitext(os.path.basename(img_path))[0]}.pkl")
+            cache_data = torch.load(f"{self.load_sam_cache_from}/{self.phrase}_{os.path.splitext(os.path.basename(img_path))[0]}.pt")
             results['data_samples'].set_data(dict(image_embeddings=cache_data['image_embeddings'][0].detach()))
 
         return results
