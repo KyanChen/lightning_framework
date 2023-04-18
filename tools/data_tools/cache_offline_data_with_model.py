@@ -106,7 +106,7 @@ def model_forward_save(all_results_list, model, output_dir, phase, device='cuda:
         mmengine.dump(cache_data, f"{output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
 
 def main():
-    # ctx = torch.multiprocessing.set_start_method('spawn', force=True)
+    ctx = torch.multiprocessing.set_start_method('spawn', force=True)
     args = parse_args()
     cfg = Config.fromfile(args.config)
     if args.cfg_options is not None:
@@ -132,7 +132,7 @@ def main():
         cache_datasets.append(dataset)
 
     # ctx = torch.multiprocessing.get_context("spawn")
-    num_workers = 1
+    num_workers = 8
     for idx, dataset in enumerate(cache_datasets):
         all_items = []
         pbar = ProgressBar(len(dataset))
@@ -151,12 +151,12 @@ def main():
             slice_items = all_items[local_rank_id * slice_len: (local_rank_id + 1) * slice_len]
             if local_rank_id == num_workers - 1:
                 slice_items = all_items[local_rank_id * slice_len:]
-            model_forward_save(slice_items, model, args.output_dir, phases[idx], device, local_rank_id)
-        #     p = ctx.Process(target=model_forward_save, args=(slice_items, model, args.output_dir, phases[idx], device, local_rank_id))
-        #     p.start()
-        #     num_p_list.append(p)
-        # for p in num_p_list:
-        #     p.join()
+            # model_forward_save(slice_items, model, args.output_dir, phases[idx], device, local_rank_id)
+            p = ctx.Process(target=model_forward_save, args=(slice_items, model, args.output_dir, phases[idx], device, local_rank_id))
+            p.start()
+            num_p_list.append(p)
+        for p in num_p_list:
+            p.join()
 
 
 if __name__ == '__main__':
