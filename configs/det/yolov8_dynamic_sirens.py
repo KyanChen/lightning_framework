@@ -177,7 +177,7 @@ train_pipeline_stage2 = [
     *last_transform
 ]
 
-exp_name = 'E20230418_0'
+exp_name = 'E20230418_3'
 
 logger = dict(
     type='WandbLogger',
