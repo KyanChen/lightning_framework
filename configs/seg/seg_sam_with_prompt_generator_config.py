@@ -125,15 +125,16 @@ model_cfg = dict(
         )
     )
 )
-exp_name = 'E20230418_2'
-# logger = dict(
-#     type='WandbLogger',
-#     project='building',
-#     group='sam_prompt_generator',
-#     name=exp_name
-# )
 
-logger = None
+exp_name = 'E20230418_2'
+logger = dict(
+    type='WandbLogger',
+    project='building',
+    group='sam_prompt_generator',
+    name=exp_name
+)
+
+# logger = None
 
 
 callbacks = [
@@ -160,9 +161,9 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=2,
-    # default_root_dir=f'results/building/{exp_name}',
-    default_root_dir='results/tmp',
+    devices=8,
+    default_root_dir=f'results/building/{exp_name}',
+    # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
@@ -183,7 +184,7 @@ trainer_cfg = dict(
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
-    accumulate_grad_batches=4,
+    accumulate_grad_batches=8,
     # gradient_clip_val=None,
     # gradient_clip_algorithm=None,
     # deterministic=None,
