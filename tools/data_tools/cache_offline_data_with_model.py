@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument(
         '--phase',
         '-p',
-        default=['train', 'val'],
+        default=['val'],
         help='phase of dataset to visualize, accept "train" "test" and "val".'
         ' Defaults to "train".')
 
