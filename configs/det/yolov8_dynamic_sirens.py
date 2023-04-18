@@ -1,10 +1,10 @@
 custom_imports = dict(imports=['mmyolo.datasets'], allow_failed_imports=False)
 
-base_lr = 0.0001
+base_lr = 0.01
 lr_factor = 0.01
 weight_decay = 0.0005
-optimizer = dict(type='AdamW', lr=base_lr, weight_decay=1e-3)
-# optimizer = dict(type='SGD', lr=base_lr, momentum=0.937, weight_decay=weight_decay, nesterov=True)
+# optimizer = dict(type='AdamW', lr=base_lr, weight_decay=1e-3)
+optimizer = dict(type='SGD', lr=base_lr, momentum=0.937, weight_decay=weight_decay, nesterov=True)
 
 max_epochs = 400
 param_scheduler = None
@@ -252,7 +252,7 @@ trainer_cfg = dict(
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
-    # accumulate_grad_batches=1,
+    accumulate_grad_batches=2,
     gradient_clip_val=25,
     gradient_clip_algorithm='norm',
     # deterministic=None,
