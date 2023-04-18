@@ -36,6 +36,9 @@ param_scheduler = [
         end=max_epochs,
     )
 ]
+param_scheduler_callback = dict(
+    type='ParamSchedulerHook'
+)
 
 evaluator_ = dict(
     type='JaccardIndex',
@@ -97,6 +100,7 @@ logger = dict(
 
 
 callbacks = [
+    param_scheduler_callback,
     dict(
         type='ModelCheckpoint',
         save_last=True,
