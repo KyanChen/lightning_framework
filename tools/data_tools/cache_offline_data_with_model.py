@@ -107,7 +107,7 @@ def model_forward_save(all_results_list, model, output_dir, phase, device='cuda:
         # mmengine.dump(cache_data, f"{output_dir}/{phase}_{osp.splitext(osp.basename(img_path))[0]}.pkl")
 
 def main():
-    ctx = torch.multiprocessing.set_start_method('spawn', force=True)
+    # torch.multiprocessing.set_start_method('spawn', force=True)
     args = parse_args()
     cfg = Config.fromfile(args.config)
     if args.cfg_options is not None:
@@ -153,7 +153,7 @@ def main():
             if local_rank_id == num_workers - 1:
                 slice_items = all_items[local_rank_id * slice_len:]
             # model_forward_save(slice_items, model, args.output_dir, phases[idx], device, local_rank_id)
-            p = ctx.Process(target=model_forward_save, args=(slice_items, model, args.output_dir, phases[idx], device, local_rank_id))
+            p = torch.multiprocessing.Process(target=model_forward_save, args=(slice_items, model, args.output_dir, phases[idx], device, local_rank_id))
             p.start()
             num_p_list.append(p)
         for p in num_p_list:
