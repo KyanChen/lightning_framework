@@ -90,9 +90,9 @@ def init_model(cfg, device='cuda:0'):
     return model
 
 
-def model_forward_save(results, model, output_dir, phase, device='cuda:0', local_rank_id=0,):
-    pbar = ProgressBar(len(results))
-    for i, item in enumerate(results):
+def model_forward_save(all_results_list, model, output_dir, phase, device='cuda:0', local_rank_id=0,):
+    pbar = ProgressBar(len(all_results_list))
+    for i, results in enumerate(all_results_list):
         pbar.update()
         image = results['inputs'].unsqueeze(0).clone().detach().float().to(device)
         img = F.interpolate(image, size=(model.sam.img_size, model.sam.img_size), mode='bicubic', align_corners=False)
@@ -100,7 +100,7 @@ def model_forward_save(results, model, output_dir, phase, device='cuda:0', local
         img = (img - model.sam.pixel_mean) / model.sam.pixel_std
         with torch.no_grad():
             image_embeddings, inner_states = model.sam(img)  # Bx256x64x64
-        img_path = item['data_samples'].img_path
+        img_path = results['data_samples'].img_path
         if isinstance(inner_states, list):
             inner_states = [inner_state.cpu() for inner_state in inner_states]
         cache_data = {'image_embeddings': image_embeddings.cpu(), 'inner_states': inner_states}
@@ -149,8 +149,8 @@ def main():
             if local_rank_id == num_workers - 1:
                 slice_items = all_items[local_rank_id * slice_len:]
             p = multiprocessing.Process(target=model_forward_save, args=(slice_items, model, args.output_dir, phases[idx], device, local_rank_id))
-            num_p_list.append(p)
             p.start()
+            num_p_list.append(p)
         for p in num_p_list:
             p.join()
 
