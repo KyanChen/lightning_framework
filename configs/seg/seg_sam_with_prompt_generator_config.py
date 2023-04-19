@@ -140,6 +140,7 @@ callbacks = [
     param_scheduler_callback,
     dict(
         type='ModelCheckpoint',
+        dirpath=f'results/building/{exp_name}/checkpoints',
         save_last=True,
         mode='max',
         monitor='valmulticlassjaccardindex_1',
