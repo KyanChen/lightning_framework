@@ -20,14 +20,11 @@ class BvhDataset(_BaseDataset):
                  test_mode: bool = False,
                  n_offset=20,
                  phase='train',
-                 n_prompt_frames: int = 5,
                  pipeline=[],
                  **kwargs):
         self.test_mode = test_mode
         self.block_size = block_size
-        self.n_prompt_frames = n_prompt_frames
         self.n_offset = n_offset
-        assert self.n_prompt_frames > 0
         self.phase = phase
         if self.test_mode or phase in ['predict', 'val']:
             self.actors = ['subject5']
@@ -129,11 +126,11 @@ class BvhDataset(_BaseDataset):
         parents = data_info['parents']
         bvh_file = data_info['bvh_file']
         x = dict(
-            positions=positions[frame_idx:frame_idx + self.n_prompt_frames],
-            rotations=rotations[frame_idx:frame_idx + self.n_prompt_frames],
-            global_positions=global_positions[frame_idx:frame_idx + self.n_prompt_frames],
-            global_rotations=global_rotations[frame_idx:frame_idx + self.n_prompt_frames],
-            foot_contact=foot_contact[frame_idx:frame_idx + self.n_prompt_frames],
+            positions=positions[frame_idx:frame_idx + self.block_size],
+            rotations=rotations[frame_idx:frame_idx + self.block_size],
+            global_positions=global_positions[frame_idx:frame_idx + self.block_size],
+            global_rotations=global_rotations[frame_idx:frame_idx + self.block_size],
+            foot_contact=foot_contact[frame_idx:frame_idx + self.block_size],
             parents=parents,
             bvh_file=bvh_file,
             frame_idx=frame_idx,

@@ -14,13 +14,16 @@ register_all_modules()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a pl model')
-    parser.add_argument('--config', default='../configs/motiongpt_config.py', help='train config file path')
+    # parser.add_argument('--config', default='configs/motion/motiongpt_certainty_config.py', help='train config file path')
+    parser.add_argument('--config', default='configs/motion/motiongpt_uncertainty_config.py',
+                        help='train config file path')
     parser.add_argument('--status', default='predict', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
-    parser.add_argument('--return-predictions', default=True, help='return predictions')
-    # parser.add_argument('--ckpt-path', default='results/exp/MotionGPT/tc6u6115/checkpoints/epoch=55-step=88088.ckpt', help='checkpoint path')
-    parser.add_argument('--ckpt-path', default='../pretrain/epoch=55-step=88088.ckpt',
+    # parser.add_argument('--ckpt-path', default='pretrain/motiongpt/E20230418_0_epoch_epoch=96-valloss_val_loss=0.9393.ckpt',
+    #                     help='checkpoint path')
+    parser.add_argument('--ckpt-path',
+                        default='results/motiongpt/E20230418_1/MotionGPT/d6uh2q64/checkpoints/epoch_epoch=80-valloss_val_loss=1.0513.ckpt',
                         help='checkpoint path')
-    parser.add_argument('--work-dir', default='results/exp', help='the dir to save logs and mmpl')
+    parser.add_argument('--work-dir', default=None, help='the dir to save logs and mmpl')
     args = parser.parse_args()
     return args
 
@@ -37,7 +40,7 @@ def main():
         runner = PLRunner.from_cfg(cfg)
     else:
         runner = RUNNERS.build(cfg)
-    runner.run(args.status, return_predictions=args.return_predictions, ckpt_path=args.ckpt_path)
+    runner.run(args.status, ckpt_path=args.ckpt_path)
 
 
 if __name__ == '__main__':

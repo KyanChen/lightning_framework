@@ -27,6 +27,7 @@ class MotionGPTPLer(BasePLer):
                  mean_std_info,
                  block_size=512,
                  max_frames_predict=128,
+                 n_prompt_tokens=20,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
@@ -35,10 +36,12 @@ class MotionGPTPLer(BasePLer):
 
         self.spatial_transformer = build_neck(spatial_transformer)
         self.temporal_transformer = build_neck(temporal_transformer)
+
         self.head = build_head(head)
         self.block_size = block_size
         self.mean_std_info = mean_std_info
         self.max_frames_predict = max_frames_predict
+        self.n_prompt_tokens = n_prompt_tokens
 
     def setup(self, stage: str) -> None:
         mean_std = mmengine.load(self.mean_std_info)
@@ -153,54 +156,42 @@ class MotionGPTPLer(BasePLer):
         positions_shift, rotations_shift = lafan1_utils_torch.reduce_frame_root_shift_and_rotation(
             positions, rotations, base_frame_id=0)
 
-        assert positions_shift.shape[1] <= self.max_frames_predict
+        pred_positions_shift = positions_shift.clone()[:, :self.n_prompt_tokens]
+        pred_rotations_shift = rotations_shift.clone()[:, :self.n_prompt_tokens]
 
-        while positions_shift.shape[1] < self.max_frames_predict:
-            rot_6d_with_position, diff_root_zyx = lafan1_utils_torch.get_shift_model_input(positions_shift.clone(), rotations_shift.clone())
+        assert pred_positions_shift.shape[1] <= self.max_frames_predict
+
+        while pred_positions_shift.shape[1] < self.max_frames_predict:
+            rot_6d_with_position, diff_root_zyx = lafan1_utils_torch.get_shift_model_input(pred_positions_shift.clone(), pred_rotations_shift.clone())
             # rot_6d_with_position BxTxJx9
             # diff_root_zyx BxTxJx3
 
             rot_6d_with_position_input = rot_6d_with_position[:, -self.block_size:].clone()
             diff_root_zyx_input = diff_root_zyx[:, -self.block_size:].clone()
 
-
             x = self.forward(rot_6d_with_position_input, diff_root_zyx_input)
             x = x[:, -1:, :]
-            pred_rot_6d, pred_diff_root_zyx = self.head.forward(x)
 
-            pred_rot_6d = rearrange(pred_rot_6d, 'b t (d c) -> b t d c', d=2)
-            pred_rot_6d = rearrange(pred_rot_6d, 'b t d (n_j c) -> b t d n_j c', c=6)
-            pred_rot_6d = (pred_rot_6d + 1) / 2
-            pred_rot_6d = pred_rot_6d * (self.max_rot_6d_with_position[:, :6] - \
-                                         self.min_rot_6d_with_position[:, :6]) + \
-                          self.min_rot_6d_with_position[:, :6]
-            # try:
-            #     pred_rot_6d = torch.normal(mean=pred_rot_6d[:, :, 0], std=torch.abs(pred_rot_6d[:, :, 1]))
-            # except:
-            #     import ipdb;
-            #     ipdb.set_trace()
-            pred_rot_6d = pred_rot_6d[:, :, 0]
-
-            pred_diff_root_zyx = rearrange(pred_diff_root_zyx, 'b t (d c) -> b t d c', d=2)
-            pred_diff_root_zyx = pred_diff_root_zyx.unsqueeze(-2)
-            pred_diff_root_zyx = (pred_diff_root_zyx + 1) / 2
-            pred_diff_root_zyx = pred_diff_root_zyx * (self.max_diff_root_xz - \
-                                                       self.min_diff_root_xz) + \
-                                 self.min_diff_root_xz
-
-            # pred_diff_root_zyx = torch.normal(mean=pred_diff_root_zyx[:, :, 0], std=torch.abs(pred_diff_root_zyx[:, :, 1]))
-            pred_diff_root_zyx = pred_diff_root_zyx[:, :, 0]
+            pred_rot_6d, pred_diff_root_zyx = self.head.predict(
+                x,
+                normalization_info=dict(
+                    mean_rot_6d_with_position=self.mean_rot_6d_with_position,
+                    std_rot_6d_with_position=self.std_rot_6d_with_position,
+                    mean_diff_root_xz=self.mean_diff_root_xz,
+                    std_diff_root_xz=self.std_diff_root_xz,
+                ),
+            )
 
             # project 6D rotation to 9D rotation
             pred_rotations_9d = lafan1_utils_torch.matrix6D_to_9D_torch(pred_rot_6d)
             # accumulate root position shift to the last frame
-            position_new = positions_shift[:, -1:].clone()
+            position_new = pred_positions_shift[:, -1:].clone()
             position_new[..., 0, :] += pred_diff_root_zyx[..., 0, :]
 
-            rotations_shift = torch.cat([rotations_shift, pred_rotations_9d], dim=1)
-            positions_shift = torch.cat([positions_shift, position_new], dim=1)
+            pred_rotations_shift = torch.cat([pred_rotations_shift, pred_rotations_9d], dim=1)
+            pred_positions_shift = torch.cat([pred_positions_shift, position_new], dim=1)
 
-        return positions_shift, rotations_shift, batch
+        return pred_positions_shift, pred_rotations_shift, positions_shift[:, :self.max_frames_predict], rotations_shift[:, :self.max_frames_predict]
 
 
 

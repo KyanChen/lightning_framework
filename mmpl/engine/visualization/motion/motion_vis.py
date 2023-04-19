@@ -1,6 +1,7 @@
 import glob
 import os
 import time
+from typing import Any
 
 import cv2
 import mmcv
@@ -14,44 +15,15 @@ from matplotlib import pyplot as plt
 from mmpl.datasets.data_utils import lafan1_utils_torch
 from mmpl.registry import HOOKS
 from lightning.pytorch.callbacks import Callback
+from .utilscv3d import draw_motion_based_global_pos
 
 
 @HOOKS.register_module()
 class MotionVisualizer(Callback):
-    def __init__(self, save_dir):
+    def __init__(self, save_dir, fps=30, *args, **kwargs):
         self.save_dir = save_dir
         mmengine.mkdir_or_exist(self.save_dir)
-        self.motions = []
-        # self.bbox_color = bbox_color
-        # self.text_color = text_color
-        # self.mask_color = mask_color
-        # self.line_width = line_width
-        # self.alpha = alpha
-        # # Set default value. When calling
-        # # `DetLocalVisualizer().dataset_meta=xxx`,
-        # # it will override the default value.
-        # self.dataset_meta = {}
-
-    def parse_results(self, results):
-        for idx, item in enumerate(results):
-            positions, rotations, batch = item
-            for i_item in range(len(positions)):
-                item_dict = dict(
-                    pred_pos=positions[i_item],
-                    pred_rot=rotations[i_item],
-                )
-                input_dict = dict(
-                    input_pos=batch['positions'][i_item],
-                    input_rot=batch['rotations'][i_item],
-                    foot_contact=batch['foot_contact'][i_item],
-                    parents=batch['parents'][i_item],
-                    bvh_file=batch['bvh_file'][i_item],
-                    frame_idx=batch['frame_idx'][i_item],
-                    seq_idx=batch['seq_idx'][i_item],
-                )
-                item_dict.update(input_dict)
-                self.motions.append(item_dict)
-        return self.motions
+        self.fps = fps
 
     def fig2img(self, fig) -> np.ndarray:
         # convert matplotlib.figure.Figure to np.ndarray(cv2 format)
@@ -118,23 +90,45 @@ class MotionVisualizer(Callback):
         # clip = ImageSequenceClip.ImageSequenceClip(frames, fps=fps)
         # clip.write_videofile(filepath)
 
-    def on_test_end(self, results, show=True, num_save=0, **kwargs):
-        motions = self.parse_results(results)
+    def on_predict_batch_end(
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs: Any,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
+    ) -> None:
+        pred_positions_shift, pred_rotations_shift, gt_positions_shift, gt_rotations_shift = outputs  # BxTx22x3, BxTx22x3x3, BxTx22x3, BxTx22x3x3
+        parents = batch['parents'][0]
+        bvh_files = batch['bvh_file']
+        frame_idxs = batch['frame_idx']
+        seq_idxs = batch['seq_idx']
 
-        if num_save > 0:
-            motions = motions[:num_save]
-        for idx, motion in enumerate(motions):
-            bvh_file = os.path.splitext(os.path.basename(motion['bvh_file']))[0]
-            frame_idx = motion['frame_idx'].item()
-            seq_idx = motion['seq_idx'].item()
+        pred_g_rot, pred_g_pos = lafan1_utils_torch.fk_torch(pred_rotations_shift, pred_positions_shift, parents)
+        gt_g_rot, gt_g_pos = lafan1_utils_torch.fk_torch(gt_rotations_shift, gt_positions_shift, parents)
+        for idx in range(pred_g_pos.shape[0]):
+            bvh_file = os.path.splitext(os.path.basename(bvh_files[idx]))[0]
+            frame_idx = frame_idxs[idx].item()
+            seq_idx = seq_idxs[idx].item()
 
-            pred_pos = motion['pred_pos']
-            pred_rot = motion['pred_rot']
-            parents = motion['parents']
+            pred_pos = pred_g_pos[idx]
+            pred_rot = pred_g_rot[idx]
+            gt_pos = gt_g_pos[idx]
+            gt_rot = gt_g_rot[idx]
 
-            g_rot, g_pos = lafan1_utils_torch.fk_torch(pred_rot, pred_pos, parents)
-
-            prefix = f"{self.save_dir}/{bvh_file}_{frame_idx}_{seq_idx}"
-            imgs = self.plot_pose(g_pos.cpu().numpy(), prefix, parents.tolist())
-            self.save_gif(imgs, f"{prefix}.gif", fps=10)
+            pred_gif = draw_motion_based_global_pos(
+                pred_pos, parents,
+                title=f"{bvh_file}_{frame_idx}_{seq_idx}_pred",
+                axis_order=[0, 2, 1],
+            )
+            gt_gif = draw_motion_based_global_pos(
+                gt_pos, parents,
+                title=f"{bvh_file}_{frame_idx}_{seq_idx}_gt",
+                axis_order=[0, 2, 1],
+            )
+            cvss = [np.hstack([pred_, gt_]) for pred_, gt_ in zip(pred_gif, gt_gif)]
+            gif_path = f"{self.save_dir}/{bvh_file}_{frame_idx}_{seq_idx}_pred_gt.gif"
+            duration = 1.0 / self.fps
+            imageio.mimsave(gif_path, cvss, duration=duration)
 

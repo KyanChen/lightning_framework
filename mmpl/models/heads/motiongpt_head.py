@@ -18,6 +18,8 @@ class MotionGPTHead(BaseModel):
                 diff_root_zyx=3 * 2,
             ),
             loss='certainty_loss',
+            return_certainty=False,
+            uncertainty_beta=10,
             num_layers: int = 2,
             rotation_loss: dict = dict(type='SmoothL1Loss', loss_weight=1.0),
             global_position_loss: dict = dict(type='SmoothL1Loss', loss_weight=1.0),
@@ -43,7 +45,13 @@ class MotionGPTHead(BaseModel):
         self.rotation_loss = MODELS.build(rotation_loss)
         self.global_position_loss = MODELS.build(global_position_loss)
         self.root_position_loss = MODELS.build(root_position_loss)
+
         self.get_loss = getattr(self, f'get_{loss}')
+        self.certainty = False
+        if loss == 'certainty_loss':
+            self.certainty = True
+        self.return_certainty = return_certainty
+        self.beta = uncertainty_beta
 
     def forward(self, x):
         rot_6d = self.rot_6d(x)
@@ -186,51 +194,47 @@ class MotionGPTHead(BaseModel):
         )
         return losses
 
-
     def predict(
-        self,
-        feats: Tuple[torch.Tensor],
-        data_samples=None
-    ):
-        """Inference without augmentation.
-
-        Args:
-            feats (tuple[Tensor]): The features extracted from the backbone.
-                Multiple stage inputs are acceptable but only the last stage
-                will be used to classify. The shape of every item should be
-                ``(num_samples, num_classes)``.
-            data_samples (List[ClsDataSample | None], optional): The annotation
-                data of every samples. If not None, set ``pred_label`` of
-                the input data samples. Defaults to None.
-
-        Returns:
-            List[ClsDataSample]: A list of data samples which contains the
-            predicted results.
+            self,
+            x,
+            # normalization_info=dict(
+            # max_rot_6d_with_position=0,
+            # min_rot_6d_with_position=0,
+            # max_diff_root_xz=0,
+            # min_diff_root_xz=0,
+            # ),
+            normalization_info=dict(
+                mean_rot_6d_with_position=0,
+                std_rot_6d_with_position=0,
+                mean_diff_root_xz=0,
+                std_diff_root_xz=0,
+            ),
+            *args,
+            **kwargs):
+        """Compute loss.
         """
-        # The part can be traced by torch.fx
-        cls_score = self(feats)
 
-        # The part can not be traced by torch.fx
-        predictions = self._get_predictions(cls_score, data_samples)
-        return predictions
+        pred_rot_6d, pred_diff_root_zyx = self.forward(x)
+        if self.certainty:
+            pred_rot_6d = rearrange(pred_rot_6d, 'b t (n_j c) -> b t n_j c', c=6)
+        else:
+            pred_rot_6d = rearrange(pred_rot_6d, 'b t (d n_j c) -> b t d n_j c', d=2, c=6)
+        pred_rot_6d = pred_rot_6d * normalization_info['std_rot_6d_with_position'][:, :6] + \
+                      normalization_info['mean_rot_6d_with_position'][:, :6]
 
-    def _get_predictions(self, cls_score, data_samples):
-        """Post-process the output of head.
+        if self.certainty:
+            pred_diff_root_zyx = rearrange(pred_diff_root_zyx, 'b t (n_j c) -> b t n_j c', n_j=1)
+        else:
+            pred_diff_root_zyx = rearrange(pred_diff_root_zyx, 'b t (d n_j c) -> b t d n_j c', d=2, n_j=1)
+        pred_diff_root_zyx = pred_diff_root_zyx * normalization_info['std_diff_root_xz'] + \
+                                normalization_info['mean_diff_root_xz']
 
-        Including softmax and set ``pred_label`` of data samples.
-        """
-        pred_scores = F.softmax(cls_score, dim=1)
-        pred_labels = pred_scores.argmax(dim=1, keepdim=True).detach()
+        if self.return_certainty:
+            if not self.certainty:
+                pred_rot_6d = pred_rot_6d[:, :, 0]
+                pred_diff_root_zyx = pred_diff_root_zyx[:, :, 0]
+        else:
+            pred_rot_6d = torch.normal(mean=pred_rot_6d[:, :, 0], std=torch.abs(pred_rot_6d[:, :, 1]/self.beta))
+            pred_diff_root_zyx = torch.normal(mean=pred_diff_root_zyx[:, :, 0], std=torch.abs(pred_diff_root_zyx[:, :, 1]/self.beta))
 
-        out_data_samples = []
-        if data_samples is None:
-            data_samples = [None for _ in range(pred_scores.size(0))]
-
-        for data_sample, score, label in zip(data_samples, pred_scores,
-                                             pred_labels):
-            if data_sample is None:
-                data_sample = ClsDataSample()
-
-            data_sample.set_pred_score(score).set_pred_label(label)
-            out_data_samples.append(data_sample)
-        return out_data_samples
+        return pred_rot_6d, pred_diff_root_zyx
