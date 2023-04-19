@@ -199,6 +199,8 @@ class SAMPromptConvNeck(nn.Module):
             decoder_inputs.append(decoder_input)
         decoder_inputs = torch.cat(decoder_inputs, dim=1)  # Bx256x64x64
         decoder_inputs = self.gather_img_feats(decoder_inputs)
+        import pdb;
+        pdb.set_trace()
         decoder_inputs = torch.nn.functional.interpolate(decoder_inputs, size=(self.point_size, self.point_size), mode='bilinear', align_corners=True)
         img_pe = self.img_feats_pe.expand(bs, -1, -1, -1)  # Bx256x64x64
         decoder_inputs = decoder_inputs + img_pe
