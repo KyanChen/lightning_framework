@@ -22,6 +22,7 @@ def parse_args():
     # parser.add_argument('--config', default='configs/seg_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/seg_mask2former_config.py', help='train config file path')
     # parser.add_argument('--config', default='configs/motion/motiongpt_config.py', help='train config file path')
+    parser.add_argument('--ckpt-path', default='last', help='checkpoint path')
     parser.add_argument('--status', default='fit', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
     parser.add_argument('--work-dir', default=None, help='the dir to save logs and mmpl')
     args = parser.parse_args()
@@ -41,7 +42,7 @@ def main():
         runner = PLRunner.from_cfg(cfg)
     else:
         runner = RUNNERS.build(cfg)
-    runner.run(args.status)
+    runner.run(args.status, ckpt_path=args.ckpt_path)
 
 
 if __name__ == '__main__':
