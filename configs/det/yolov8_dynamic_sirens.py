@@ -6,7 +6,7 @@ weight_decay = 0.0005
 # optimizer = dict(type='AdamW', lr=base_lr, weight_decay=1e-3)
 optimizer = dict(type='SGD', lr=base_lr, momentum=0.937, weight_decay=weight_decay, nesterov=True)
 
-max_epochs = 300
+max_epochs = 400
 param_scheduler = None
 
 last_stage_out_channels = 1024
