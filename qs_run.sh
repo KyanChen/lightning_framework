@@ -6,7 +6,7 @@ pip install albumentations
 
 cd /mnt/search01/usr/chenkeyan/codes/lightning_framework
 #TORCH_DISTRIBUTED_DEBUG=DETAIL
-python tools/train.py
+python tools/train.py --config $1
 # TORCH_DISTRIBUTED_DEBUG=DETAIL
 #python train.py
 #python -m torch.distributed.launch --nproc_per_node=$GPU_NUM --nnodes=$WORLD_SIZE --node_rank=$RANK --master_addr=$MASTER_ADDR --master_port=$MASTER_PORT --use_env train.py
