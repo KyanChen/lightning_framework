@@ -133,7 +133,7 @@ model_cfg = dict(
     )
 )
 
-exp_name = 'E20230419_1'
+exp_name = 'E20230419_5'
 logger = dict(
     type='WandbLogger',
     project='building',
@@ -193,7 +193,7 @@ trainer_cfg = dict(
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
-    accumulate_grad_batches=2,
+    # accumulate_grad_batches=1,
     # gradient_clip_val=None,
     # gradient_clip_algorithm=None,
     # deterministic=None,

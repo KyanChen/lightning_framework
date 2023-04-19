@@ -140,7 +140,6 @@ callbacks = [
 trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
-    # strategy="auto",
     strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
