@@ -291,10 +291,10 @@ class SegPLer(BasePLer):
         return cls_logits, n_img_masks, n_iou_preds
 
     def forward_sam_prompt_generator_all(self, batch, *args: Any, **kwargs: Any) -> Any:
-        x = batch['inputs']
-        if self.local_rank == 0:
-            import pdb; pdb.set_trace()
-        self.trainer.strategy.barrier()
+        x = torch.stack(batch['inputs'], dim=0)
+        # if self.local_rank == 0:
+        #     import pdb; pdb.set_trace()
+        # self.trainer.strategy.barrier()
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
         x = (x - self.sam.pixel_mean) / self.sam.pixel_std
         image_embeddings, inner_states = self.sam.image_encoder(x)
