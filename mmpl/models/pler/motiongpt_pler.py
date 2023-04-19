@@ -25,6 +25,7 @@ class MotionGPTPLer(BasePLer):
                  temporal_transformer,
                  head,
                  mean_std_info,
+                 min_max_norm=True,
                  block_size=512,
                  max_frames_predict=128,
                  n_prompt_tokens=20,
@@ -42,6 +43,7 @@ class MotionGPTPLer(BasePLer):
         self.mean_std_info = mean_std_info
         self.max_frames_predict = max_frames_predict
         self.n_prompt_tokens = n_prompt_tokens
+        self.min_max_norm = min_max_norm
 
     def setup(self, stage: str) -> None:
         mean_std = mmengine.load(self.mean_std_info)
@@ -88,17 +90,15 @@ class MotionGPTPLer(BasePLer):
 
         losses = self.head.loss(
             x,
-            # normalization_info=dict(
-            #     max_rot_6d_with_position=self.max_rot_6d_with_position,
-            #     min_rot_6d_with_position=self.min_rot_6d_with_position,
-            #     max_diff_root_xz=self.max_diff_root_xz,
-            #     min_diff_root_xz=self.min_diff_root_xz,
-            # ),
             normalization_info=dict(
                 mean_rot_6d_with_position=self.mean_rot_6d_with_position,
                 std_rot_6d_with_position=self.std_rot_6d_with_position,
                 mean_diff_root_xz=self.mean_diff_root_xz,
                 std_diff_root_xz=self.std_diff_root_xz,
+                max_rot_6d_with_position=self.max_rot_6d_with_position,
+                min_rot_6d_with_position=self.min_rot_6d_with_position,
+                max_diff_root_xz=self.max_diff_root_xz,
+                min_diff_root_xz=self.min_diff_root_xz,
             ),
             block_size=self.block_size,
             parents=parents,
@@ -106,6 +106,7 @@ class MotionGPTPLer(BasePLer):
             diff_root_zyx=diff_root_zyx,
             positions_shift=positions_shift,
             rotations_shift=rotations_shift,
+            min_max_norm=self.min_max_norm,
         )
 
         parsed_losses, log_vars = self.parse_losses(losses)
@@ -122,17 +123,19 @@ class MotionGPTPLer(BasePLer):
         return self.training_val_step(batch, batch_idx, prefix='train')
 
     def forward(self, rot_6d_with_position_input, diff_root_zyx_input, *args: Any, **kwargs: Any) -> Any:
-        # min-max normalization
-        # rot_6d_with_position_input = (rot_6d_with_position_input - self.min_rot_6d_with_position) / (
-        #         self.max_rot_6d_with_position - self.min_rot_6d_with_position)
-        # rot_6d_with_position_input = rot_6d_with_position_input * 2 - 1
-        #
-        # diff_root_zyx_input = (diff_root_zyx_input - self.min_diff_root_xz) / (
-        #         self.max_diff_root_xz - self.min_diff_root_xz)
-        # diff_root_zyx_input = diff_root_zyx_input * 2 - 1
 
-        rot_6d_with_position_input = (rot_6d_with_position_input - self.mean_rot_6d_with_position) / self.std_rot_6d_with_position
-        diff_root_zyx_input = (diff_root_zyx_input - self.mean_diff_root_xz) / self.std_diff_root_xz
+        if self.min_max_norm:
+            # min-max normalization
+            rot_6d_with_position_input = (rot_6d_with_position_input - self.min_rot_6d_with_position) / (
+                    self.max_rot_6d_with_position - self.min_rot_6d_with_position)
+            rot_6d_with_position_input = rot_6d_with_position_input * 2 - 1
+
+            diff_root_zyx_input = (diff_root_zyx_input - self.min_diff_root_xz) / (
+                    self.max_diff_root_xz - self.min_diff_root_xz)
+            diff_root_zyx_input = diff_root_zyx_input * 2 - 1
+        else:
+            rot_6d_with_position_input = (rot_6d_with_position_input - self.mean_rot_6d_with_position) / self.std_rot_6d_with_position
+            diff_root_zyx_input = (diff_root_zyx_input - self.mean_diff_root_xz) / self.std_diff_root_xz
 
         x_rot = self.rotation_proj(rot_6d_with_position_input)
         x_pos = self.position_proj(diff_root_zyx_input)
