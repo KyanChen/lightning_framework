@@ -6,13 +6,17 @@ pip install albumentations
 
 cd /mnt/search01/usr/chenkeyan/codes/lightning_framework
 #TORCH_DISTRIBUTED_DEBUG=DETAIL
-if [ $1=='' ]; then
+case $# in
+0)
     python tools/train.py
-elif [ $1!='' ]; then
-    tools/train.py --config $1
-elif [ $2!='' ]; then
-    tools/train.py --config $1 --ckpt-path $2
-fi
+    ;;
+1)
+    python tools/train.py --config $1
+    ;;
+2)
+    python tools/train.py --config $1 --ckpt-path $2
+    ;;
+esac
 # TORCH_DISTRIBUTED_DEBUG=DETAIL
 #python train.py
 #python -m torch.distributed.launch --nproc_per_node=$GPU_NUM --nnodes=$WORLD_SIZE --node_rank=$RANK --master_addr=$MASTER_ADDR --master_port=$MASTER_PORT --use_env train.py
