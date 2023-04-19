@@ -193,6 +193,21 @@ class SegPLer(BasePLer):
                 batch['data_samples'])
 
             losses = self.head.loss(cls_logits, masks, batch_gt_instances, batch_img_metas)
+        else:
+            cls_logits, pred_masks, n_iou_preds = self.forward_sam_prompt_generator_all(
+                batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
+            pred_masks = pred_masks.squeeze(2)
+            seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+            pred_masks = F.interpolate(pred_masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
+            # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
+            seg_logits = self.post_process(cls_logits.clone().detach(), pred_masks.clone().detach())
+            seg_logits = seg_logits > self.threshold
+            self.train_evaluator.update(seg_logits, seg_label)
+
+            batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
+                batch['data_samples'])
+
+            losses = self.head.loss(cls_logits, pred_masks, batch_gt_instances, batch_img_metas)
 
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'train_{k}': v for k, v in log_vars.items()}
@@ -276,7 +291,7 @@ class SegPLer(BasePLer):
         return cls_logits, n_img_masks, n_iou_preds
 
     def forward_sam_prompt_generator_all(self, batch, *args: Any, **kwargs: Any) -> Any:
-        x = batch['inpputs']
+        x = batch['inputs']
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
         x = (x - self.sam.pixel_mean) / self.sam.pixel_std
         image_embeddings, inner_states = self.sam.image_encoder(x)
