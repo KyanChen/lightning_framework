@@ -5,11 +5,11 @@ sub_model = [
     'sam_prompt_generator',
 ]
 
-max_epochs = 400
+max_epochs = 200
 
 optimizer = dict(
     type='AdamW',
-    sub_model=sub_model,
+    # sub_model=sub_model,
     lr=0.0001,
     weight_decay=1e-3
 )
@@ -62,16 +62,15 @@ model_cfg = dict(
     with_clip=False,
     points_per_side=None,
     only_img_encoder=False,
-    only_decoder=True,
+    only_decoder=False,
     global_prompt=None,
     need_train_names=sub_model,
     sam_prompt_generator=dict(
-        type='SAMPromptGenNeck',
-        prompt_shape=(100, 6),
+        type='SAMPromptConvGenNeck',
+        prompt_shape=(100, 5),
         img_feat_channels=1280,
         out_put_channels=256,
-        num_img_feat_level=4,
-        img_feat_size=32,
+        num_img_feat_level=16,
         n_cls=num_classes,
     ),
     head=dict(
@@ -126,15 +125,15 @@ model_cfg = dict(
     )
 )
 
-exp_name = 'E20230418_2'
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='sam_prompt_generator',
-    name=exp_name
-)
+exp_name = 'E20230419_0'
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='sam_prompt_generator',
+#     name=exp_name
+# )
 
-# logger = None
+logger = None
 
 
 callbacks = [
@@ -161,13 +160,13 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
-    default_root_dir=f'results/building/{exp_name}',
-    # default_root_dir='results/tmp',
+    devices=2,
+    # default_root_dir=f'results/building/{exp_name}',
+    default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=5,
+    log_every_n_steps=10,
     check_val_every_n_epoch=1,
     benchmark=True,
     sync_batchnorm=True,
@@ -208,8 +207,8 @@ train_pipeline = [
     #     keep_ratio=True),
     # dict(type='mmseg.RandomCrop', crop_size=crop_size),
     dict(type='mmseg.Resize', scale=crop_size),
-    # dict(type='mmseg.RandomFlip', prob=0.5),
-    # dict(type='mmseg.PhotoMetricDistortion'),
+    dict(type='mmseg.RandomFlip', prob=0.5),
+    dict(type='mmseg.PhotoMetricDistortion'),
     dict(type='mmseg.PackSegInputs')
 ]
 
@@ -223,9 +222,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 2
+train_batch_size_per_gpu = 1
 train_num_workers = 2
-test_batch_size_per_gpu = 2
+test_batch_size_per_gpu = 1
 test_num_workers = 2
 persistent_workers = True
 
@@ -250,7 +249,7 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             phrase='val',
-            load_sam_cache_from=load_sam_cache_from,
+            # load_sam_cache_from=load_sam_cache_from,
             img_suffix='.tif',
             seg_map_suffix='.tif',
             reduce_zero_label=False,
@@ -273,7 +272,7 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             phrase='train',
-            load_sam_cache_from=load_sam_cache_from,
+            # load_sam_cache_from=load_sam_cache_from,
             img_suffix='.tif',
             seg_map_suffix='.tif',
             reduce_zero_label=False,
@@ -287,5 +286,6 @@ datamodule_cfg = dict(
     ),
     val_loader=val_loader,
     # test_loader=val_loader
+    # predict_loader=val_loader
 )
 

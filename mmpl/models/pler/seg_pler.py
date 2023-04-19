@@ -56,7 +56,7 @@ class SegPLer(BasePLer):
                 self.prompt_encoder = sam_model_registry[sam](sam_checkpoint).prompt_encoder
                 self.mask_decoder = sam_model_registry[sam](sam_checkpoint).mask_decoder
             else:
-                raise NotImplementedError
+                self.sam = sam_model_registry[sam](sam_checkpoint)
 
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
@@ -117,6 +117,14 @@ class SegPLer(BasePLer):
             masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
             # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
             seg_logits = self.post_process(cls_logits.detach(), masks.detach())
+            seg_logits = seg_logits > self.threshold
+        else:
+            cls_logits, pred_masks, n_iou_preds = self.forward_sam_prompt_generator_all(
+                batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
+            pred_masks = pred_masks.squeeze(2)
+            pred_masks = F.interpolate(pred_masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
+            # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
+            seg_logits = self.post_process(cls_logits.detach(), pred_masks.detach())
             seg_logits = seg_logits > self.threshold
 
         self.val_evaluator.update(seg_logits, seg_label)
@@ -252,6 +260,60 @@ class SegPLer(BasePLer):
             lr_masks, iou_pred, class_aware_prob = self.mask_decoder(
                 image_embeddings=curr_img_embedding.unsqueeze(0),
                 image_pe=self.prompt_encoder.get_dense_pe(),
+                sparse_prompt_embeddings=cur_s_emb,
+                dense_prompt_embeddings=cur_d_emb
+            )
+            mask_slice = slice(0, 1)
+            masks = lr_masks[:, mask_slice, :, :]
+            iou_pred = iou_pred[:, mask_slice]
+            class_aware_prob = class_aware_prob[:, mask_slice]
+
+            n_img_masks.append(masks)
+            n_iou_preds.append(iou_pred)
+        n_img_masks = torch.stack(n_img_masks, dim=0)
+        n_iou_preds = torch.stack(n_iou_preds, dim=0)
+
+        return cls_logits, n_img_masks, n_iou_preds
+
+    def forward_sam_prompt_generator_all(self, batch, *args: Any, **kwargs: Any) -> Any:
+        x = batch['inpputs']
+        x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
+        x = (x - self.sam.pixel_mean) / self.sam.pixel_std
+        image_embeddings, inner_states = self.sam.image_encoder(x)
+
+        point_embs, cls_logits = self.sam_prompt_generator(inner_states)
+
+        # if has points prompt, then get points embeddings
+        if hasattr(self, 'point_grids'):
+            points_scale = np.array(img.shape[-2:], dtype=np.float32).reshape(1, -1)  # 2,
+            points_for_image = self.point_grids[0] * points_scale
+            in_points = torch.as_tensor(points_for_image, device=img.device)
+            in_labels = torch.ones(in_points.shape[0], dtype=torch.int, device=in_points.device)
+            in_points = rearrange(in_points, 'n c -> n () c')
+            in_labels = rearrange(in_labels, 'n -> n ()')
+            points = (in_points, in_labels)
+
+            sparse_embeddings, dense_embeddings = self.sam.prompt_encoder(
+                points=points,
+                boxes=None,
+                masks=None,
+            )  # 1024x2x256; 1024x256x64x64
+        else:
+            # ponits_embeddings B T N C
+            sparse_embeddings = point_embs
+            dense_embeddings = self.sam.prompt_encoder.no_mask_embed.weight.view(1, 1, -1, 1, 1).expand(
+                sparse_embeddings.shape[0], sparse_embeddings.shape[1], -1,
+                self.sam.prompt_encoder.image_embedding_size[0], self.sam.prompt_encoder.image_embedding_size[1]
+                )
+
+
+        n_img_masks = []
+        n_iou_preds = []
+        n_class_aware_probs = []
+        for curr_img_embedding, cur_s_emb, cur_d_emb in zip(image_embeddings, sparse_embeddings, dense_embeddings):
+            lr_masks, iou_pred, class_aware_prob = self.sam.mask_decoder(
+                image_embeddings=curr_img_embedding.unsqueeze(0),
+                image_pe=self.sam.prompt_encoder.get_dense_pe(),
                 sparse_prompt_embeddings=cur_s_emb,
                 dense_prompt_embeddings=cur_d_emb
             )
