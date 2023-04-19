@@ -292,7 +292,8 @@ class SegPLer(BasePLer):
 
     def forward_sam_prompt_generator_all(self, batch, *args: Any, **kwargs: Any) -> Any:
         x = batch['inputs']
-        import pdb; pdb.set_trace()
+        if self.local_rank == 0:
+            import pdb; pdb.set_trace()
         self.trainer.strategy.barrier()
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
         x = (x - self.sam.pixel_mean) / self.sam.pixel_std
