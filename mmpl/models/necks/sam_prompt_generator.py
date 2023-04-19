@@ -167,7 +167,7 @@ class SAMPromptConvNeck(nn.Module):
             nn.Conv2d(out_put_channels * 4, out_put_channels * 2, 3, padding=1),
         )
 
-        self.img_feats_pe = nn.Parameter(torch.zeros(1, out_put_channels, self.point_size, self.point_size))
+        self.img_feats_pe = nn.Parameter(torch.zeros(1, out_put_channels*2, self.point_size, self.point_size))
 
         self.cls_head = nn.Sequential(
             nn.Linear(out_put_channels * 2, out_put_channels),
