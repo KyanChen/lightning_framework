@@ -318,13 +318,14 @@ class SegPLer(BasePLer):
         if self.local_rank == 0:
             import ipdb;
             ipdb.set_trace()
-        self.trainer.strategy.barrier()
+
         x = torch.stack(batch['inputs'], dim=0)
         # if self.local_rank == 0:
         #     import pdb; pdb.set_trace()
         # self.trainer.strategy.barrier()
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
         x = (x - self.sam.pixel_mean) / self.sam.pixel_std
+        self.trainer.strategy.barrier()
         with torch.no_grad():
             image_embeddings, inner_states = self.sam.image_encoder(x)
 
