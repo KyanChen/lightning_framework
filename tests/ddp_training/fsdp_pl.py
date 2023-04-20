@@ -29,11 +29,11 @@ class MyModel(pl.LightningModule):
         super().__init__()
         self.res = torchvision.models.resnet50()
         # self.sam = sam_model_registry['default']().eval().requires_grad_(False)
-        self.img_encoder = sam_model_registry['default']().image_encoder.eval().requires_grad_(False)
+        # self.img_encoder = sam_model_registry['default']().image_encoder.eval().requires_grad_(False)
 
     def configure_sharded_model(self):
         self.res = wrap(self.res)
-        self.img_encoder = wrap(self.img_encoder)
+        # self.img_encoder = wrap(self.img_encoder)
 
     def configure_optimizers(self):
         params = filter(lambda p: p.requires_grad, self.parameters())
@@ -46,17 +46,17 @@ class MyModel(pl.LightningModule):
 
         x = torch.rand(8, 3, 1024, 1024).cuda()
         # self.trainer.strategy.barrier()
-        # y = self.model(x)
-        x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
-        x = x.contiguous()
-        x = (x - self.img_encoder.pixel_mean) / self.img_encoder.pixel_std
-        image_embeddings, inner_states = self.img_encoder(x)
-        y = image_embeddings
+        y = self.res(x)
+        # x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
+        # x = x.contiguous()
+        # x = (x - self.img_encoder.pixel_mean) / self.img_encoder.pixel_std
+        # image_embeddings, inner_states = self.img_encoder(x)
+        # y = image_embeddings
         y = y.sum()
         return y
 
 train_dataloaders = torch.utils.data.DataLoader(torch.rand(1, 3, 1024, 1024), batch_size=1)
 
 model = MyModel()
-trainer = Trainer(accelerator='auto', devices=2, strategy="fsdp", precision=32, max_epochs=100)
+trainer = Trainer(accelerator='auto', devices=[2], strategy="fsdp", precision=32, max_epochs=100)
 trainer.fit(model, train_dataloaders=train_dataloaders)

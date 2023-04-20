@@ -56,7 +56,7 @@ class SegPLer(BasePLer):
                 self.prompt_encoder = sam_model_registry[sam](sam_checkpoint).prompt_encoder
                 self.mask_decoder = sam_model_registry[sam](sam_checkpoint).mask_decoder
             else:
-                self.sam = sam_model_registry[sam](sam_checkpoint)
+                sam = sam_model_registry[sam](sam_checkpoint)
 
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
