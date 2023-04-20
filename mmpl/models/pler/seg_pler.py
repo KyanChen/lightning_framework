@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from einops import rearrange
+from lightning.pytorch.utilities import grad_norm
 from mmengine.structures import InstanceData
 
 from mmpl.registry import MODELS
@@ -127,6 +128,13 @@ class SegPLer(BasePLer):
     #         return [optimizer], [lr_scheduler]
     #     else:
     #         return super().configure_optimizers()
+
+
+    def on_before_optimizer_step(self, optimizer):
+        # Compute the 2-norm for each layer
+        # If using mixed precision, the gradients are already unscaled here
+        norms = grad_norm(self.sam_prompt_generator, norm_type=2)
+        self.log_dict(norms)
 
     def init_weights(self):
         import ipdb; ipdb.set_trace()
