@@ -1,6 +1,7 @@
 import torch
 import torchvision
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, CPUOffload
+from torch.distributed.fsdp.wrap import wrap, size_based_auto_wrap_policy
 import os
 import argparse
 import torch
@@ -66,11 +67,18 @@ def fsdp_main(args):
     # torch.cuda.set_device(local_rank)
 
     # model is on CPU before input to FSDP
-    cpu_offload = CPUOffload
-    cpu_offload.offload_params = True
+    # cpu_offload = CPUOffload
+    # cpu_offload.offload_params = True
+
+    my_auto_wrap_policy = functools.partial(
+        size_based_auto_wrap_policy, min_num_params=1000
+    )
+    cpu_offload = CPUOffload(offload_params=True)
+
     model = FSDP(
         model,
         cpu_offload=cpu_offload,
+        auto_wrap_policy=my_auto_wrap_policy,
         # auto_wrap_policy=t5_auto_wrap_policy,
         # mixed_precision=mp_policy,
         #sharding_strategy=sharding_strategy,
