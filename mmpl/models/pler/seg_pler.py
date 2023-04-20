@@ -110,8 +110,8 @@ class SegPLer(BasePLer):
             self.val_evaluator = self.val_evaluator
         pass
 
-    def on_fit_start(self) -> None:
-        import ipdb; ipdb.set_trace()
+    # def on_fit_start(self) -> None:
+    #     import ipdb; ipdb.set_trace()
 
     def train(self, mode=True):
         if self.need_train_names is not None:

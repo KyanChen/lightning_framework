@@ -374,6 +374,8 @@ class DiceCost(BaseMatchCost):
                 gt_masks.pow(2).sum(1)[None, :]
         loss = 1 - (numerator + self.eps) / (denominator + self.eps)
         if torch.isinf(loss).any() or torch.isnan(loss).any():
+            import ipdb;
+            ipdb.set_trace()
             raise ValueError('NaN is detected in dice loss.')
         return loss
 
@@ -446,6 +448,7 @@ class CrossEntropyLossCost(BaseMatchCost):
             torch.einsum('nc,mc->nm', neg, 1 - gt_labels)
         cls_cost = cls_cost / n
         if torch.isinf(cls_cost).any() or torch.isnan(cls_cost).any():
+            import ipdb;ipdb.set_trace()
             raise ValueError('cost is nan in CrossEntropyLossCost')
         return cls_cost
 
