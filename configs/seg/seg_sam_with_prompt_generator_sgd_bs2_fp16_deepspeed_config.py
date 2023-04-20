@@ -198,13 +198,13 @@ deepspeed_config = {
         "reduce_bucket_size": 2e8,  # Number of elements we reduce/allreduce at once.
     },
 }
-
-strategy = dict(
-    type='DeepSpeedStrategy',
-    stage=3,
-    offload_optimizer=True,
-    offload_parameters=True,
-)
+#
+# strategy = dict(
+#     type='DeepSpeedStrategy',
+#     stage=3,
+#     offload_optimizer=True,
+#     offload_parameters=True,
+# )
 
 # strategy = dict(
 #     type='DeepSpeedStrategy',
