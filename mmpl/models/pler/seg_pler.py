@@ -91,10 +91,10 @@ class SegPLer(BasePLer):
         if self.need_train_names is not None:
             self._set_grad(self.need_train_names, [])
 
-    def configure_sharded_model(self) -> None:
-        import ipdb; ipdb.set_trace()
-        from torch.distributed.fsdp.wrap import wrap
-        self.sam_prompt_generator = wrap(self.sam_prompt_generator)
+    # def configure_sharded_model(self) -> None:
+    #     import ipdb; ipdb.set_trace()
+    #     from torch.distributed.fsdp.wrap import wrap
+    #     self.sam_prompt_generator = wrap(self.sam_prompt_generator)
 
     def init_weights(self):
         import ipdb; ipdb.set_trace()
