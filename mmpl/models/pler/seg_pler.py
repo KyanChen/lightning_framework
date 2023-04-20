@@ -134,10 +134,6 @@ class SegPLer(BasePLer):
             seg_logits = self.post_process(cls_logits.detach(), masks.detach())
             seg_logits = seg_logits > self.threshold
         else:
-            if self.local_rank == 0:
-                import ipdb;
-                ipdb.set_trace()
-            self.trainer.strategy.barrier()
             cls_logits, pred_masks, n_iou_preds = self.forward_sam_prompt_generator_all(
                 batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
             pred_masks = pred_masks.squeeze(2)
@@ -319,6 +315,10 @@ class SegPLer(BasePLer):
         return cls_logits, n_img_masks, n_iou_preds
 
     def forward_sam_prompt_generator_all(self, batch, *args: Any, **kwargs: Any) -> Any:
+        if self.local_rank == 0:
+            import ipdb;
+            ipdb.set_trace()
+        self.trainer.strategy.barrier()
         x = torch.stack(batch['inputs'], dim=0)
         # if self.local_rank == 0:
         #     import pdb; pdb.set_trace()

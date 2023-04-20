@@ -25,22 +25,11 @@ class MyModel(pl.LightningModule):
         super().__init__()
         self.model = torchvision.models.resnet50()
 
-    # def configure_sharded_model(self):
-    #     # modules are sharded across processes
-    #     # as soon as they are wrapped with `wrap`.
-    #     # During the forward/backward passes, weights get synced across processes
-    #     # and de-allocated once computation is complete, saving memory.
-    #
-    #     # Wraps the layer in a Fully Sharded Wrapper automatically
-    #     linear_layer = wrap(self.linear_layer)
-    #
-    #     for i, layer in enumerate(self.block):
-    #         self.block[i] = wrap(layer)
-    #
-    #     self.model = nn.Sequential(linear_layer, nn.ReLU(), self.block)
+    def configure_sharded_model(self):
+        self.model = wrap(self.model)
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.trainer.model.parameters(), lr=1e-3)
+        return torch.optim.AdamW(self.parameters(), lr=1e-3)
 
     def training_step(self, *args, **kwargs):
         x = torch.rand(1, 3, 1024, 1024).cuda()
