@@ -88,14 +88,15 @@ class SegPLer(BasePLer):
                 )
 
     def setup(self, stage: str) -> None:
-        pass
-        # if self.need_train_names is not None:
-        #     self._set_grad(self.need_train_names, [])
+        if self.need_train_names is not None:
+            self._set_grad(self.need_train_names, [])
 
-    # def configure_sharded_model(self) -> None:
-    #     import ipdb; ipdb.set_trace()
-    #     from torch.distributed.fsdp.wrap import wrap
-    #     self.sam_prompt_generator = wrap(self.sam_prompt_generator)
+    def configure_sharded_model(self) -> None:
+        import ipdb; ipdb.set_trace()
+        from torch.distributed.fsdp.wrap import wrap
+        self.sam_prompt_generator = wrap(self.sam_prompt_generator)
+        self.sam = wrap(self.sam)
+        self.head = wrap(self.head)
 
     def init_weights(self):
         import ipdb; ipdb.set_trace()
@@ -109,17 +110,6 @@ class SegPLer(BasePLer):
             for name, module in self.named_children():
                 module.train(mode)
             return self
-    def on_train_start(self) -> None:
-        import ipdb;
-        ipdb.set_trace()
-        if self.need_train_names is not None:
-            self._set_grad(self.need_train_names, [])
-
-    def on_fit_start(self) -> None:
-        import ipdb;
-        ipdb.set_trace()
-        if self.need_train_names is not None:
-            self._set_grad(self.need_train_names, [])
 
     def validation_step(self, batch, batch_idx):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
