@@ -1,5 +1,6 @@
 import torch
 import torchvision
+from lightning.pytorch.strategies import FSDPStrategy
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 import os
 import argparse
@@ -58,7 +59,8 @@ class MyModel(pl.LightningModule):
 train_dataloaders = torch.utils.data.DataLoader(torch.rand(1, 3, 1024, 1024), batch_size=1)
 
 model = MyModel()
-trainer = Trainer(accelerator='auto', devices=[2], strategy="auto", precision=32, max_epochs=100)
+strategy = FSDPStrategy(cpu_offload=True)
+trainer = Trainer(accelerator='auto', devices=[2], strategy=strategy, precision=32, max_epochs=100)
 trainer.fit(model, train_dataloaders=train_dataloaders)
 # 单卡18G，使用
-#
+# 18042MiB
