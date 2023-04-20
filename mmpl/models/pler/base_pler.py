@@ -85,7 +85,7 @@ class BasePLer(pl.LightningModule, BaseModel):
         base_lr = optimizer_cfg.get('lr')
         base_wd = optimizer_cfg.get('weight_decay', None)
 
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         sub_models = optimizer_cfg.pop('sub_model', None)
         if sub_models is None:
             optimizer_cfg['params'] = self.trainer.model.parameters()
