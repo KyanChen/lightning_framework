@@ -135,14 +135,14 @@ model_cfg = dict(
 )
 
 exp_name = 'E20230420_1'
-# logger = dict(
-#     type='WandbLogger',
-#     project='building',
-#     group='sam_prompt_generator',
-#     name=exp_name
-# )
+logger = dict(
+    type='WandbLogger',
+    project='building',
+    group='sam_prompt_generator',
+    name=exp_name
+)
 
-logger = None
+# logger = None
 
 
 callbacks = [
