@@ -39,6 +39,7 @@ class BasePLer(pl.LightningModule, BaseModel):
                         metric = METRICS.build(metric_cfg)
                         metrics.append(metric)
                 setattr(self, k, MetricCollection(metrics, prefix=k.split('_')[0]))
+        import ipdb; ipdb.set_trace()
 
     def _set_grad(self, need_train_names: list=[], noneed_train_names: list=[]):
         for name, param in self.named_parameters():
