@@ -178,16 +178,16 @@ callbacks = [
     )
 ]
 
-# strategy = dict(
-#     type='FSDPStrategy',
-#     # cpu_offload=True,
-# )
+strategy = dict(
+    type='FSDPStrategy',
+    # cpu_offload=True,
+)
 
 trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
-    # strategy=strategy,
-    strategy="fsdp",
+    strategy=strategy,
+    # strategy="fsdp",
     # strategy='deepspeed_stage_2_offload',
     # strategy='ddp_find_unused_parameters_true',
     precision='32',
