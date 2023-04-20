@@ -45,6 +45,7 @@ class MyModel(pl.LightningModule):
     def training_step(self, *args, **kwargs):
         x = torch.rand(1, 3, 1024, 1024).cuda()
         y = self.model(x)
+        y = y.sum()
         return y
 
 train_dataloaders = torch.utils.data.DataLoader(torch.rand(1, 3, 1024, 1024), batch_size=1)
