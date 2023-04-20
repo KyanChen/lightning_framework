@@ -115,8 +115,6 @@ class HungarianAssigner(BaseAssigner):
 
         # 2. compute weighted cost
         cost_list = []
-        import ipdb
-        ipdb.set_trace()
         for match_cost in self.match_costs:
             cost = match_cost(
                 pred_instances=pred_instances,
