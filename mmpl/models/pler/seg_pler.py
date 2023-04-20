@@ -105,6 +105,7 @@ class SegPLer(BasePLer):
         pass
 
     def train(self, mode=True):
+        import ipdb; ipdb.set_trace()
         if self.need_train_names is not None:
             return self._set_train_module(mode)
         else:
