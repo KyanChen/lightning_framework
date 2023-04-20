@@ -41,8 +41,7 @@ class BasePLer(pl.LightningModule, BaseModel):
                 setattr(self, k, MetricCollection(metrics, prefix=k.split('_')[0]))
 
     def _set_grad(self, need_train_names: list=[], noneed_train_names: list=[]):
-        import ipdb;ipdb.set_trace()
-        for name, param in self.trainer.model.named_parameters():
+        for name, param in self.named_parameters():
             flag = False
             for need_train_name in need_train_names:
                 if need_train_name in name:
@@ -53,7 +52,7 @@ class BasePLer(pl.LightningModule, BaseModel):
             param.requires_grad_(flag)
 
         not_specific_names = []
-        for name, param in self.trainer.model.named_parameters():
+        for name, param in self.named_parameters():
             flag_find = False
             for specific_name in need_train_names + noneed_train_names:
                 if specific_name in name:
