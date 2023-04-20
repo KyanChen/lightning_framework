@@ -78,7 +78,7 @@ model_cfg = dict(
         prompt_shape=(100, 5),
         img_feat_channels=1280,
         out_put_channels=256,
-        num_img_feat_level=16,
+        num_img_feat_level=8,
         n_cls=num_classes,
     ),
     head=dict(
