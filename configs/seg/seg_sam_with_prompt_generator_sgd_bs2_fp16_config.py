@@ -57,9 +57,12 @@ evaluator = dict(
     val_evaluator=evaluator_,
 )
 
+exp_name = 'E20230420_1'
 num_classes = 2
+
 model_cfg = dict(
     type='SegPLer',
+    exp_name=exp_name,
     hyperparameters=dict(
         optimizer=optimizer,
         param_scheduler=param_scheduler,
@@ -133,7 +136,6 @@ model_cfg = dict(
     )
 )
 
-exp_name = 'E20230420_1'
 # logger = dict(
 #     type='WandbLogger',
 #     project='building',
@@ -170,7 +172,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     precision='16-mixed',
-    devices=4,
+    devices=2,
     default_root_dir=f'results/building/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
