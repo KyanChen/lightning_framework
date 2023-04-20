@@ -89,7 +89,7 @@ class SegPLer(BasePLer):
 
     def setup(self, stage: str) -> None:
         if self.need_train_names is not None:
-            self._set_grad(self.need_train_names, [])
+            self._set_grad(self.need_train_names, noneed_train_names=[])
 
     def configure_sharded_model(self) -> None:
         if self.trainer.strategy.__class__.__name__ == 'FSDPStrategy':
