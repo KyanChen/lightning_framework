@@ -1,10 +1,10 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_imports=False)
 # train max_num_instance=140
 # test max_num_instance=96
-# sub_model = [
-#     'sam_prompt_generator',
-# ]
-sub_model = {
+train_sub_model = [
+    'sam_prompt_generator',
+]
+optimized_sub_model = {
     'sam_prompt_generator': {'lr_mult': 1},
     'sam': {'lr_mult': 0},
     'head': {'lr_mult': 0}
@@ -14,7 +14,7 @@ max_epochs = 300
 
 optimizer = dict(
     type='SGD',
-    sub_model=sub_model,
+    sub_model=optimized_sub_model,
     lr=0.005,
     momentum=0.937,
     weight_decay=0.0005,
@@ -90,7 +90,7 @@ model_cfg = dict(
     only_img_encoder=False,
     only_decoder=False,
     global_prompt=None,
-    need_train_names=sub_model,
+    need_train_names=train_sub_model,
     sam_prompt_generator=dict(
         type='SAMPromptConvNeck',
         prompt_shape=(100, 5),
