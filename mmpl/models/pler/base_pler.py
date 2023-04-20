@@ -129,6 +129,11 @@ class BasePLer(pl.LightningModule, BaseModel):
                 print()
 
             optimizer_cfg['params'] = [value for key, value in sub_models.items()]
+        if self.local_rank == 0:
+            print('Needed train params:')
+            param_shape = [x['params'].shape for x in optimizer_cfg['params']]
+            param_lr = [x['lr'] for x in optimizer_cfg['params']]
+            print(f'{param_shape}, {param_lr}')
 
         optimizer = OPTIMIZERS.build(optimizer_cfg)
 
