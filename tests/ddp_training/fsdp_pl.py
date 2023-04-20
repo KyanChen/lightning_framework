@@ -32,12 +32,12 @@ class MyModel(pl.LightningModule):
         # self.sam = sam_model_registry['default']().eval().requires_grad_(False)
         # self.img_encoder = sam_model_registry['default']().image_encoder.eval().requires_grad_(False)
 
-    def configure_sharded_model(self):
-        self.res = wrap(self.res)
+    # def configure_sharded_model(self):
+    #     self.res = wrap(self.res)
         # self.img_encoder = wrap(self.img_encoder)
 
     def configure_optimizers(self):
-        params = filter(lambda p: p.requires_grad, self.parameters())
+        params = filter(lambda p: p.requires_grad, self.trainer.model.parameters())
         return torch.optim.AdamW(params, lr=1e-3)
 
     def training_step(self, *args, **kwargs):
