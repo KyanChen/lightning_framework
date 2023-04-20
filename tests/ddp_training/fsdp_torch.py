@@ -56,7 +56,7 @@ def cleanup():
 
 def fsdp_main(args):
 
-    model = torchvision.models.resnet50()
+    model = torchvision.models.resnet152()
     local_rank = int(os.environ['LOCAL_RANK'])
     rank = int(os.environ['RANK'])
     world_size = int(os.environ['WORLD_SIZE'])
@@ -71,7 +71,7 @@ def fsdp_main(args):
     # cpu_offload.offload_params = True
 
     my_auto_wrap_policy = functools.partial(
-        size_based_auto_wrap_policy, min_num_params=1000
+        size_based_auto_wrap_policy, min_num_params=100
     )
     cpu_offload = CPUOffload(offload_params=True)
 
@@ -93,7 +93,7 @@ def fsdp_main(args):
         model.train()
         local_rank = int(os.environ['LOCAL_RANK'])
         optimizer.zero_grad()
-        x = torch.rand(16, 3, 1024, 1024).to(device)
+        x = torch.rand(4, 3, 1024, 1024).to(device)
         output = model(x)
         loss = torch.sum(output)
         loss.backward()
