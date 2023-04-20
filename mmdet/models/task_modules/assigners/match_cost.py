@@ -360,7 +360,6 @@ class DiceCost(BaseMatchCost):
         mask_preds = mask_preds.flatten(1)
         gt_masks = gt_masks.flatten(1).float()
         numerator = 2 * torch.einsum('nc,mc->nm', mask_preds, gt_masks)
-        import ipdb; ipdb.set_trace()
         if self.naive_dice:
             denominator = mask_preds.sum(-1)[:, None] + \
                 gt_masks.sum(-1)[None, :]
