@@ -49,8 +49,8 @@ class MyModel(pl.LightningModule):
         # y = self.model(x)
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
         x = x.contiguous()
-        x = (x - self.image_encoder.pixel_mean) / self.image_encoder.pixel_std
-        image_embeddings, inner_states = self.image_encoder(x)
+        x = (x - self.img_encoder.pixel_mean) / self.img_encoder.pixel_std
+        image_embeddings, inner_states = self.img_encoder(x)
         y = image_embeddings
         y = y.sum()
         return y
