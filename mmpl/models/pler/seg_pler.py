@@ -88,8 +88,9 @@ class SegPLer(BasePLer):
                 )
 
     def setup(self, stage: str) -> None:
-        if self.need_train_names is not None:
-            self._set_grad(self.need_train_names, [])
+        pass
+        # if self.need_train_names is not None:
+        #     self._set_grad(self.need_train_names, [])
 
     # def configure_sharded_model(self) -> None:
     #     import ipdb; ipdb.set_trace()
@@ -108,9 +109,15 @@ class SegPLer(BasePLer):
             for name, module in self.named_children():
                 module.train(mode)
             return self
+    def on_train_start(self) -> None:
+        import ipdb;
+        ipdb.set_trace()
+        if self.need_train_names is not None:
+            self._set_grad(self.need_train_names, [])
 
-    def on_train_epoch_start(self) -> None:
-        import ipdb; ipdb.set_trace()
+    def on_fit_start(self) -> None:
+        import ipdb;
+        ipdb.set_trace()
         if self.need_train_names is not None:
             self._set_grad(self.need_train_names, [])
 
