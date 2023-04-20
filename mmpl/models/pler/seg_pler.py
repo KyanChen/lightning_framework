@@ -117,6 +117,13 @@ class SegPLer(BasePLer):
         else:
             super().configure_sharded_model()
 
+    # def configure_optimizers(self):
+    #     if self.trainer.strategy.__class__.__name__ == 'DeepSpeedStrategy':
+    #     if self.need_train_names is not None:
+    #         return self._get_optimizer(self.need_train_names)
+    #     else:
+    #         return super().configure_optimizers()
+
     def init_weights(self):
         import ipdb; ipdb.set_trace()
         pass
