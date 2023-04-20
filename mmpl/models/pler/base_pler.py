@@ -91,10 +91,10 @@ class BasePLer(pl.LightningModule, BaseModel):
         if sub_models is None:
             # optimizer_cfg['params'] = filter(lambda p: p.requires_grad, self.trainer.model.parameters())
             optimizer_cfg['params'] = self.trainer.model.parameters()
-            # if self.local_rank == 0:
-            #     print('Needed train params:')
-            #     param_shape = [x.shape for x in optimizer_cfg['params']]
-            #     print(param_shape)
+            if self.local_rank == 0:
+                print('Needed train params:')
+                param_shape = [x.shape for x in copy.deepcopy(optimizer_cfg['params'])]
+                print(param_shape)
         else:
             if isinstance(sub_models, str):
                 sub_models = {sub_models: {}}
