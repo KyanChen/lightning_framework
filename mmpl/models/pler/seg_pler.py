@@ -134,7 +134,7 @@ class SegPLer(BasePLer):
         # Compute the 2-norm for each layer
         # If using mixed precision, the gradients are already unscaled here
         norms = grad_norm(self.sam_prompt_generator, norm_type=2)
-        self.log_dict(norms)
+        self.log_dict(norms, prog_bar=True)
 
     def init_weights(self):
         import ipdb; ipdb.set_trace()
