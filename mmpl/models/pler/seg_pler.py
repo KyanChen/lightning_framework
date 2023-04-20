@@ -96,7 +96,7 @@ class SegPLer(BasePLer):
             from torch.distributed.fsdp.wrap import wrap
             self.sam_prompt_generator = wrap(self.sam_prompt_generator)
             self.sam = wrap(self.sam)
-            self.
+            # self.
             # self.head = wrap(self.head)
             # # self.head = wrap(self.head)
         else:
