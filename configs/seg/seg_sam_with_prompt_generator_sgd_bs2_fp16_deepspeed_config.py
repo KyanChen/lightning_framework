@@ -152,7 +152,7 @@ exp_name = 'E20230420_2'
 logger = None
 
 callbacks = [
-    param_scheduler_callback,
+    # param_scheduler_callback,
     dict(
         type='ModelCheckpoint',
         dirpath=f'results/building/{exp_name}/checkpoints',
