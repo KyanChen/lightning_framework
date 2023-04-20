@@ -32,7 +32,12 @@ class MyModel(pl.LightningModule):
         return torch.optim.AdamW(self.parameters(), lr=1e-3)
 
     def training_step(self, *args, **kwargs):
+        if self.local_rank == 0:
+            import ipdb;
+            ipdb.set_trace()
+
         x = torch.rand(1, 3, 1024, 1024).cuda()
+        self.trainer.strategy.barrier()
         y = self.model(x)
         y = y.sum()
         return y
