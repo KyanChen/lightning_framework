@@ -71,8 +71,8 @@ def fsdp_main(args):
         # auto_wrap_policy=t5_auto_wrap_policy,
         # mixed_precision=mp_policy,
         #sharding_strategy=sharding_strategy,
-        # device_id=torch.cuda.current_device()
-        ).to(device)
+        device_id=torch.cuda.current_device()
+        )
 
     optimizer = optim.AdamW(model.parameters(), lr=0.0001)
 
