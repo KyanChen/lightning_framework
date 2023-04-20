@@ -1,15 +1,20 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_imports=False)
 # train max_num_instance=140
 # test max_num_instance=96
-sub_model = [
-    'sam_prompt_generator',
-]
+# sub_model = [
+#     'sam_prompt_generator',
+# ]
+sub_model = {
+    'sam_prompt_generator': {'lr_mult': 1},
+    'sam': {'lr_mult': 0},
+    'head': {'lr_mult': 0}
+}
 
 max_epochs = 300
 
 optimizer = dict(
     type='SGD',
-    # sub_model=sub_model,
+    sub_model=sub_model,
     lr=0.005,
     momentum=0.937,
     weight_decay=0.0005,

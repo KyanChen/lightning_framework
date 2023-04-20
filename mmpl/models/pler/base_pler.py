@@ -95,6 +95,7 @@ class BasePLer(pl.LightningModule, BaseModel):
                 sub_models = {sub_models: {}}
             if isinstance(sub_models, list):
                 sub_models = {x: {} for x in sub_models}
+            assert isinstance(sub_models, dict), f'sub_models should be a dict, but got {type(sub_models)}'
             # import ipdb; ipdb.set_trace()
             # set training parameters and lr
             for sub_model_name, value in sub_models.items():
