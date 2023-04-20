@@ -359,9 +359,10 @@ class DiceCost(BaseMatchCost):
         """
         mask_preds = mask_preds.flatten(1).float()
         gt_masks = gt_masks.flatten(1).float()
-        import ipdb; ipdb.set_trace()
         numerator = 2 * torch.einsum('nc,mc->nm', mask_preds, gt_masks)
         if torch.isinf(numerator).any():
+            import ipdb;
+            ipdb.set_trace()
             raise ValueError('NaN is detected in numerator loss.')
         if self.naive_dice:
             denominator = mask_preds.sum(-1)[:, None] + \
