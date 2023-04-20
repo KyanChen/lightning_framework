@@ -13,7 +13,7 @@ import os.path as osp
 from mmpl.registry import RUNNERS
 from mmpl.utils import register_all_modules
 
-torch.set_float32_matmul_precision('high')
+# torch.set_float32_matmul_precision('high')
 register_all_modules()
 
 def parse_args():
