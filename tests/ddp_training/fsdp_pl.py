@@ -20,25 +20,34 @@ import lightning.pytorch as pl
 from lightning.pytorch import Trainer
 from torch.distributed.fsdp.wrap import wrap
 
+from module.segment_anything import sam_model_registry
+
+
 class MyModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
         self.model = torchvision.models.resnet50()
+        self.sam = sam_model_registry['default']()
 
     def configure_sharded_model(self):
         self.model = wrap(self.model)
+        self.sam = wrap(self.sam)
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=1e-3)
 
     def training_step(self, *args, **kwargs):
-        if self.local_rank == 0:
-            import ipdb;
-            ipdb.set_trace()
+        # if self.local_rank == 0:
+        #     import ipdb;
+        #     ipdb.set_trace()
 
-        x = torch.rand(1, 3, 1024, 1024).cuda()
-        self.trainer.strategy.barrier()
-        y = self.model(x)
+        x = torch.rand(8, 3, 1024, 1024).cuda()
+        # self.trainer.strategy.barrier()
+        # y = self.model(x)
+        x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
+        x = (x - self.sam.pixel_mean) / self.sam.pixel_std
+        image_embeddings, inner_states = self.sam.image_encoder(x)
+        y = image_embeddings
         y = y.sum()
         return y
 
