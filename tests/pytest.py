@@ -77,6 +77,7 @@ def fsdp_main(args):
 
 
     for epoch in range(100):
+        print(f"Epoch {epoch}")
         model.train()
         local_rank = int(os.environ['LOCAL_RANK'])
         optimizer.zero_grad()
