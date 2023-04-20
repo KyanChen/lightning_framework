@@ -14,7 +14,7 @@ from torch.optim.lr_scheduler import StepLR
 import torch.nn.functional as F
 import torch.distributed as dist
 import sys
-sys.path.insert(0, '../../')
+sys.path.append(sys.path[0] + '/../..')
 import torch
 import torch.nn as nn
 import lightning.pytorch as pl
