@@ -113,3 +113,4 @@ if __name__ == '__main__':
 
 # torchrun --nnodes 1 --nproc_per_node 4  pytest.py
 # 18226MiB
+# 18650MiB
