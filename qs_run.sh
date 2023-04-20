@@ -2,6 +2,7 @@
 source ~/.bashrc
 conda activate torch1mmcv2  # torch1mmcv1 torch1mmcv2 torch2mmcv1 torch2mmcv2
 pip install albumentations
+pip install deepspeed
 # pip install anypackage
 
 cd /mnt/search01/usr/chenkeyan/codes/lightning_framework
