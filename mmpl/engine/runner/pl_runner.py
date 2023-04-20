@@ -174,6 +174,18 @@ class PLRunner:
         if isinstance(strategy, str):
             return strategy
         elif isinstance(strategy, dict):
+            if strategy.get('type', '') == 'FSDPStrategy':
+                from torch.distributed.fsdp import CPUOffload
+                from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
+                import functools
+                strategy.update(
+                    dict(
+                        cpu_offload=CPUOffload(offload_params=True),
+                        auto_wrap_policy=functools.partial(
+                            size_based_auto_wrap_policy, min_num_params=int(1e8)
+                        )
+                    )
+                )
             strategy = MODEL_WRAPPERS.build(strategy)
             return strategy
         return strategy

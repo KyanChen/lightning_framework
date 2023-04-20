@@ -103,6 +103,17 @@ class SegPLer(BasePLer):
             self.prompt_encoder_no_mask_embed = wrap(self.prompt_encoder_no_mask_embed)
             self.mask_decoder = wrap(self.mask_decoder)
             self.prompt_encoder = wrap(self.prompt_encoder)
+            from torch.distributed.fsdp import CPUOffload
+            # from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
+            # import functools
+            # strategy = dict(
+            #     type='FSDPStrategy',
+            #     cpu_offload=CPUOffload(offload_params=True),
+            #     auto_wrap_policy=functools.partial(
+            #         size_based_auto_wrap_policy, min_num_params=int(1e8)
+            #     )
+            #
+            # )
         else:
             super().configure_sharded_model()
 
