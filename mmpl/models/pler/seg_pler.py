@@ -117,12 +117,13 @@ class SegPLer(BasePLer):
         else:
             super().configure_sharded_model()
 
-    # def configure_optimizers(self):
-    #     if self.trainer.strategy.__class__.__name__ == 'DeepSpeedStrategy':
-    #     if self.need_train_names is not None:
-    #         return self._get_optimizer(self.need_train_names)
-    #     else:
-    #         return super().configure_optimizers()
+    def configure_optimizers(self):
+        if self.trainer.strategy.__class__.__name__ == 'DeepSpeedStrategy':
+            optimizer = torch.optim.Adam(self.sam_prompt_generator.parameters(), lr=1e-4)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
+            return optimizer, lr_scheduler
+        else:
+            return super().configure_optimizers()
 
     def init_weights(self):
         import ipdb; ipdb.set_trace()
