@@ -28,11 +28,12 @@ class MyModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
         self.res = torchvision.models.resnet50()
-        self.sam = sam_model_registry['default']().eval().requires_grad_(False)
+        # self.sam = sam_model_registry['default']().eval().requires_grad_(False)
+        self.img_encoder = sam_model_registry['default']().image_encoder.eval().requires_grad_(False)
 
     def configure_sharded_model(self):
         self.res = wrap(self.res)
-        self.sam = wrap(self.sam)
+        self.img_encoder = wrap(self.img_encoder)
 
     def configure_optimizers(self):
         params = filter(lambda p: p.requires_grad, self.parameters())
@@ -48,8 +49,8 @@ class MyModel(pl.LightningModule):
         # y = self.model(x)
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
         x = x.contiguous()
-        x = (x - self.sam.pixel_mean) / self.sam.pixel_std
-        image_embeddings, inner_states = self.sam.image_encoder(x)
+        x = (x - self.image_encoder.pixel_mean) / self.image_encoder.pixel_std
+        image_embeddings, inner_states = self.image_encoder(x)
         y = image_embeddings
         y = y.sum()
         return y
