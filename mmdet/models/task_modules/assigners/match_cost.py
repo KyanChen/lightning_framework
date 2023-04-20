@@ -360,12 +360,16 @@ class DiceCost(BaseMatchCost):
         mask_preds = mask_preds.flatten(1).float()
         gt_masks = gt_masks.flatten(1).float()
         numerator = 2 * torch.einsum('nc,mc->nm', mask_preds, gt_masks)
+        if torch.isinf(numerator).any():
+            raise ValueError('NaN is detected in numerator loss.')
         if self.naive_dice:
             denominator = mask_preds.sum(-1)[:, None] + \
                 gt_masks.sum(-1)[None, :]
         else:
             denominator = mask_preds.pow(2).sum(1)[:, None] + \
                 gt_masks.pow(2).sum(1)[None, :]
+        if torch.isinf(numerator).any():
+            raise ValueError('NaN is detected in numerator loss.')
         loss = 1 - (numerator + self.eps) / (denominator + self.eps)
         if torch.isinf(loss).any():
             raise ValueError('NaN is detected in dice loss.')
