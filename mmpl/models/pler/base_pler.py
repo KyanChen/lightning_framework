@@ -125,8 +125,7 @@ class BasePLer(pl.LightningModule, BaseModel):
                 print()
                 print('Needed train models:')
                 for name, value in sub_models.items():
-                    param_shape = [x.shape for x in value['params']]
-                    print(f'{name}: {param_shape}', end=', ')
+                    print(f'{name}', end=', ')
                 print()
 
             optimizer_cfg['params'] = [value for key, value in sub_models.items()]
