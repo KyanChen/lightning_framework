@@ -58,7 +58,7 @@ class SegPLer(BasePLer):
             else:
                 sam = sam_model_registry[sam](sam_checkpoint)
                 self.img_encoder = sam.image_encoder
-                # self.prompt_encoder = sam.prompt_encoder
+                self.prompt_encoder = sam.prompt_encoder
                 self.mask_decoder = sam.mask_decoder
                 self.prompt_encoder_no_mask_embed = sam.prompt_encoder.no_mask_embed
 
@@ -102,6 +102,7 @@ class SegPLer(BasePLer):
             self.img_encoder = wrap(self.img_encoder)
             self.prompt_encoder_no_mask_embed = wrap(self.prompt_encoder_no_mask_embed)
             self.mask_decoder = wrap(self.mask_decoder)
+            self.prompt_encoder = wrap(self.prompt_encoder)
         else:
             super().configure_sharded_model()
 
