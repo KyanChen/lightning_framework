@@ -23,22 +23,32 @@ optimizer = dict(
     weight_decay=1e-3
 )
 
+# param_scheduler = [
+#     # warm up learning rate scheduler
+#     dict(
+#         type='LinearLR',
+#         start_factor=1e-4,
+#         by_epoch=True,
+#         begin=0,
+#         end=1,
+#         # update by iter
+#         convert_to_iter_based=True),
+#     # main learning rate scheduler
+#     dict(
+#         type='CosineAnnealingLR',
+#         T_max=max_epochs,
+#         by_epoch=True,
+#         begin=1,
+#         end=max_epochs,
+#     )
+# ]
+
 param_scheduler = [
-    # warm up learning rate scheduler
-    dict(
-        type='LinearLR',
-        start_factor=1e-4,
-        by_epoch=True,
-        begin=0,
-        end=1,
-        # update by iter
-        convert_to_iter_based=True),
-    # main learning rate scheduler
     dict(
         type='CosineAnnealingLR',
         T_max=max_epochs,
         by_epoch=True,
-        begin=1,
+        begin=0,
         end=max_epochs,
     )
 ]
