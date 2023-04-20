@@ -69,8 +69,6 @@ class BasePLer(pl.LightningModule, BaseModel):
 
     def _set_train_module(self, mode=True, need_train_names: list=[]):
         self.training = mode
-        import ipdb;
-        ipdb.set_trace()
         for name, module in self.named_children():
             flag = False
             for need_train_name in need_train_names:
