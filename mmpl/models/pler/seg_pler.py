@@ -104,14 +104,13 @@ class SegPLer(BasePLer):
 
     def init_weights(self):
         import ipdb; ipdb.set_trace()
-        if hasattr(self, 'train_evaluator'):
-            self.train_evaluator = self.train_evaluator
-        if hasattr(self, 'val_evaluator'):
-            self.val_evaluator = self.val_evaluator
         pass
 
-    # def on_fit_start(self) -> None:
-    #     import ipdb; ipdb.set_trace()
+    def on_fit_start(self) -> None:
+        if hasattr(self, 'train_evaluator'):
+            self.train_evaluator = self.train_evaluator.to(self.device)
+        if hasattr(self, 'val_evaluator'):
+            self.val_evaluator = self.val_evaluator.to(self.device)
 
     def train(self, mode=True):
         if self.need_train_names is not None:
@@ -142,7 +141,7 @@ class SegPLer(BasePLer):
             # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
             seg_logits = self.post_process(cls_logits.detach(), pred_masks.detach())
             seg_logits = seg_logits > self.threshold
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         self.val_evaluator.update(seg_logits, seg_label)
 
     def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any):
