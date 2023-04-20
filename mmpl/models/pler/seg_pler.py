@@ -119,9 +119,10 @@ class SegPLer(BasePLer):
 
     def configure_optimizers(self):
         if self.trainer.strategy.__class__.__name__ == 'DeepSpeedStrategy':
-            # import deepspeed
+            import deepspeed
             # optimizer = deepspeed.runtime.
-            optimizer = torch.optim.Adam(self.sam_prompt_generator.parameters(), lr=1e-4)
+            optimizer = deepspeed.ops.adam.DeepSpeedCPUAdam(self.sam_prompt_generator.parameters(), lr=1e-4)
+            # optimizer = torch.optim.Adam(self.sam_prompt_generator.parameters(), lr=1e-4)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
             return [optimizer], [lr_scheduler]
         else:
