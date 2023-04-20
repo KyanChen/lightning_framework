@@ -7,21 +7,21 @@ sub_model = [
 
 max_epochs = 300
 
-optimizer = dict(
-    type='SGD',
-    # sub_model=sub_model,
-    lr=0.005,
-    momentum=0.937,
-    weight_decay=0.0005,
-    nesterov=True
-)
-
 # optimizer = dict(
-#     type='AdamW',
+#     type='SGD',
 #     # sub_model=sub_model,
-#     lr=0.0001,
-#     weight_decay=1e-3
+#     lr=0.005,
+#     momentum=0.937,
+#     weight_decay=0.0005,
+#     nesterov=True
 # )
+
+optimizer = dict(
+    type='AdamW',
+    sub_model=sub_model,
+    lr=0.0001,
+    weight_decay=1e-3
+)
 
 param_scheduler = [
     # warm up learning rate scheduler
