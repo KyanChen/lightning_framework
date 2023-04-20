@@ -4,11 +4,11 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_i
 train_sub_model = [
     'sam_prompt_generator',
 ]
-optimized_sub_model = {
-    'sam_prompt_generator': {'lr_mult': 1},
-    'sam': {'lr_mult': 0},
-    'head': {'lr_mult': 0}
-}
+# optimized_sub_model = {
+#     'sam_prompt_generator': {'lr_mult': 1},
+#     'sam': {'lr_mult': 0},
+#     'head': {'lr_mult': 0}
+# }
 
 max_epochs = 300
 
