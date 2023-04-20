@@ -13,14 +13,13 @@ import functools
 from torch.optim.lr_scheduler import StepLR
 import torch.nn.functional as F
 import torch.distributed as dist
-
+import sys
+sys.path.insert(0, '../../')
 import torch
 import torch.nn as nn
 import lightning.pytorch as pl
 from lightning.pytorch import Trainer
 from torch.distributed.fsdp.wrap import wrap
-import sys
-sys.path.insert(0, '../../')
 
 from module.segment_anything import sam_model_registry
 
