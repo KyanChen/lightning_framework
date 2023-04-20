@@ -40,7 +40,7 @@ class MyModel(pl.LightningModule):
     #     self.model = nn.Sequential(linear_layer, nn.ReLU(), self.block)
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.model.parameters(), lr=1e-3)
+        return torch.optim.AdamW(self.trainer.model.parameters(), lr=1e-3)
 
     def training_step(self, *args, **kwargs):
         x = torch.rand(1, 3, 1024, 1024).cuda()
