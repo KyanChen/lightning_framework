@@ -168,9 +168,16 @@ callbacks = [
     )
 ]
 
+from torch.distributed.fsdp import CPUOffload
+from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
+import functools
 strategy = dict(
     type='FSDPStrategy',
-    cpu_offload=True,
+    cpu_offload=CPUOffload(offload_params=True),
+    auto_wrap_policy=functools.partial(
+        size_based_auto_wrap_policy, min_num_params=int(1e8)
+    )
+
 )
 
 trainer_cfg = dict(
