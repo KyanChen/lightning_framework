@@ -367,6 +367,8 @@ class DiceCost(BaseMatchCost):
             denominator = mask_preds.pow(2).sum(1)[:, None] + \
                 gt_masks.pow(2).sum(1)[None, :]
         loss = 1 - (numerator + self.eps) / (denominator + self.eps)
+        if torch.isnan(loss).any():
+            raise ValueError('NaN is detected in dice loss.')
         return loss
 
     def __call__(self,
@@ -435,6 +437,8 @@ class CrossEntropyLossCost(BaseMatchCost):
         cls_cost = torch.einsum('nc,mc->nm', pos, gt_labels) + \
             torch.einsum('nc,mc->nm', neg, 1 - gt_labels)
         # cls_cost = cls_cost / n
+        if torch.isnan(cls_cost).any():
+            raise ValueError('cls_cost is nan')
         return cls_cost
 
     def __call__(self,
