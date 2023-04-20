@@ -1,18 +1,12 @@
 import torch
-import torch.nn as nn
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torchvision.models.resnet import resnet50
+my_module = resnet50().cuda()
 
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv = nn.Conv2d(3, 3, 3)
+sharded_module = FSDP(my_module)
+optim = torch.optim.Adam(sharded_module.parameters(), lr=0.0001)
 
-    def forward(self, x):
-        return self.conv(x)
-
-model = Model()
-print(model)
-
-para = filter(lambda p: p.requires_grad, model.parameters())
-[print(p.shape) for p in para]
-op = torch.optim.SGD(model.parameters(), lr=0.1)
-print(op)
+x = sharded_module(torch.randn(16, 3, 1024, 1024).cuda())
+loss = x.sum()
+loss.backward()
+optim.step()
