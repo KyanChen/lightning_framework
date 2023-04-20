@@ -87,7 +87,7 @@ class BasePLer(pl.LightningModule, BaseModel):
 
         sub_models = optimizer_cfg.pop('sub_model', None)
         if sub_models is None:
-            optimizer_cfg['params'] = self.parameters()
+            optimizer_cfg['params'] = self.trainer.model.parameters()
         else:
             if isinstance(sub_models, str):
                 sub_models = {sub_models: {}}
