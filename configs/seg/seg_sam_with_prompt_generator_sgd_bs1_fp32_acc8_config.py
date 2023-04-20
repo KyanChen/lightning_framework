@@ -133,7 +133,7 @@ model_cfg = dict(
     )
 )
 
-exp_name = 'E20230420_4'
+exp_name = 'E20230420_5'
 logger = dict(
     type='WandbLogger',
     project='building',
