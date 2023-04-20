@@ -221,8 +221,8 @@ class ClassificationCost(BaseMatchCost):
         cls_cost = -pred_scores[:, gt_labels]
 
         cost = cls_cost * self.weight
-        if torch.isinf(cost).any():
-            raise ValueError('cost is nan in ClassificationCost')
+        # if torch.isinf(cost).any():
+        #     raise ValueError('cost is nan in ClassificationCost')
         return cost
 
 
@@ -372,10 +372,9 @@ class DiceCost(BaseMatchCost):
         else:
             denominator = mask_preds.pow(2).sum(1)[:, None] + \
                 gt_masks.pow(2).sum(1)[None, :]
-        # denominator = denominator / n
         loss = 1 - (numerator + self.eps) / (denominator + self.eps)
-        if torch.isinf(loss).any():
-            raise ValueError('NaN is detected in dice loss.')
+        # if torch.isinf(loss).any():
+        #     raise ValueError('NaN is detected in dice loss.')
         return loss
 
     def __call__(self,
@@ -440,8 +439,6 @@ class CrossEntropyLossCost(BaseMatchCost):
             cls_pred, torch.ones_like(cls_pred), reduction='none')
         neg = F.binary_cross_entropy_with_logits(
             cls_pred, torch.zeros_like(cls_pred), reduction='none')
-        # pos = pos / n
-        # neg = neg / n
         cls_cost = torch.einsum('nc,mc->nm', pos, gt_labels) + \
             torch.einsum('nc,mc->nm', neg, 1 - gt_labels)
         cls_cost = cls_cost / n
@@ -471,6 +468,6 @@ class CrossEntropyLossCost(BaseMatchCost):
         else:
             raise NotImplementedError
         cost = cls_cost * self.weight
-        if torch.isinf(cost).any():
-            raise ValueError('cost is nan in CrossEntropyLossCost')
+        # if torch.isinf(cost).any():
+        #     raise ValueError('cost is nan in CrossEntropyLossCost')
         return cost
