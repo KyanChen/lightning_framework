@@ -170,18 +170,21 @@ callbacks = [
 
 strategy = dict(
     type='DeepSpeedStrategy',
+    stage=3,
+    offload_optimizer=True,
+    offload_parameters=True,
 )
 
 trainer_cfg = dict(
     compiled_model=False,
     accelerator="gpu",
-    # strategy=strategy,
-    strategy="fsdp",
+    strategy=strategy,
+    # strategy="fsdp",
     # strategy='deepspeed_stage_2_offload',
     # strategy='ddp_find_unused_parameters_true',
     precision='32',
     # precision='16-mixed',
-    devices=[1,2,3,4],
+    devices=[3,4],
     default_root_dir=f'results/building/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
