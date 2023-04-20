@@ -134,6 +134,10 @@ class SegPLer(BasePLer):
             seg_logits = self.post_process(cls_logits.detach(), masks.detach())
             seg_logits = seg_logits > self.threshold
         else:
+            if self.local_rank == 0:
+                import ipdb;
+                ipdb.set_trace()
+            self.trainer.strategy.barrier()
             cls_logits, pred_masks, n_iou_preds = self.forward_sam_prompt_generator_all(
                 batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
             pred_masks = pred_masks.squeeze(2)
@@ -186,9 +190,6 @@ class SegPLer(BasePLer):
         return batch_gt_instances, batch_img_metas
 
     def training_step(self, batch, batch_idx):
-        if self.local_rank == 0:
-            import ipdb; ipdb.set_trace()
-        self.trainer.strategy.barrier()
         if self.only_img_encoder:
             masks_pred = self.forward_only_img_encoder(batch)
             seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
@@ -212,6 +213,11 @@ class SegPLer(BasePLer):
 
             losses = self.head.loss(cls_logits, masks, batch_gt_instances, batch_img_metas)
         else:
+            if self.local_rank == 0:
+                import ipdb;
+                ipdb.set_trace()
+            self.trainer.strategy.barrier()
+
             cls_logits, pred_masks, n_iou_preds = self.forward_sam_prompt_generator_all(
                 batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
             pred_masks = pred_masks.squeeze(2)
