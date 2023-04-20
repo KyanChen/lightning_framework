@@ -105,8 +105,9 @@ class BasePLer(pl.LightningModule, BaseModel):
                     # sub_models[sub_model_name]['params'] = filter(lambda p: p.requires_grad, [sub_model_])
                     sub_models[sub_model_name]['params'] = filter(lambda p: p.requires_grad, [sub_model_])
                 else:
-                    # sub_models[sub_model_name]['params'] = filter(lambda p: p.requires_grad, sub_model_.parameters())
-                    sub_models[sub_model_name]['params'] = sub_model_.parameters()
+                    import ipdb;ipdb.set_trace()
+                    sub_models[sub_model_name]['params'] = filter(lambda p: p.requires_grad, sub_model_.parameters())
+                    # sub_models[sub_model_name]['params'] = sub_model_.parameters()
                 lr_mult = value.pop('lr_mult', 1.)
                 sub_models[sub_model_name]['lr'] = base_lr * lr_mult
                 if base_wd is not None:
