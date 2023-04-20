@@ -89,7 +89,7 @@ class BasePLer(pl.LightningModule, BaseModel):
 
         sub_models = copy.deepcopy(optimizer_cfg.pop('sub_model', None))
         if sub_models is None:
-            optimizer_cfg['params'] = self.parameters()
+            optimizer_cfg['params'] = filter(lambda p: p.requires_grad, self.parameters())
         else:
             if isinstance(sub_models, str):
                 sub_models = {sub_models: {}}
@@ -99,8 +99,8 @@ class BasePLer(pl.LightningModule, BaseModel):
             # import ipdb; ipdb.set_trace()
             # set training parameters and lr
             for sub_model_name, value in sub_models.items():
-                # sub_model_ = self.get_submodule(sub_model_name)
-                sub_model_ = self.trainer.strategy.model._forward_module.get_submodule(sub_model_name)
+                sub_model_ = self.get_submodule(sub_model_name)
+                # sub_model_ = self.trainer.strategy.model._forward_module.get_submodule(sub_model_name)
                 if isinstance(sub_model_, torch.nn.Parameter):
                     # filter(lambda p: p.requires_grad, model.parameters())
                     # sub_models[sub_model_name]['params'] = filter(lambda p: p.requires_grad, [sub_model_])

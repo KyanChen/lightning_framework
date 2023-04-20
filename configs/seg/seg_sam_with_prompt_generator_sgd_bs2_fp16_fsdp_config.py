@@ -14,7 +14,7 @@ max_epochs = 300
 
 optimizer = dict(
     type='SGD',
-    sub_model=optimized_sub_model,
+    # sub_model=optimized_sub_model,
     lr=0.005,
     momentum=0.937,
     weight_decay=0.0005,
