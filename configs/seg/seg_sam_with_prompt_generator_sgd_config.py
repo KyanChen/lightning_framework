@@ -134,14 +134,14 @@ model_cfg = dict(
 )
 
 exp_name = 'E20230420_0'
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='sam_prompt_generator',
-    name=exp_name
-)
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='sam_prompt_generator',
+#     name=exp_name
+# )
 
-# logger = None
+logger = None
 
 
 callbacks = [
@@ -180,7 +180,7 @@ trainer_cfg = dict(
     check_val_every_n_epoch=1,
     benchmark=True,
     sync_batchnorm=True,
-    fast_dev_run=True,
+    # fast_dev_run=True,
 
     # limit_train_batches=1,
     # limit_val_batches=0,

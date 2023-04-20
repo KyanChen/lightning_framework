@@ -27,7 +27,7 @@ def parse_args():
     # parser.add_argument('--config', default='configs/seg_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/seg_mask2former_config.py', help='train config file path')
     # parser.add_argument('--config', default='configs/motion/motiongpt_config.py', help='train config file path')
-    parser.add_argument('--is-debug', default=True, action='store_true', help='debug mode')
+    parser.add_argument('--is-debug', default=False, action='store_true', help='debug mode')
     parser.add_argument('--ckpt-path', default=None, help='checkpoint path')
     parser.add_argument('--status', default='fit', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
     parser.add_argument('--work-dir', default=None, help='the dir to save logs and mmpl')
