@@ -57,12 +57,10 @@ evaluator = dict(
     val_evaluator=evaluator_,
 )
 
-exp_name = 'E20230420_1'
 num_classes = 2
 
 model_cfg = dict(
     type='SegPLer',
-    exp_name=exp_name,
     hyperparameters=dict(
         optimizer=optimizer,
         param_scheduler=param_scheduler,
@@ -136,6 +134,7 @@ model_cfg = dict(
     )
 )
 
+exp_name = 'E20230420_1'
 # logger = dict(
 #     type='WandbLogger',
 #     project='building',

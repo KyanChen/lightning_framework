@@ -102,6 +102,7 @@ class PLRunner:
         trainer_cfg['callbacks'] = callbacks
 
         self.trainer = pl.Trainer(**trainer_cfg)
+        model_cfg.update({'config_cfg': copy.deepcopy(cfg)})
         model = self.build_model(model_cfg)
         if compiled_model:
             # default, reduce-overhead, and max-autotune.
