@@ -130,6 +130,7 @@ class BasePLer(pl.LightningModule, BaseModel):
 
             optimizer_cfg['params'] = [value for key, value in sub_models.items()]
         if self.local_rank == 0:
+            import ipdb;ipdb.set_trace()
             print('Needed train params:')
             param_shape = [x['params'].shape for x in optimizer_cfg['params']]
             param_lr = [x['lr'] for x in optimizer_cfg['params']]
