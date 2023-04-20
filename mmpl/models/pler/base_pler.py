@@ -96,6 +96,7 @@ class BasePLer(pl.LightningModule, BaseModel):
 
             # set training parameters and lr
             for sub_model_name, value in sub_models.items():
+                import ipdb; ipdb.set_trace()
                 sub_model_ = self.trainer.model.get_submodule(sub_model_name)
                 if isinstance(sub_model_, torch.nn.Parameter):
                     # filter(lambda p: p.requires_grad, model.parameters())
