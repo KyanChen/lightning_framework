@@ -134,12 +134,8 @@ class BasePLer(pl.LightningModule, BaseModel):
         optimizer = OPTIMIZERS.build(optimizer_cfg)
         if self.local_rank == 0:
             print('查看优化器参数')
-            import ipdb;ipdb.set_trace()
             for param_group in optimizer.param_groups:
-                print(param_group.keys())
-                # print(type(param_group))
-                print([value.shape for value in param_group.values()])
-                print('查看学习率: ', param_group['lr'])
+                print([value.shape for value in param_group['params']], '学习率: ', param_group['lr'])
 
         schedulers = copy.deepcopy(self.hyperparameters.get('param_scheduler', None))
         if schedulers is None:
