@@ -60,7 +60,8 @@ def fsdp_main(args):
     rank = int(os.environ['RANK'])
     world_size = int(os.environ['WORLD_SIZE'])
     setup()
-
+    device = torch.device(f"cuda:{local_rank}")
+    torch.cuda.set_device(device)
     # sharding_strategy: ShardingStrategy = ShardingStrategy.SHARD_GRAD_OP  #for Zero2 and FULL_SHARD for Zero3
     # torch.cuda.set_device(local_rank)
 
@@ -71,7 +72,7 @@ def fsdp_main(args):
         # mixed_precision=mp_policy,
         #sharding_strategy=sharding_strategy,
         # device_id=torch.cuda.current_device()
-        ).cuda()
+        ).to(device)
 
     optimizer = optim.AdamW(model.parameters(), lr=0.0001)
 
@@ -81,7 +82,7 @@ def fsdp_main(args):
         model.train()
         local_rank = int(os.environ['LOCAL_RANK'])
         optimizer.zero_grad()
-        output = model(torch.randn(16, 3, 1024, 1024).cuda())
+        output = model(torch.randn(16, 3, 1024, 1024).to(device))
         loss = torch.mean(output)
         loss.backward()
         optimizer.step()
