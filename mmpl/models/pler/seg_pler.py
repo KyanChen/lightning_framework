@@ -110,6 +110,7 @@ class SegPLer(BasePLer):
             return self
 
     def on_train_epoch_start(self) -> None:
+        import ipdb; ipdb.set_trace()
         if self.need_train_names is not None:
             self._set_grad(self.need_train_names, [])
 
