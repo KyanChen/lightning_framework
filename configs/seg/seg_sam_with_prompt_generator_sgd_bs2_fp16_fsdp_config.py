@@ -6,8 +6,8 @@ train_sub_model = [
 ]
 optimized_sub_model = {
     'sam_prompt_generator': {'lr_mult': 1},
-    'sam': {'lr_mult': 0},
-    'head': {'lr_mult': 0}
+    # 'sam': {'lr_mult': 0},
+    # 'head': {'lr_mult': 0}
 }
 
 max_epochs = 300
