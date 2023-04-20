@@ -96,11 +96,6 @@ class SegPLer(BasePLer):
             from torch.distributed.fsdp.wrap import wrap
             self.sam_prompt_generator = wrap(self.sam_prompt_generator)
             self.sam = wrap(self.sam)
-            if hasattr(self, 'train_evaluator'):
-                self.train_evaluator = wrap(self.train_evaluator)
-            if hasattr(self, 'val_evaluator'):
-                self.val_evaluator = wrap(self.val_evaluator)
-            import ipdb; ipdb.set_trace()
             # self.
             # self.head = wrap(self.head)
             # # self.head = wrap(self.head)
@@ -109,7 +104,14 @@ class SegPLer(BasePLer):
 
     def init_weights(self):
         import ipdb; ipdb.set_trace()
+        if hasattr(self, 'train_evaluator'):
+            self.train_evaluator = self.train_evaluator
+        if hasattr(self, 'val_evaluator'):
+            self.val_evaluator = self.val_evaluator
         pass
+
+    def on_fit_start(self) -> None:
+        import ipdb; ipdb.set_trace()
 
     def train(self, mode=True):
         if self.need_train_names is not None:
