@@ -47,6 +47,7 @@ class MyModel(pl.LightningModule):
         # self.trainer.strategy.barrier()
         # y = self.model(x)
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
+        x = x.contiguous()
         x = (x - self.sam.pixel_mean) / self.sam.pixel_std
         image_embeddings, inner_states = self.sam.image_encoder(x)
         y = image_embeddings
