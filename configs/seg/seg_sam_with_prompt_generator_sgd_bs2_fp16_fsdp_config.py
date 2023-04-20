@@ -170,7 +170,7 @@ callbacks = [
 
 strategy = dict(
     type='FSDPStrategy',
-    cpu_offload=True,
+    # cpu_offload=True,
 )
 
 trainer_cfg = dict(
