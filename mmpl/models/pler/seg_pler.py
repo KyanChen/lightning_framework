@@ -129,14 +129,6 @@ class SegPLer(BasePLer):
     #     else:
     #         return super().configure_optimizers()
 
-
-    def on_before_optimizer_step(self, optimizer):
-        # Compute the 2-norm for each layer
-        # If using mixed precision, the gradients are already unscaled here
-        norms = grad_norm(self.sam_prompt_generator, norm_type=2)
-        import ipdb; ipdb.set_trace()
-        self.log_dict(norms, prog_bar=True)
-
     def init_weights(self):
         import ipdb; ipdb.set_trace()
         pass

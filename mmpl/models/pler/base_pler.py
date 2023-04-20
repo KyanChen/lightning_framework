@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from lightning.pytorch.utilities import grad_norm
 from mmengine import OPTIM_WRAPPERS
 from mmengine.optim import build_optim_wrapper, _ParamScheduler
 import copy
@@ -162,6 +163,18 @@ class BasePLer(pl.LightningModule, BaseModel):
 
     def lr_scheduler_step(self, scheduler, metric):
         pass
+
+    def on_before_optimizer_step(self, optimizer):
+        # Compute the 2-norm for each layer
+        # If using mixed precision, the gradients are already unscaled here
+        norms = grad_norm(self.sam_prompt_generator, norm_type=2)
+        max_grad = max(norms.values())
+        min_gead = min(norms.values())
+        self.log_dict(
+            {'max_grad': max_grad, 'min_grad': min_gead},
+            prog_bar=True,
+            logger=True
+        )
 
     def on_validation_epoch_end(self) -> None:
         if hasattr(self, 'val_evaluator'):
