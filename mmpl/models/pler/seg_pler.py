@@ -180,7 +180,7 @@ class SegPLer(BasePLer):
         return batch_gt_instances, batch_img_metas
 
     def training_step(self, batch, batch_idx):
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         if self.only_img_encoder:
             masks_pred = self.forward_only_img_encoder(batch)
             seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
