@@ -14,7 +14,7 @@ from module.segment_anything import sam_model_registry
 class MyModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
-        torchvision.models.ResNet50_Weights()
+        # torchvision.models.ResNet50_Weights()
         self.res = torchvision.models.resnet50().requires_grad_(True)
         # self.sam = sam_model_registry['default']().eval().requires_grad_(False)
         # self.img_encoder = sam_model_registry['default']().image_encoder.eval().requires_grad_(False)
