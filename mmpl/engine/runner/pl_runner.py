@@ -181,9 +181,9 @@ class PLRunner:
                 strategy.update(
                     dict(
                         cpu_offload=CPUOffload(offload_params=True),
-                        auto_wrap_policy=functools.partial(
-                            size_based_auto_wrap_policy, min_num_params=int(1e8)
-                        )
+                        # auto_wrap_policy=functools.partial(
+                        #     size_based_auto_wrap_policy, min_num_params=int(1e8)
+                        # )
                     )
                 )
             strategy = MODEL_WRAPPERS.build(strategy)
