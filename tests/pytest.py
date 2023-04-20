@@ -71,7 +71,7 @@ def fsdp_main(args):
         # mixed_precision=mp_policy,
         #sharding_strategy=sharding_strategy,
         # device_id=torch.cuda.current_device()
-        )
+        ).cuda()
 
     optimizer = optim.AdamW(model.parameters(), lr=0.0001)
 
