@@ -170,6 +170,7 @@ callbacks = [
 
 strategy = dict(
     type='FSDPStrategy',
+    cpu_offload=True,
 )
 
 trainer_cfg = dict(
@@ -179,7 +180,7 @@ trainer_cfg = dict(
     # strategy="fsdp",
     # strategy='deepspeed_stage_2_offload',
     # strategy='ddp_find_unused_parameters_true',
-    precision='32',
+    precision='16',
     # precision='16-mixed',
     devices=[1,2,3,4],
     default_root_dir=f'results/building/{exp_name}',
