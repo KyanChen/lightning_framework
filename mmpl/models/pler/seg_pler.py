@@ -92,11 +92,13 @@ class SegPLer(BasePLer):
             self._set_grad(self.need_train_names, [])
 
     def configure_sharded_model(self) -> None:
-        import ipdb; ipdb.set_trace()
-        from torch.distributed.fsdp.wrap import wrap
-        self.sam_prompt_generator = wrap(self.sam_prompt_generator)
-        self.sam = wrap(self.sam)
-        self.head = wrap(self.head)
+        if self.trainer.strategy.__class__.__name__ == 'FSDPStrategy':
+            from torch.distributed.fsdp.wrap import wrap
+            self.sam_prompt_generator = wrap(self.sam_prompt_generator)
+            self.sam = wrap(self.sam)
+            self.head = wrap(self.head)
+        else:
+            super().configure_sharded_model()
 
     def init_weights(self):
         import ipdb; ipdb.set_trace()
