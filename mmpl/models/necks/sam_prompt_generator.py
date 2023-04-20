@@ -140,7 +140,7 @@ class SAMPromptConvNeck(nn.Module):
         self.num_img_feat_level = num_img_feat_level
         self.n_cls = n_cls
 
-        decoder_embed_dims = img_feat_channels // 16
+        decoder_embed_dims = img_feat_channels // 32
         self.decoder_input_projs = nn.ModuleList()
         # from low resolution to high resolution
         for _ in range(num_img_feat_level):
@@ -162,9 +162,7 @@ class SAMPromptConvNeck(nn.Module):
             nn.ReLU(),
             nn.Conv2d(out_put_channels, out_put_channels*2, 3, stride=2, padding=1),
             nn.ReLU(),
-            nn.Conv2d(out_put_channels*2, out_put_channels*4, 3, stride=2, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(out_put_channels * 4, out_put_channels * 2, 3, padding=1),
+            nn.Conv2d(out_put_channels * 2, out_put_channels * 2, 3, padding=1),
         )
 
         self.img_feats_pe = nn.Parameter(torch.zeros(1, out_put_channels*2, self.point_size, self.point_size))
