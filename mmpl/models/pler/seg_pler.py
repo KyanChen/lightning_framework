@@ -213,6 +213,10 @@ class SegPLer(BasePLer):
             cls_logits, pred_masks, n_iou_preds = self.forward_sam_prompt_generator_all(
                 batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
             pred_masks = pred_masks.squeeze(2)
+            if torch.isinf(pred_masks).any() or torch.isnan(pred_masks).any():
+                import ipdb;
+                ipdb.set_trace()
+                raise ValueError('cost is nan in CrossEntropyLossCost')
             seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
             pred_masks = F.interpolate(pred_masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
             # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
