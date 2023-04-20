@@ -128,7 +128,8 @@ class HungarianAssigner(BaseAssigner):
         if linear_sum_assignment is None:
             raise ImportError('Please run "pip install scipy" '
                               'to install scipy first.')
-
+        import ipdb
+        ipdb.set_trace()
         matched_row_inds, matched_col_inds = linear_sum_assignment(cost)
         matched_row_inds = torch.from_numpy(matched_row_inds).to(device)
         matched_col_inds = torch.from_numpy(matched_col_inds).to(device)
