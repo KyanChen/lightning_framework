@@ -179,7 +179,7 @@ trainer_cfg = dict(
     log_every_n_steps=10,
     check_val_every_n_epoch=1,
     benchmark=True,
-    sync_batchnorm=True,
+    # sync_batchnorm=True,
     # fast_dev_run=True,
 
     # limit_train_batches=1,
