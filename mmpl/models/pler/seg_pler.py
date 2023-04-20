@@ -139,7 +139,7 @@ class SegPLer(BasePLer):
             # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
             seg_logits = self.post_process(cls_logits.detach(), pred_masks.detach())
             seg_logits = seg_logits > self.threshold
-
+        import ipdb; ipdb.set_trace()
         self.val_evaluator.update(seg_logits, seg_label)
 
     def test_step(self, batch, batch_idx, *args: Any, **kwargs: Any):
