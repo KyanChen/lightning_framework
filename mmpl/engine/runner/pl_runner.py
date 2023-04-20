@@ -101,6 +101,12 @@ class PLRunner:
         )
         trainer_cfg['callbacks'] = callbacks
 
+        # build strategy
+        strategy = self.build_strategy(
+            trainer_cfg.get('strategy', 'auto'),
+        )
+        trainer_cfg['strategy'] = strategy
+
         self.trainer = pl.Trainer(**trainer_cfg)
         model_cfg.update({'config_cfg': copy.deepcopy(cfg).to_dict()})
         model = self.build_model(model_cfg)
@@ -163,6 +169,14 @@ class PLRunner:
                 tmp_loggers.append(LOGGERS.build(logger))
             loggers = tmp_loggers
         return loggers
+
+    def build_strategy(self, strategy='auto'):
+        if isinstance(strategy, str):
+            return strategy
+        elif isinstance(strategy, dict):
+            strategy = MODEL_WRAPPERS.build(strategy)
+            return strategy
+        return strategy
 
     def build_model(self, model: Union[pl.LightningModule, Dict]) -> pl.LightningModule:
         if isinstance(model, pl.LightningModule):
