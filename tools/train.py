@@ -17,11 +17,12 @@ def parse_args():
     # parser.add_argument('--config', default='configs/det/yolov8_dynamic_sirens.py', help='train config file path')
     # parser.add_argument('--config', default='configs/seg/seg_just_backbone_with_clip_config.py', help='train config file path')
     # parser.add_argument('--config', default='configs/seg/seg_just_sam_backbone_config.py', help='train config file path')
-    parser.add_argument('--config', default='configs/seg/seg_sam_with_prompt_generator_config.py',
+    parser.add_argument('--config', default='configs/seg/seg_sam_with_prompt_generator_sgd_config.py',
                         help='train config file path')
     # parser.add_argument('--config', default='configs/seg_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/seg_mask2former_config.py', help='train config file path')
     # parser.add_argument('--config', default='configs/motion/motiongpt_config.py', help='train config file path')
+    parser.add_argument('--is-debug', default=False, action='store_true', help='debug mode')
     parser.add_argument('--ckpt-path', default=None, help='checkpoint path')
     parser.add_argument('--status', default='fit', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
     parser.add_argument('--work-dir', default=None, help='the dir to save logs and mmpl')
@@ -37,7 +38,8 @@ def main():
     elif cfg.trainer_cfg.get('default_root_dir', None) is None:
         # use config filename as default work_dir if cfg.work_dir is None
         cfg.trainer_cfg['default_root_dir'] = osp.join('./work_dirs', osp.splitext(osp.basename(args.config))[0])
-
+    if args.is_debug:
+        cfg.trainer_cfg['fast_dev_run'] = True
     if 'runner_type' not in cfg:
         runner = PLRunner.from_cfg(cfg)
     else:

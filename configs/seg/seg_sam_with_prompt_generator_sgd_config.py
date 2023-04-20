@@ -133,7 +133,7 @@ model_cfg = dict(
     )
 )
 
-exp_name = 'E20230419_6'
+exp_name = 'E20230420_0'
 logger = dict(
     type='WandbLogger',
     project='building',
@@ -169,8 +169,8 @@ trainer_cfg = dict(
     strategy="ddp",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
-    # precision='16-mixed',
-    devices=8,
+    precision='16-mixed',
+    devices=2,
     default_root_dir=f'results/building/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -180,8 +180,8 @@ trainer_cfg = dict(
     check_val_every_n_epoch=1,
     benchmark=True,
     sync_batchnorm=True,
+    fast_dev_run=True,
 
-    # fast_dev_run=True,
     # limit_train_batches=1,
     # limit_val_batches=0,
     # limit_test_batches=None,
@@ -193,7 +193,7 @@ trainer_cfg = dict(
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
-    accumulate_grad_batches=4,
+    # accumulate_grad_batches=1,
     # gradient_clip_val=None,
     # gradient_clip_algorithm=None,
     # deterministic=None,

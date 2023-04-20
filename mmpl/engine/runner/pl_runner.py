@@ -108,15 +108,16 @@ class PLRunner:
             self.model = torch.compile(model)
         else:
             self.model = model
-
+        # dump `cfg` to `work_dir`
+        self.dump_config()
         # # Collect and log environment information.
         # self._log_env(env_cfg)
         # log hooks information
         # self.logger.info(f'Hooks will be executed in the following '
         #                  f'order:\n{self.get_hooks_info()}')
 
-        # dump `cfg` to `work_dir`
-        # self.dump_config()
+
+
 
     def build_hooks(self, hooks: Union[Dict, List[Dict]] = None) -> List[Hook]:
         """Build hooks from config.
@@ -735,12 +736,20 @@ class PLRunner:
 
     @master_only
     def dump_config(self) -> None:
+        if len(self.trainer.loggers) > 0:
+            version = self.trainer.loggers[0].version
+            version = version if isinstance(version, str) else f"version_{version}"
+        else:
+            # if no loggers, use default_root_dir
+            version = 'version'
+
         """Dump config to `work_dir`."""
         if self.cfg.filename is not None:
             filename = osp.basename(self.cfg.filename)
         else:
             filename = f'{self.timestamp}.py'
-        self.cfg.dump(osp.join(self.work_dir, filename))
+        path = f'{self.trainer.default_root_dir}/{version}_{filename}'
+        self.cfg.dump(path)
 
     def _check_scheduler_cfg(
             self, param_scheduler: Optional[Union[dict, list,
