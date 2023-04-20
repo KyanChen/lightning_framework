@@ -58,5 +58,5 @@ class MyModel(pl.LightningModule):
 train_dataloaders = torch.utils.data.DataLoader(torch.rand(1, 3, 1024, 1024), batch_size=1)
 
 model = MyModel()
-trainer = Trainer(accelerator='auto', devices=[2], strategy="fsdp", precision=32, max_epochs=100)
+trainer = Trainer(accelerator='auto', devices=[2, 3], strategy="fsdp", precision=32, max_epochs=100)
 trainer.fit(model, train_dataloaders=train_dataloaders)
