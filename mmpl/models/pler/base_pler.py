@@ -91,10 +91,6 @@ class BasePLer(pl.LightningModule, BaseModel):
         if sub_models is None:
             # optimizer_cfg['params'] = filter(lambda p: p.requires_grad, self.trainer.model.parameters())
             optimizer_cfg['params'] = self.parameters()
-            if self.local_rank == 0:
-                print('Needed train params:')
-                param_shape = [x.shape for x in copy.deepcopy(optimizer_cfg['params'])]
-                print(param_shape)
         else:
             if isinstance(sub_models, str):
                 sub_models = {sub_models: {}}
@@ -136,6 +132,14 @@ class BasePLer(pl.LightningModule, BaseModel):
             optimizer_cfg['params'] = [value for key, value in sub_models.items()]
 
         optimizer = OPTIMIZERS.build(optimizer_cfg)
+        if self.local_rank == 0:
+            print('查看优化器参数')
+            import ipdb;ipdb.set_trace()
+            for param_group in optimizer.param_groups:
+                print(param_group.keys())
+                # print(type(param_group))
+                print([value.shape for value in param_group.values()])
+                print('查看学习率: ', param_group['lr'])
 
         schedulers = copy.deepcopy(self.hyperparameters.get('param_scheduler', None))
         if schedulers is None:
