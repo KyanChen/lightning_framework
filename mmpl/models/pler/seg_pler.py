@@ -305,7 +305,8 @@ class SegPLer(BasePLer):
         # self.trainer.strategy.barrier()
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
         x = (x - self.sam.pixel_mean) / self.sam.pixel_std
-        image_embeddings, inner_states = self.sam.image_encoder(x)
+        with torch.no_grad():
+            image_embeddings, inner_states = self.sam.image_encoder(x)
 
         point_embs, cls_logits = self.sam_prompt_generator(inner_states)
 
