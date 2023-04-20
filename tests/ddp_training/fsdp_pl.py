@@ -27,11 +27,11 @@ from module.segment_anything import sam_model_registry
 class MyModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
-        self.model = torchvision.models.resnet50()
+        self.res = torchvision.models.resnet50()
         self.sam = sam_model_registry['default']().eval().requires_grad_(False)
 
     def configure_sharded_model(self):
-        self.model = wrap(self.model)
+        self.res = wrap(self.res)
         self.sam = wrap(self.sam)
 
     def configure_optimizers(self):
