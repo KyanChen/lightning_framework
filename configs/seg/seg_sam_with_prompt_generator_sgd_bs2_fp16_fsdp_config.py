@@ -9,7 +9,7 @@ max_epochs = 300
 
 optimizer = dict(
     type='SGD',
-    sub_model=sub_model,
+    # sub_model=sub_model,
     lr=0.005,
     momentum=0.937,
     weight_decay=0.0005,
@@ -182,7 +182,7 @@ trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
     # strategy=strategy,
-    strategy="auto",
+    strategy="fsdp",
     # strategy='deepspeed_stage_2_offload',
     # strategy='ddp_find_unused_parameters_true',
     precision='32',
