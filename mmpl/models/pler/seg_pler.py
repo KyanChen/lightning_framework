@@ -58,8 +58,9 @@ class SegPLer(BasePLer):
             else:
                 sam = sam_model_registry[sam](sam_checkpoint)
                 self.img_encoder = sam.image_encoder
-                self.prompt_encoder = sam.prompt_encoder
+                # self.prompt_encoder = sam.prompt_encoder
                 self.mask_decoder = sam.mask_decoder
+                self.prompt_encoder_no_mask_embed = sam.prompt_encoder.no_mask_embed
 
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
@@ -99,7 +100,7 @@ class SegPLer(BasePLer):
             from torch.distributed.fsdp.wrap import wrap
             self.sam_prompt_generator = wrap(self.sam_prompt_generator)
             self.img_encoder = wrap(self.img_encoder)
-            self.prompt_encoder = wrap(self.prompt_encoder)
+            self.prompt_encoder_no_mask_embed = wrap(self.prompt_encoder_no_mask_embed)
             self.mask_decoder = wrap(self.mask_decoder)
         else:
             super().configure_sharded_model()
@@ -341,7 +342,7 @@ class SegPLer(BasePLer):
         else:
             # ponits_embeddings B T N C
             sparse_embeddings = point_embs
-            dense_embeddings = self.prompt_encoder.no_mask_embed.weight.view(1, 1, -1, 1, 1).expand(
+            dense_embeddings = self.prompt_encoder_no_mask_embed[0].view(1, 1, -1, 1, 1).expand(
                 sparse_embeddings.shape[0], sparse_embeddings.shape[1], -1,
                 self.prompt_encoder.image_embedding_size[0], self.prompt_encoder.image_embedding_size[1]
                 )
