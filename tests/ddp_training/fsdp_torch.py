@@ -77,8 +77,8 @@ def fsdp_main(args):
 
     model = FSDP(
         model,
-        cpu_offload=cpu_offload,
-        auto_wrap_policy=my_auto_wrap_policy,
+        # cpu_offload=cpu_offload,
+        # auto_wrap_policy=my_auto_wrap_policy,
         # auto_wrap_policy=t5_auto_wrap_policy,
         # mixed_precision=mp_policy,
         #sharding_strategy=sharding_strategy,
@@ -112,4 +112,4 @@ if __name__ == '__main__':
 
 
 # torchrun --nnodes 1 --nproc_per_node 4  pytest.py
-# 34498MiB
+# 18226MiB
