@@ -131,6 +131,7 @@ class HungarianAssigner(BaseAssigner):
         try:
             matched_row_inds, matched_col_inds = linear_sum_assignment(cost)
         except:
+
             import ipdb
             ipdb.set_trace()
         matched_row_inds = torch.from_numpy(matched_row_inds).to(device)
