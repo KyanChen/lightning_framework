@@ -342,7 +342,7 @@ class SegPLer(BasePLer):
         else:
             # ponits_embeddings B T N C
             sparse_embeddings = point_embs
-            dense_embeddings = self.prompt_encoder_no_mask_embed[0].view(1, 1, -1, 1, 1).expand(
+            dense_embeddings = self.prompt_encoder_no_mask_embed(torch.tensor([0], device=self.device)).view(1, 1, -1, 1, 1).expand(
                 sparse_embeddings.shape[0], sparse_embeddings.shape[1], -1,
                 self.prompt_encoder.image_embedding_size[0], self.prompt_encoder.image_embedding_size[1]
                 )
