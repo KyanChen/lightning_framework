@@ -736,10 +736,11 @@ class PLRunner:
 
     @master_only
     def dump_config(self) -> None:
+        version = ''
         if len(self.trainer.loggers) > 0:
             version = self.trainer.loggers[0].version
             version = version if isinstance(version, str) else f"version_{version}"
-        else:
+        if version == '':
             # if no loggers, use default_root_dir
             version = 'version'
 

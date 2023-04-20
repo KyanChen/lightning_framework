@@ -1,6 +1,9 @@
 import argparse
 import os
 import sys
+
+import torch
+
 sys.path.insert(0, sys.path[0]+'/..')
 from mmengine.config import Config, DictAction
 from mmengine.logging import print_log
@@ -9,6 +12,8 @@ from mmpl.engine.runner import PLRunner
 import os.path as osp
 from mmpl.registry import RUNNERS
 from mmpl.utils import register_all_modules
+
+torch.set_float32_matmul_precision('high')
 register_all_modules()
 
 def parse_args():
@@ -22,7 +27,7 @@ def parse_args():
     # parser.add_argument('--config', default='configs/seg_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/seg_mask2former_config.py', help='train config file path')
     # parser.add_argument('--config', default='configs/motion/motiongpt_config.py', help='train config file path')
-    parser.add_argument('--is-debug', default=False, action='store_true', help='debug mode')
+    parser.add_argument('--is-debug', default=True, action='store_true', help='debug mode')
     parser.add_argument('--ckpt-path', default=None, help='checkpoint path')
     parser.add_argument('--status', default='fit', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
     parser.add_argument('--work-dir', default=None, help='the dir to save logs and mmpl')
@@ -40,6 +45,7 @@ def main():
         cfg.trainer_cfg['default_root_dir'] = osp.join('./work_dirs', osp.splitext(osp.basename(args.config))[0])
     if args.is_debug:
         cfg.trainer_cfg['fast_dev_run'] = True
+        cfg.trainer_cfg['logger'] = None
     if 'runner_type' not in cfg:
         runner = PLRunner.from_cfg(cfg)
     else:
