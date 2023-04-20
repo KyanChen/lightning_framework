@@ -57,6 +57,9 @@ class SegPLer(BasePLer):
                 self.mask_decoder = sam_model_registry[sam](sam_checkpoint).mask_decoder
             else:
                 sam = sam_model_registry[sam](sam_checkpoint)
+                self.img_encoder = sam.image_encoder
+                self.prompt_encoder = sam.prompt_encoder
+                self.mask_decoder = sam.mask_decoder
 
         if points_per_side is not None:
             self.point_grids = build_all_layer_point_grids(
@@ -95,10 +98,9 @@ class SegPLer(BasePLer):
         if self.trainer.strategy.__class__.__name__ == 'FSDPStrategy':
             from torch.distributed.fsdp.wrap import wrap
             self.sam_prompt_generator = wrap(self.sam_prompt_generator)
-            self.sam = wrap(self.sam)
-            # self.
-            # self.head = wrap(self.head)
-            # # self.head = wrap(self.head)
+            self.img_encoder = wrap(self.img_encoder)
+            self.prompt_encoder = wrap(self.prompt_encoder)
+            self.mask_decoder = wrap(self.mask_decoder)
         else:
             super().configure_sharded_model()
 
@@ -315,19 +317,14 @@ class SegPLer(BasePLer):
         return cls_logits, n_img_masks, n_iou_preds
 
     def forward_sam_prompt_generator_all(self, batch, *args: Any, **kwargs: Any) -> Any:
-        if self.local_rank == 0:
-            import ipdb;
-            ipdb.set_trace()
-
         x = torch.stack(batch['inputs'], dim=0)
         # if self.local_rank == 0:
         #     import pdb; pdb.set_trace()
         # self.trainer.strategy.barrier()
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
         x = (x - self.sam.pixel_mean) / self.sam.pixel_std
-        self.trainer.strategy.barrier()
         with torch.no_grad():
-            image_embeddings, inner_states = self.sam.image_encoder(x)
+            image_embeddings, inner_states = self.img_encoder(x)
 
         point_embs, cls_logits = self.sam_prompt_generator(inner_states)
 
@@ -349,9 +346,9 @@ class SegPLer(BasePLer):
         else:
             # ponits_embeddings B T N C
             sparse_embeddings = point_embs
-            dense_embeddings = self.sam.prompt_encoder.no_mask_embed.weight.view(1, 1, -1, 1, 1).expand(
+            dense_embeddings = self.prompt_encoder.no_mask_embed.weight.view(1, 1, -1, 1, 1).expand(
                 sparse_embeddings.shape[0], sparse_embeddings.shape[1], -1,
-                self.sam.prompt_encoder.image_embedding_size[0], self.sam.prompt_encoder.image_embedding_size[1]
+                self.prompt_encoder.image_embedding_size[0], self.prompt_encoder.image_embedding_size[1]
                 )
 
 
@@ -359,9 +356,9 @@ class SegPLer(BasePLer):
         n_iou_preds = []
         n_class_aware_probs = []
         for curr_img_embedding, cur_s_emb, cur_d_emb in zip(image_embeddings, sparse_embeddings, dense_embeddings):
-            lr_masks, iou_pred, class_aware_prob = self.sam.mask_decoder(
+            lr_masks, iou_pred, class_aware_prob = self.mask_decoder(
                 image_embeddings=curr_img_embedding.unsqueeze(0),
-                image_pe=self.sam.prompt_encoder.get_dense_pe(),
+                image_pe=self.prompt_encoder.get_dense_pe(),
                 sparse_prompt_embeddings=cur_s_emb,
                 dense_prompt_embeddings=cur_d_emb
             )

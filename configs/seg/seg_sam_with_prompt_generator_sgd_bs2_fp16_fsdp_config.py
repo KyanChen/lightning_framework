@@ -48,16 +48,6 @@ param_scheduler = [
     )
 ]
 
-# param_scheduler = [
-#     dict(
-#         type='CosineAnnealingLR',
-#         T_max=max_epochs,
-#         by_epoch=True,
-#         begin=0,
-#         end=max_epochs,
-#     )
-# ]
-
 param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
