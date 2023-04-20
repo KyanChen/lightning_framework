@@ -1,19 +1,6 @@
 import torch
 import torchvision
 from lightning.pytorch.strategies import FSDPStrategy
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-import os
-import argparse
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from transformers import AutoTokenizer, GPT2TokenizerFast
-from transformers import T5Tokenizer, T5ForConditionalGeneration
-import functools
-from torch.optim.lr_scheduler import StepLR
-import torch.nn.functional as F
-import torch.distributed as dist
 import sys
 sys.path.append(sys.path[0] + '/../..')
 import torch
@@ -21,13 +8,13 @@ import torch.nn as nn
 import lightning.pytorch as pl
 from lightning.pytorch import Trainer
 from torch.distributed.fsdp.wrap import wrap
-
 from module.segment_anything import sam_model_registry
 
 
 class MyModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
+        torchvision.models.ResNet50_Weights()
         self.res = torchvision.models.resnet50().requires_grad_(True)
         # self.sam = sam_model_registry['default']().eval().requires_grad_(False)
         # self.img_encoder = sam_model_registry['default']().image_encoder.eval().requires_grad_(False)
@@ -61,7 +48,7 @@ train_dataloaders = torch.utils.data.DataLoader(torch.rand(1, 3, 1024, 1024), ba
 
 model = MyModel()
 strategy = FSDPStrategy(cpu_offload=True)
-trainer = Trainer(accelerator='auto', devices=[2, 3], strategy='fsdp', precision=32, max_epochs=100)
+trainer = Trainer(accelerator='gpu', devices=[2, 3], strategy='fsdp', precision=32, max_epochs=100)
 trainer.fit(model, train_dataloaders=train_dataloaders)
 # 单卡18G，使用
 # 18042MiB
