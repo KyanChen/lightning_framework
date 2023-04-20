@@ -28,14 +28,15 @@ class MyModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
         self.model = torchvision.models.resnet50()
-        self.sam = sam_model_registry['default']()
+        self.sam = sam_model_registry['default']().eval().requires_grad_(False)
 
     def configure_sharded_model(self):
         self.model = wrap(self.model)
         self.sam = wrap(self.sam)
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=1e-3)
+        params = filter(lambda p: p.requires_grad, self.parameters())
+        return torch.optim.AdamW(params, lr=1e-3)
 
     def training_step(self, *args, **kwargs):
         # if self.local_rank == 0:
