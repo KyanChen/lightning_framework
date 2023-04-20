@@ -74,7 +74,7 @@ def fsdp_main(args):
         device_id=torch.cuda.current_device()
         )
 
-    optimizer = optim.AdamW(model.parameters(), lr=0.0001)
+    optimizer = optim.AdamW(model.parameters(), lr=0.001)
 
 
     for epoch in range(100):
@@ -82,8 +82,9 @@ def fsdp_main(args):
         model.train()
         local_rank = int(os.environ['LOCAL_RANK'])
         optimizer.zero_grad()
-        output = model(torch.randn(16, 3, 1024, 1024).to(device))
-        loss = torch.mean(output)
+        x = torch.rand(16, 3, 1024, 1024).to(device)
+        output = model(x)
+        loss = torch.sum(output)
         loss.backward()
         optimizer.step()
     dist.barrier()
