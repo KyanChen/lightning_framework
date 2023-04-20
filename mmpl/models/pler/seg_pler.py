@@ -109,9 +109,7 @@ class SegPLer(BasePLer):
         if self.need_train_names is not None:
             return self._set_train_module(mode)
         else:
-            self.training = mode
-            for name, module in self.named_children():
-                module.train(mode)
+            super().train(mode)
             return self
 
     def validation_step(self, batch, batch_idx):
