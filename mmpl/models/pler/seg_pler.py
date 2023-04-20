@@ -96,6 +96,10 @@ class SegPLer(BasePLer):
             from torch.distributed.fsdp.wrap import wrap
             self.sam_prompt_generator = wrap(self.sam_prompt_generator)
             self.sam = wrap(self.sam)
+            if hasattr(self, 'train_evaluator'):
+                self.train_evaluator = wrap(self.train_evaluator)
+            if hasattr(self, 'val_evaluator'):
+                self.val_evaluator = wrap(self.val_evaluator)
             # self.
             # self.head = wrap(self.head)
             # # self.head = wrap(self.head)
