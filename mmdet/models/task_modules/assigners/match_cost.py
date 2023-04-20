@@ -423,8 +423,9 @@ class CrossEntropyLossCost(BaseMatchCost):
         Returns:
             Tensor: Cross entropy cost matrix in shape (num_queries, num_gt).
         """
-        cls_pred = cls_pred.flatten(1).float()
-        gt_labels = gt_labels.flatten(1).float()
+        import ipdb; ipdb.set_trace()
+        cls_pred = cls_pred.flatten(1)
+        gt_labels = gt_labels.flatten(1)
         n = cls_pred.shape[1]
         pos = F.binary_cross_entropy_with_logits(
             cls_pred, torch.ones_like(cls_pred), reduction='none')
