@@ -348,6 +348,7 @@ class DiceCost(BaseMatchCost):
         self.eps = eps
         self.naive_dice = naive_dice
 
+    @torch.cuda.amp.autocast(enabled=False)
     def _binary_mask_dice_loss(self, mask_preds: Tensor,
                                gt_masks: Tensor) -> Tensor:
         """
@@ -361,7 +362,7 @@ class DiceCost(BaseMatchCost):
             Tensor: Dice cost matrix in shape (num_queries, num_gt).
         """
         n = mask_preds.shape[1]
-        mask_preds = mask_preds.flatten(1).float() / n
+        mask_preds = mask_preds.flatten(1).float()
         gt_masks = gt_masks.flatten(1).float()
         numerator = 2 * torch.einsum('nc,mc->nm', mask_preds, gt_masks)
 
@@ -371,7 +372,7 @@ class DiceCost(BaseMatchCost):
         else:
             denominator = mask_preds.pow(2).sum(1)[:, None] + \
                 gt_masks.pow(2).sum(1)[None, :]
-        denominator = denominator / n
+        # denominator = denominator / n
         loss = 1 - (numerator + self.eps) / (denominator + self.eps)
         if torch.isinf(loss).any():
             raise ValueError('NaN is detected in dice loss.')
@@ -419,6 +420,7 @@ class CrossEntropyLossCost(BaseMatchCost):
         super().__init__(weight=weight)
         self.use_sigmoid = use_sigmoid
 
+    @torch.cuda.amp.autocast(enabled=False)
     def _binary_cross_entropy(self, cls_pred: Tensor,
                               gt_labels: Tensor) -> Tensor:
         """
@@ -438,11 +440,11 @@ class CrossEntropyLossCost(BaseMatchCost):
             cls_pred, torch.ones_like(cls_pred), reduction='none')
         neg = F.binary_cross_entropy_with_logits(
             cls_pred, torch.zeros_like(cls_pred), reduction='none')
-        pos = pos / n
-        neg = neg / n
+        # pos = pos / n
+        # neg = neg / n
         cls_cost = torch.einsum('nc,mc->nm', pos, gt_labels) + \
             torch.einsum('nc,mc->nm', neg, 1 - gt_labels)
-        # cls_cost = cls_cost / n
+        cls_cost = cls_cost / n
         return cls_cost
 
     def __call__(self,
