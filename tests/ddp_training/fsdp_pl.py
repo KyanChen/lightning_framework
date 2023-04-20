@@ -28,7 +28,7 @@ from module.segment_anything import sam_model_registry
 class MyModel(pl.LightningModule):
     def __init__(self):
         super().__init__()
-        self.res = torchvision.models.resnet50().train()
+        self.res = torchvision.models.resnet50().requires_grad_(True)
         # self.sam = sam_model_registry['default']().eval().requires_grad_(False)
         # self.img_encoder = sam_model_registry['default']().image_encoder.eval().requires_grad_(False)
 
@@ -46,7 +46,7 @@ class MyModel(pl.LightningModule):
         #     import ipdb;
         #     ipdb.set_trace()
 
-        x = torch.rand(8, 3, 1024, 1024).cuda()
+        x = torch.rand(16, 3, 1024, 1024).cuda()
         # self.trainer.strategy.barrier()
         y = self.res(x)
         # x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
@@ -61,7 +61,7 @@ train_dataloaders = torch.utils.data.DataLoader(torch.rand(1, 3, 1024, 1024), ba
 
 model = MyModel()
 strategy = FSDPStrategy(cpu_offload=True)
-trainer = Trainer(accelerator='auto', devices=[2, 3], strategy=strategy, precision=32, max_epochs=100)
+trainer = Trainer(accelerator='auto', devices=[2, 3], strategy='fsdp', precision=32, max_epochs=100)
 trainer.fit(model, train_dataloaders=train_dataloaders)
 # 单卡18G，使用
 # 18042MiB
