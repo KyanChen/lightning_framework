@@ -211,11 +211,6 @@ class SegPLer(BasePLer):
 
             losses = self.head.loss(cls_logits, masks, batch_gt_instances, batch_img_metas)
         else:
-            if self.local_rank == 0:
-                import ipdb;
-                ipdb.set_trace()
-            self.trainer.strategy.barrier()
-
             cls_logits, pred_masks, n_iou_preds = self.forward_sam_prompt_generator_all(
                 batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
             pred_masks = pred_masks.squeeze(2)
@@ -322,7 +317,7 @@ class SegPLer(BasePLer):
         #     import pdb; pdb.set_trace()
         # self.trainer.strategy.barrier()
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
-        x = (x - self.sam.pixel_mean) / self.sam.pixel_std
+        x = (x - self.img_encoder.pixel_mean) / self.img_encoder.pixel_std
         with torch.no_grad():
             image_embeddings, inner_states = self.img_encoder(x)
 
