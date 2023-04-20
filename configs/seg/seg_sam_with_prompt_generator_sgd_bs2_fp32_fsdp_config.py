@@ -142,14 +142,14 @@ model_cfg = dict(
 )
 
 exp_name = 'E20230420_2'
-# logger = dict(
-#     type='WandbLogger',
-#     project='building',
-#     group='sam_prompt_generator',
-#     name=exp_name
-# )
+logger = dict(
+    type='WandbLogger',
+    project='building',
+    group='sam_prompt_generator',
+    name=exp_name
+)
 
-logger = None
+# logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -180,9 +180,9 @@ trainer_cfg = dict(
     # strategy="fsdp",
     # strategy='deepspeed_stage_2_offload',
     # strategy='ddp_find_unused_parameters_true',
-    precision='16',
+    precision='32',
     # precision='16-mixed',
-    devices=[3,4],
+    devices=8,
     default_root_dir=f'results/building/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
