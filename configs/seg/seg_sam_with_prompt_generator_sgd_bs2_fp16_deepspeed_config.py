@@ -206,10 +206,10 @@ strategy = dict(
     offload_parameters=True,
 )
 
-strategy = dict(
-    type='DeepSpeedStrategy',
-    config=deepspeed_config
-)
+# strategy = dict(
+#     type='DeepSpeedStrategy',
+#     config=deepspeed_config
+# )
 
 trainer_cfg = dict(
     compiled_model=False,
