@@ -220,7 +220,10 @@ class ClassificationCost(BaseMatchCost):
         pred_scores = pred_scores.softmax(-1)
         cls_cost = -pred_scores[:, gt_labels]
 
-        return cls_cost * self.weight
+        cost = cls_cost * self.weight
+        if torch.isinf(cost).any():
+            raise ValueError('cost is nan in ClassificationCost')
+        return cost
 
 
 @TASK_UTILS.register_module()
@@ -440,8 +443,6 @@ class CrossEntropyLossCost(BaseMatchCost):
         cls_cost = torch.einsum('nc,mc->nm', pos, gt_labels) + \
             torch.einsum('nc,mc->nm', neg, 1 - gt_labels)
         # cls_cost = cls_cost / n
-        if torch.isinf(cls_cost).any():
-            raise ValueError('cls_cost is nan')
         return cls_cost
 
     def __call__(self,
@@ -468,4 +469,6 @@ class CrossEntropyLossCost(BaseMatchCost):
         else:
             raise NotImplementedError
         cost = cls_cost * self.weight
+        if torch.isinf(cost).any():
+            raise ValueError('cost is nan in CrossEntropyLossCost')
         return cost
