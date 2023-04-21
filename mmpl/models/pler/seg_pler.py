@@ -36,6 +36,7 @@ class SegPLer(BasePLer):
                  need_train_names=None,
                  head=None,
                  with_clip=False,
+                 train_head=False,
                  threshold=0.5,
                  ignore_index=255,
                  train_cfg=None,
@@ -49,6 +50,7 @@ class SegPLer(BasePLer):
         self.only_img_encoder = only_img_encoder
         self.only_decoder = only_decoder
         self.global_prompt = global_prompt
+        self.train_head = train_head
 
         if sam is not None:
             if self.only_img_encoder:
@@ -57,7 +59,7 @@ class SegPLer(BasePLer):
                 self.prompt_encoder = sam_model_registry[sam](sam_checkpoint).prompt_encoder
                 self.mask_decoder = sam_model_registry[sam](sam_checkpoint).mask_decoder
             else:
-                sam = sam_model_registry[sam](sam_checkpoint)
+                sam = sam_model_registry[sam](sam_checkpoint, train_head=train_head)
                 self.img_encoder = sam.image_encoder
                 self.prompt_encoder = sam.prompt_encoder
                 self.mask_decoder = sam.mask_decoder
@@ -388,10 +390,13 @@ class SegPLer(BasePLer):
                 sparse_prompt_embeddings=cur_s_emb,
                 dense_prompt_embeddings=cur_d_emb
             )
-            mask_slice = slice(0, 1)
-            masks = lr_masks[:, mask_slice, :, :]
-            iou_pred = iou_pred[:, mask_slice]
-            class_aware_prob = class_aware_prob[:, mask_slice]
+            if self.train_head:
+                masks = lr_masks
+                iou_pred = iou_pred
+            else:
+                mask_slice = slice(0, 1)
+                masks = lr_masks[:, mask_slice, :, :]
+                iou_pred = iou_pred[:, mask_slice]
 
             n_img_masks.append(masks)
             n_iou_preds.append(iou_pred)
