@@ -136,11 +136,11 @@ class SegPLer(BasePLer):
         import ipdb; ipdb.set_trace()
         pass
 
-    def on_fit_start(self) -> None:
-        if hasattr(self, 'train_evaluator'):
-            self.train_evaluator = self.train_evaluator.to(self.device)
-        if hasattr(self, 'val_evaluator'):
-            self.val_evaluator = self.val_evaluator.to(self.device)
+    # def on_fit_start(self) -> None:
+    #     if hasattr(self, 'train_evaluator'):
+    #         self.train_evaluator = self.train_evaluator.to(self.device)
+    #     if hasattr(self, 'val_evaluator'):
+    #         self.val_evaluator = self.val_evaluator.to(self.device)
 
     def train(self, mode=True):
         if self.need_train_names is not None:

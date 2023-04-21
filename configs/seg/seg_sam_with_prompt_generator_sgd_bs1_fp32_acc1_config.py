@@ -5,11 +5,11 @@ sub_model = [
     'sam_prompt_generator',
 ]
 
-max_epochs = 300
+max_epochs = 400
 
 optimizer = dict(
     type='SGD',
-    lr=0.005,
+    lr=0.002,
     sub_model=sub_model,
     momentum=0.937,
     weight_decay=0.0005,
@@ -166,8 +166,8 @@ callbacks = [
 trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
-    strategy="auto",
-    # strategy="ddp",
+    # strategy="auto",
+    strategy="ddp",
     # strategy='ddp_find_unused_parameters_true',
     precision='32',
     # precision='16-mixed',
