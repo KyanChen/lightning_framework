@@ -101,6 +101,7 @@ class BasePLer(pl.LightningModule, BaseModel):
             for sub_model_name, value in sub_models.items():
                 sub_attrs = sub_model_name.split('.')
                 sub_model_ = self
+                import ipdb; ipdb.set_trace()
                 for sub_attr in sub_attrs:
                     sub_model_ = getattr(sub_model_, sub_attr)
                 # sub_model_ = self.trainer.strategy.model._forward_module.get_submodule(sub_model_name)
