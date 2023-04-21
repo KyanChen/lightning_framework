@@ -151,7 +151,7 @@ exp_name = 'E20230421_6'
 logger = dict(
     type='WandbLogger',
     project='building',
-    group='sam_prompt_generator',
+    group='sam_prompt_head',
     name=exp_name
 )
 
