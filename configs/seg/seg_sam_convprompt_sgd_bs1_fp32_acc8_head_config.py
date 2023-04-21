@@ -4,10 +4,10 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_i
 
 sub_model_train = [
     'sam_prompt_generator',
-    'mask_tokens',
-    'output_hypernetworks_mlps',
-    'iou_prediction_head',
-    'iou_token'
+    'mask_decoder.mask_tokens',
+    'mask_decoder.output_hypernetworks_mlps',
+    'mask_decoder.iou_prediction_head',
+    'mask_decoder.iou_token'
 ]
 
 sub_model_optim = {
