@@ -99,6 +99,7 @@ class BasePLer(pl.LightningModule, BaseModel):
             # import ipdb; ipdb.set_trace()
             # set training parameters and lr
             for sub_model_name, value in sub_models.items():
+                import ipdb; ipdb.set_trace()
                 sub_model_ = self.get_submodule(sub_model_name)
                 # sub_model_ = self.trainer.strategy.model._forward_module.get_submodule(sub_model_name)
                 if isinstance(sub_model_, torch.nn.Parameter):
