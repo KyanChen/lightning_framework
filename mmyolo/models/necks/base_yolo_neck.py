@@ -160,7 +160,7 @@ class BaseYOLONeck(BaseModule, metaclass=ABCMeta):
         self.upsample_layers = nn.ModuleList()
         self.top_down_layers = nn.ModuleList()
         for idx in range(len(in_channels) - 1, 0, -1):
-            self.upsample_layers.append(self.build_upsample_layer(idx))
+            self.upsample_layers.append(self.build_upsample_layer(idx=idx, n_layers=len(in_channels)))
             self.top_down_layers.append(self.build_top_down_layer(idx))
 
         # build bottom-up blocks

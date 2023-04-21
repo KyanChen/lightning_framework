@@ -4,6 +4,9 @@ conda activate torch1mmcv2  # torch1mmcv1 torch1mmcv2 torch2mmcv1 torch2mmcv2
 pip install albumentations
 pip install deepspeed
 # pip install anypackage
+# yum install which
+# source /opt/rh/devtoolset-9/enable
+# mim install mmcv>=2.0.0rc4
 
 cd /mnt/search01/usr/chenkeyan/codes/lightning_framework
 #TORCH_DISTRIBUTED_DEBUG=DETAIL
