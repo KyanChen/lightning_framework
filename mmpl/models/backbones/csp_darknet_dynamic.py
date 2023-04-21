@@ -73,10 +73,10 @@ class YOLOv8DyCSPDarknet(BaseBackbone):
         'Dy': [
             # 第一个是stem layer
             [3, 32, 3, True, False],
-            [32, 64, 6, True, False], [64, 128, 6, True, False]
+            [32, 64, 6, True, False], [64, 128, 6, True, False],
             [128, 256, 6, True, False],
             # 最后一个是transformer head
-            [256, 512, 3, True, True],
+            [256, 512, 3, True, True]
         ],
     }
 
