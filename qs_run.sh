@@ -2,7 +2,7 @@
 source ~/.bashrc
 conda activate torch2mmcv2  # torch1mmcv1 torch1mmcv2 torch2mmcv1 torch2mmcv2
 pip install albumentations
-pip install deepspeed
+#pip install deepspeed
 # pip install anypackage
 # yum install which
 # source /opt/rh/devtoolset-9/enable
