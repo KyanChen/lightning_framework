@@ -183,8 +183,8 @@ trainer_cfg = dict(
     # strategy="auto",
     # strategy="ddp",
     strategy='ddp_find_unused_parameters_true',
-    # precision='32',
-    precision='16-mixed',
+    precision='32',
+    # precision='16-mixed',
     devices=[6,7],
     # default_root_dir=f'results/building/{exp_name}',
     default_root_dir='results/tmp',
@@ -313,4 +313,6 @@ datamodule_cfg = dict(
     # test_loader=val_loader
     # predict_loader=val_loader
 )
+
+# no-compile 2-gpus fp32 14min
 
