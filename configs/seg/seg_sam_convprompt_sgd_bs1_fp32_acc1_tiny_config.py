@@ -5,11 +5,12 @@ sub_model = [
     'sam_prompt_generator',
 ]
 
-max_epochs = 400
+max_epochs = 300
 
 optimizer = dict(
     type='SGD',
     lr=0.005,
+    sub_model=sub_model,
     momentum=0.937,
     weight_decay=0.0005,
     nesterov=True
@@ -65,8 +66,8 @@ model_cfg = dict(
         param_scheduler=param_scheduler,
         evaluator=evaluator,
     ),
-    sam='vit_h',
-    sam_checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
+    sam='vit_b',
+    sam_checkpoint='pretrain/sam/sam_vit_b_01ec64.pth',
     with_clip=False,
     points_per_side=None,
     only_img_encoder=False,
@@ -76,7 +77,8 @@ model_cfg = dict(
     sam_prompt_generator=dict(
         type='SAMPromptConvNeck',
         prompt_shape=(100, 5),
-        img_feat_channels=1280,
+        # img_feat_channels=1280,
+        img_feat_channels=768,
         out_put_channels=256,
         num_img_feat_level=8,
         n_cls=num_classes,
@@ -133,15 +135,15 @@ model_cfg = dict(
     )
 )
 
-exp_name = 'E20230420_4'
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='sam_prompt_generator',
-    name=exp_name
-)
+exp_name = 'E20230421_0'
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='convprompt_tiny',
+#     name=exp_name
+# )
 
-# logger = None
+logger = None
 
 
 callbacks = [
@@ -170,7 +172,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=[6],
     default_root_dir=f'results/building/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -193,7 +195,7 @@ trainer_cfg = dict(
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
-    accumulate_grad_batches=4,
+    # accumulate_grad_batches=1,
     # gradient_clip_val=None,
     # gradient_clip_algorithm=None,
     # deterministic=None,
@@ -232,9 +234,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 1
+train_batch_size_per_gpu = 2
 train_num_workers = 2
-test_batch_size_per_gpu = 1
+test_batch_size_per_gpu = 2
 test_num_workers = 2
 persistent_workers = True
 

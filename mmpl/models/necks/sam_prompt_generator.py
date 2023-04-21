@@ -140,7 +140,8 @@ class SAMPromptConvNeck(nn.Module):
         self.num_img_feat_level = num_img_feat_level
         self.n_cls = n_cls
 
-        decoder_embed_dims = img_feat_channels // 32
+        # decoder_embed_dims = img_feat_channels // 32
+        decoder_embed_dims = 32
         self.decoder_input_projs = nn.ModuleList()
         # from low resolution to high resolution
         for _ in range(num_img_feat_level):
