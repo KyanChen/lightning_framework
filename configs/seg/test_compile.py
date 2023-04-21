@@ -317,5 +317,5 @@ datamodule_cfg = dict(
 # no-compile 2-gpus fp32 16min
 # no-compile 2-gpus fp16 14min
 # wi-compile 2-gpus fp32 17min
-# wi-compile 2-gpus fp16 14min
+# wi-compile 2-gpus fp16 infmin
 
