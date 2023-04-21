@@ -214,57 +214,58 @@ class SegPLer(BasePLer):
         return batch_gt_instances, batch_img_metas
 
     def training_step(self, batch, batch_idx):
-        # if self.only_img_encoder:
-        #     masks_pred = self.forward_only_img_encoder(batch)
-        #     seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-        #     masks_pred = F.interpolate(masks_pred, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
-        #     losses = self.head.loss(masks_pred, seg_label)
-        #     masks_pred_result = masks_pred > 0
-        #     self.train_evaluator.update(masks_pred_result.detach(), seg_label.detach())
-        #
-        # elif self.only_decoder:
-        #     cls_logits, masks, n_iou_preds = self.forward_sam_prompt_generator(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
-        #     masks = masks.squeeze(2)
-        #     seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-        #     masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
-        #     # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
-        #     seg_logits = self.post_process(cls_logits.clone().detach(), masks.clone().detach())
-        #     seg_logits = seg_logits > self.threshold
-        #     self.train_evaluator.update(seg_logits, seg_label)
-        #
-        #     batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
-        #         batch['data_samples'])
-        #
-        #     losses = self.head.loss(cls_logits, masks, batch_gt_instances, batch_img_metas)
-        # else:
-        #     cls_logits, pred_masks, n_iou_preds = self.forward_sam_prompt_generator_all(
-        #         batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
-        #     pred_masks = pred_masks.squeeze(2)
-        #     if torch.isinf(pred_masks).any() or torch.isnan(pred_masks).any():
-        #         # import ipdb;
-        #         # ipdb.set_trace()
-        #         # raise ValueError('cost is nan in CrossEntropyLossCost')
-        #         print('!!!!!!!!!!!!!!!!!!!!loss is nan or inf!!!!!!!!!!!!!!!!!!')
-        #         return torch.tensor(0.0, requires_grad=True, device=self.device)
-        #     seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-        #     pred_masks = F.interpolate(pred_masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
-        #     # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
-        #     seg_logits = self.post_process(cls_logits.clone().detach(), pred_masks.clone().detach())
-        #     seg_logits = seg_logits > self.threshold
-        #     self.train_evaluator.update(seg_logits, seg_label)
-        #
-        #     batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
-        #         batch['data_samples'])
-        #
-        #     losses = self.head.loss(cls_logits, pred_masks, batch_gt_instances, batch_img_metas)
-        #
-        # parsed_losses, log_vars = self.parse_losses(losses)
-        # log_vars = {f'train_{k}': v for k, v in log_vars.items()}
-        # log_vars['loss'] = parsed_losses
-        # self.log_dict(log_vars, prog_bar=True)
-        # return log_vars
-        print(batch)
-        return torch.tensor(0.0, requires_grad=True, device=self.device)
+        if self.only_img_encoder:
+            masks_pred = self.forward_only_img_encoder(batch)
+            seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+            masks_pred = F.interpolate(masks_pred, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
+            losses = self.head.loss(masks_pred, seg_label)
+            masks_pred_result = masks_pred > 0
+            self.train_evaluator.update(masks_pred_result.detach(), seg_label.detach())
+
+        elif self.only_decoder:
+            cls_logits, masks, n_iou_preds = self.forward_sam_prompt_generator(batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
+            masks = masks.squeeze(2)
+            seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+            masks = F.interpolate(masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
+            # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
+            seg_logits = self.post_process(cls_logits.clone().detach(), masks.clone().detach())
+            seg_logits = seg_logits > self.threshold
+            self.train_evaluator.update(seg_logits, seg_label)
+
+            batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
+                batch['data_samples'])
+
+            losses = self.head.loss(cls_logits, masks, batch_gt_instances, batch_img_metas)
+        else:
+            cls_logits, pred_masks, n_iou_preds = self.forward_sam_prompt_generator_all(
+                batch)  # 1x100x2, 1x100x1x256x256, 1x100x1
+            pred_masks = pred_masks.squeeze(2)
+            if torch.isinf(pred_masks).any() or torch.isnan(pred_masks).any():
+                # import ipdb;
+                # ipdb.set_trace()
+                # raise ValueError('cost is nan in CrossEntropyLossCost')
+                print('!!!!!!!!!!!!!!!!!!!!loss is nan or inf!!!!!!!!!!!!!!!!!!')
+                return torch.tensor(0.0, requires_grad=True, device=self.device)
+            seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
+            pred_masks = F.interpolate(pred_masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
+            # cls_logits[..., 1:2] = cls_logits[..., 1:2] * n_iou_preds
+            seg_logits = self.post_process(cls_logits.clone().detach(), pred_masks.clone().detach())
+            seg_logits = seg_logits > self.threshold
+            self.train_evaluator.update(seg_logits, seg_label)
+
+            batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(
+                batch['data_samples'])
+
+            losses = self.head.loss(cls_logits, pred_masks, batch_gt_instances, batch_img_metas)
+
+        parsed_losses, log_vars = self.parse_losses(losses)
+        log_vars = {f'train_{k}': v for k, v in log_vars.items()}
+        log_vars['loss'] = parsed_losses
+        self.log_dict(log_vars, prog_bar=True)
+        return log_vars
+
+    def on_before_optimizer_step(self, optimizer) -> None:
+        self.log_grad(module=self.sam_prompt_generator)
 
     def post_process(self, mask_cls_results, mask_pred_results):
         cls_score = F.softmax(mask_cls_results, dim=-1)[..., 1:2]
