@@ -244,6 +244,7 @@ class SegPLer(BasePLer):
                 # import ipdb;
                 # ipdb.set_trace()
                 # raise ValueError('cost is nan in CrossEntropyLossCost')
+                print('!!!!!!!!!!!!!!!!!!!!loss is nan or inf!!!!!!!!!!!!!!!!!!')
                 return torch.tensor(0.0, device=self.device)
             seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
             pred_masks = F.interpolate(pred_masks, size=seg_label.shape[-2:], mode='bilinear', align_corners=True)
