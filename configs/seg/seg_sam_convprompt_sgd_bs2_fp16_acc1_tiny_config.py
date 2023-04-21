@@ -136,14 +136,14 @@ model_cfg = dict(
 )
 
 exp_name = 'E20230421_0'
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='convprompt_tiny',
-    name=exp_name
-)
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='convprompt_tiny',
+#     name=exp_name
+# )
 
-# logger = None
+logger = None
 
 
 callbacks = [
