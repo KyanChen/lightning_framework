@@ -4,18 +4,18 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmdet.models'], allow_failed_i
 
 sub_model_train = [
     'sam_prompt_generator',
-    'mask_decoder.mask_tokens',
-    'mask_decoder.output_hypernetworks_mlps',
-    'mask_decoder.iou_prediction_head',
-    'mask_decoder.iou_token'
+    'mask_tokens',
+    'output_hypernetworks_mlps',
+    'iou_prediction_head',
+    'iou_token'
 ]
 
 sub_model_optim = {
     'sam_prompt_generator': {'lr_mult': 1},
-    'mask_tokens': {'lr_mult': 0.1},
-    'output_hypernetworks_mlps': {'lr_mult': 1},
-    'iou_prediction_head': {'lr_mult': 1},
-    'iou_token': {'lr_mult': 0.1}
+    'mask_decoder.mask_tokens': {'lr_mult': 0.1},
+    'mask_decoder.output_hypernetworks_mlps': {'lr_mult': 1},
+    'mask_decoder.iou_prediction_head': {'lr_mult': 1},
+    'mask_decoder.iou_token': {'lr_mult': 0.1}
 }
 
 max_epochs = 400
