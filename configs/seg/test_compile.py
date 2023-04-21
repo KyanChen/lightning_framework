@@ -178,7 +178,7 @@ callbacks = [
 
 
 trainer_cfg = dict(
-    compiled_model=False,
+    compiled_model=True,
     accelerator="auto",
     # strategy="auto",
     # strategy="ddp",
@@ -314,5 +314,6 @@ datamodule_cfg = dict(
     # predict_loader=val_loader
 )
 
-# no-compile 2-gpus fp32 14min
+# no-compile 2-gpus fp32 16min
+# no-compile 2-gpus fp16 14min
 
