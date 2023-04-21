@@ -10,6 +10,7 @@ max_epochs = 300
 optimizer = dict(
     type='SGD',
     lr=0.005,
+    sub_model=sub_model,
     momentum=0.937,
     weight_decay=0.0005,
     nesterov=True
