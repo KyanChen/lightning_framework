@@ -10,7 +10,7 @@ sub_model_train = [
     'iou_token'
 ]
 
-sub_model = {
+sub_model_optim = {
     'sam_prompt_generator': {'lr_mult': 1},
     'mask_tokens': {'lr_mult': 0.1},
     'output_hypernetworks_mlps': {'lr_mult': 1},
@@ -22,6 +22,7 @@ max_epochs = 400
 
 optimizer = dict(
     type='SGD',
+    sub_model=sub_model_optim,
     lr=0.005,
     momentum=0.937,
     weight_decay=0.0005,
@@ -86,7 +87,7 @@ model_cfg = dict(
     only_img_encoder=False,
     only_decoder=False,
     global_prompt=None,
-    need_train_names=sub_model,
+    need_train_names=sub_model_train,
     sam_prompt_generator=dict(
         type='SAMPromptConvNeck',
         prompt_shape=(100, 5),
