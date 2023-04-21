@@ -178,7 +178,7 @@ callbacks = [
 
 
 trainer_cfg = dict(
-    compiled_model=True,
+    compiled_model=False,
     accelerator="auto",
     # strategy="auto",
     # strategy="ddp",
