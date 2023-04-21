@@ -136,14 +136,14 @@ model_cfg = dict(
 )
 
 exp_name = 'E20230421_0'
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='convprompt_tiny',
-    name=exp_name
-)
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='convprompt_tiny',
+#     name=exp_name
+# )
 
-# logger = None
+logger = None
 
 
 callbacks = [
@@ -172,7 +172,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=[6,7],
     default_root_dir=f'results/building/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -191,7 +191,7 @@ trainer_cfg = dict(
     # overfit_batches=0.0,
 
     # val_check_interval=None,
-    # num_sanity_val_steps=2,
+    num_sanity_val_steps=0,
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
@@ -242,8 +242,8 @@ persistent_workers = True
 
 
 # data_parent = '/data1/kyanchen/datasets/'
-# data_parent = '/Users/kyanchen/datasets/Building/'
-data_parent = '/mnt/search01/dataset/cky_data/'
+data_parent = '/Users/kyanchen/datasets/Building/'
+# data_parent = '/mnt/search01/dataset/cky_data/'
 # data_parent = '../sample/'
 data_root = data_parent+'WHU/'
 train_data_prefix = 'train/'
