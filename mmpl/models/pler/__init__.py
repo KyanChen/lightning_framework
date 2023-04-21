@@ -5,4 +5,4 @@ from .seg_pler import SegPLer
 # from .mmseg_pler import MMSegPLer
 # from .mmyolo_pler import MMYoloPLer
 
-__all__ = ['GPTPLer', 'YoloPLer', 'SegPLer', 'MMSegPLer']
+# __all__ = ['GPTPLer', 'YoloPLer', 'SegPLer', 'MMSegPLer']
