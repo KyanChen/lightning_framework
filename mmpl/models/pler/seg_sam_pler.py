@@ -81,7 +81,7 @@ class SegSAMPLer(BasePLer):
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
         x = (x - self.backbone.image_encoder.pixel_mean) / self.backbone.image_encoder.pixel_std
         feat = self.backbone.image_encoder(x)
-        return feat
+        return tuple(feat)
 
     def validation_step(self, batch, batch_idx):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
