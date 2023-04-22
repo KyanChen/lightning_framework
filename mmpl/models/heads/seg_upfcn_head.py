@@ -46,9 +46,55 @@ class UpFCNHead(BaseModule):
         self.num_classes = num_classes
         self.align_corners = align_corners
 
+        if isinstance(in_channels, list):
+            self.pre_layers = nn.ModuleList()
+            inner_channel = mid_channels[0]
+            for idx, channel in enumerate(in_channels):
+                self.pre_layers.append(
+                    nn.Sequential(
+                        ConvModule(
+                            channel,
+                            inner_channel,
+                            kernel_size=1,
+                            norm_cfg=self.norm_cfg,
+                            act_cfg=self.act_cfg
+                        ),
+                        ConvModule(
+                            inner_channel,
+                            inner_channel,
+                            kernel_size=kernel_size,
+                            padding=kernel_size // 2,
+                            norm_cfg=self.norm_cfg,
+                            act_cfg=self.act_cfg
+                        ),
+                    )
+                )
+            self.pre_layers.append(
+                nn.Sequential(
+                    ConvModule(
+                        inner_channel*len(in_channels),
+                        inner_channel,
+                        kernel_size=1,
+                        norm_cfg=self.norm_cfg,
+                        act_cfg=self.act_cfg
+                    ),
+                    ConvModule(
+                        inner_channel,
+                        inner_channel,
+                        kernel_size=kernel_size,
+                        padding=kernel_size // 2,
+                        norm_cfg=self.norm_cfg,
+                        act_cfg=self.act_cfg
+                    ),
+                )
+            )
+            input_channel = inner_channel
+        else:
+            input_channel = in_channels
+
         convs = []
         for idx, mid_channel in enumerate(mid_channels):
-            in_channel = self.in_channels if idx == 0 else mid_channels[idx-1]
+            in_channel = input_channel if idx == 0 else mid_channels[idx-1]
             convs += [
                 ConvModule(
                     in_channel,
@@ -74,7 +120,10 @@ class UpFCNHead(BaseModule):
 
     def _forward_feature(self, inputs):
         img_feat, inner_states = inputs
-        inner_states = [einops.rearrange(x, 'b h w c -> b c h w') for x in inner_states]
+        if hasattr(self, 'pre_layers'):
+            inner_states = [einops.rearrange(x, 'b h w c -> b c h w') for x in inner_states]
+            inner_states = [layer(x) for layer, x in zip(self.pre_layers[:-1], inner_states)]
+            img_feat = self.pre_layers[-1](torch.cat(inner_states, dim=1))
         feats = self.convs(img_feat)
         return feats
 
