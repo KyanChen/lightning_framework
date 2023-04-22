@@ -4,7 +4,7 @@ from mmcv.cnn import ConvModule
 from mmengine.model import BaseModule
 
 from mmseg.models import build_loss
-from mmseg.registry import MODELS
+from mmpl.registry import MODELS
 from mmseg.models.decode_heads.decode_head import BaseDecodeHead
 import torch.nn.functional as F
 
