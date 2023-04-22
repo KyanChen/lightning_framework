@@ -1,3 +1,4 @@
+import einops
 import torch
 import torch.nn as nn
 from mmcv.cnn import ConvModule
@@ -73,6 +74,7 @@ class UpFCNHead(BaseModule):
 
     def _forward_feature(self, inputs):
         img_feat, inner_states = inputs
+        inner_states = [einops.rearrange(x, 'b h w c -> b c h w') for x in inner_states]
         feats = self.convs(img_feat)
         return feats
 
@@ -122,7 +124,7 @@ class UpFCNHead(BaseModule):
         losses = dict()
         seg_logits = F.interpolate(seg_logits, seg_label.shape[-2:], mode='bilinear', align_corners=self.align_corners)
         seg_label = seg_label.squeeze(1)
-        losses['ce'] = self.loss_decode(seg_logits, seg_label)
+        losses['loss_ce'] = self.loss_decode(seg_logits, seg_label)
         return losses
 
     def predict(self, inputs):
