@@ -74,14 +74,14 @@ model_cfg = dict(
 )
 
 exp_name = 'E20230422_1'
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='sam_backbone_only',
-    name=exp_name
-)
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='sam_backbone_only',
+#     name=exp_name
+# )
 
-# logger = None
+logger = None
 
 callbacks = [
     param_scheduler_callback,
