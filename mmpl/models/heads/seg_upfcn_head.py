@@ -115,7 +115,7 @@ class UpFCNHead(BaseModule):
             ]
         self.convs = nn.Sequential(*convs)
         if isinstance(loss_decode, dict):
-            self.loss_decode = build_loss(loss_decode)
+            self.loss_decode = MODELS.build(loss_decode)
         self.conv_seg = nn.Conv2d(mid_channels[-1], num_classes, kernel_size=1)
 
     def _forward_feature(self, inputs):

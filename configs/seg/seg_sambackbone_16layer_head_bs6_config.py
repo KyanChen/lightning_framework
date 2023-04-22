@@ -1,6 +1,6 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_imports=False)
 max_epochs = 300
-need_train_names = ['head']
+need_train_names = ['seg_head']
 
 
 optimizer = dict(
@@ -62,7 +62,7 @@ model_cfg = dict(
         type='vit_h',
         checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
     ),
-    head=dict(
+    seg_head=dict(
         type='UpFCNHead',
         in_channels=[1280]*16,
         mid_channels=[256, 128, 64],
@@ -106,7 +106,7 @@ trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
     # strategy="auto",
-    # strategy="ddp",
+    strategy="ddp",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',

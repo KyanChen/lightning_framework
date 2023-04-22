@@ -1,6 +1,6 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_imports=False)
 max_epochs = 300
-need_train_names = ['head']
+need_train_names = ['seg_head']
 
 
 optimizer = dict(
@@ -62,7 +62,7 @@ model_cfg = dict(
         type='vit_h',
         checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
     ),
-    head=dict(
+    seg_head=dict(
         type='UpFCNHead',
         in_channels=256,
         mid_channels=[256, 128, 64],

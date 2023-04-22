@@ -27,7 +27,7 @@ from module.segment_anything.utils.amg import build_all_layer_point_grids
 class SegSAMPLer(BasePLer):
     def __init__(self,
                  backbone,
-                 head=None,
+                 seg_head=None,
                  need_train_names=None,
                  train_cfg=None,
                  test_cfg=None,
@@ -39,8 +39,8 @@ class SegSAMPLer(BasePLer):
         if backbone is not None:
             backbone_type = backbone.pop('type')
             self.backbone = sam_model_registry[backbone_type](**backbone)
-        if head is not None:
-            self.head = MODELS.build(head)
+        if seg_head is not None:
+            self.seg_head = MODELS.build(seg_head)
 
     def setup(self, stage: str) -> None:
         if self.need_train_names is not None:
@@ -49,14 +49,14 @@ class SegSAMPLer(BasePLer):
     def configure_sharded_model(self) -> None:
         if self.trainer.strategy.__class__.__name__ == 'FSDPStrategy':
             from torch.distributed.fsdp.wrap import wrap
-            self.head = wrap(self.head)
+            self.seg_head = wrap(self.seg_head)
         else:
             super().configure_sharded_model()
 
     def configure_optimizers(self):
         if self.trainer.strategy.__class__.__name__ == 'DeepSpeedStrategy':
             import deepspeed
-            optimizer = deepspeed.ops.adam.FusedAdam(self.head.parameters(), lr=1e-4)
+            optimizer = deepspeed.ops.adam.FusedAdam(self.seg_head.parameters(), lr=1e-4)
             # optimizer = deepspeed.ops.adam.DeepSpeedCPUAdam(self.sam_prompt_generator.parameters(), lr=1e-4)
             # optimizer = torch.optim.Adam(self.sam_prompt_generator.parameters(), lr=1e-4)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
@@ -86,7 +86,7 @@ class SegSAMPLer(BasePLer):
     def validation_step(self, batch, batch_idx):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
         x = self.extract_feat(batch)
-        seg_logits = self.head.predict(x)
+        seg_logits = self.seg_head.predict(x)
         seg_logits = F.interpolate(seg_logits, size=seg_label.shape[-2:], mode='bilinear', align_corners=False)
         seg_label = seg_label.squeeze(1)
         seg_logits = torch.argmax(seg_logits, dim=1)
@@ -94,7 +94,7 @@ class SegSAMPLer(BasePLer):
 
     def training_step(self, batch, batch_idx):
         x = self.extract_feat(batch)
-        losses = self.head.loss(x, batch['data_samples'])
+        losses = self.seg_head.loss(x, batch['data_samples'])
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'train_{k}': v for k, v in log_vars.items()}
         log_vars['loss'] = parsed_losses
@@ -102,7 +102,7 @@ class SegSAMPLer(BasePLer):
         return log_vars
 
     def on_before_optimizer_step(self, optimizer) -> None:
-        self.log_grad(module=self.head)
+        self.log_grad(module=self.seg_head)
 
 
 
