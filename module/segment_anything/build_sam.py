@@ -108,9 +108,16 @@ def _build_sam(
     if checkpoint is not None:
         with open(checkpoint, "rb") as f:
             state_dict = torch.load(f)
+        try:
+            missing_keys, unexpected_keys = sam.load_state_dict(state_dict, strict=False)
+            if mmengine.dist.get_local_rank() == 0:
+                print(f'loading cp: missing_keys-{missing_keys}')
+        except Exception as e:
             del state_dict["mask_decoder.iou_prediction_head.layers.2.weight"]
             del state_dict["mask_decoder.iou_prediction_head.layers.2.bias"]
-        missing_keys, unexpected_keys = sam.load_state_dict(state_dict, strict=False)
-        if mmengine.dist.get_local_rank() == 0:
-            print(f'loading cp: missing_keys-{missing_keys}')
+            missing_keys, unexpected_keys = sam.load_state_dict(state_dict, strict=False)
+            if mmengine.dist.get_local_rank() == 0:
+                print(f'loading cp: {e}')
+                print(f'loading cp: missing_keys-{missing_keys}')
+
     return sam
