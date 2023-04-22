@@ -43,6 +43,15 @@ class MMSegPLer(BasePLer):
         self.log_dict(log_vars, prog_bar=True)
         return log_vars
 
+    def validation_step(self, batch, batch_idx):
+        data = self.whole_model.data_preprocessor(batch, False)
+        data_samples = self.whole_model._run_forward(data, mode='predict')
+        pred = [data_sample.pred_sem_seg.data for data_sample in data_samples]
+        label = [data_sample.gt_sem_seg.data for data_sample in data_samples]
+        pred = torch.cat(pred, dim=0)
+        label = torch.cat(label, dim=0)
+        self.val_evaluator.update(pred, label)
+
 
 
 

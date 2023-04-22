@@ -168,7 +168,7 @@ class BasePLer(pl.LightningModule, BaseModel):
     def lr_scheduler_step(self, scheduler, metric):
         pass
 
-    def log_grad(self, module):
+    def log_grad(self, module=None) -> None:
         # Compute the 2-norm for each layer
         # If using mixed precision, the gradients are already unscaled here
         if module is None:
@@ -181,6 +181,9 @@ class BasePLer(pl.LightningModule, BaseModel):
             prog_bar=True,
             logger=True
         )
+
+    def on_before_optimizer_step(self, optimizer) -> None:
+        self.log_grad()
 
     def on_validation_epoch_end(self) -> None:
         if hasattr(self, 'val_evaluator'):

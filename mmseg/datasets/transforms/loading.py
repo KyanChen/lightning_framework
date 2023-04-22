@@ -98,8 +98,8 @@ class LoadAnnotations(MMCV_LoadAnnotations):
             img_bytes, flag='unchanged',
             backend=self.imdecode_backend).squeeze().astype(np.uint8)
 
-        # for ori_id, new_id in self.label_id_map.items():
-        #     gt_semantic_seg[gt_semantic_seg == int(ori_id)] = new_id
+        for ori_id, new_id in self.label_id_map.items():
+            gt_semantic_seg[gt_semantic_seg == int(ori_id)] = new_id
 
         # reduce zero_label
         if self.reduce_zero_label is None:
