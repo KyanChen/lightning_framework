@@ -98,6 +98,9 @@ class LoadAnnotations(MMCV_LoadAnnotations):
             img_bytes, flag='unchanged',
             backend=self.imdecode_backend).squeeze().astype(np.uint8)
 
+        if np.any(gt_semantic_seg > 1):
+            raise ValueError('gt_semantic_seg should not contain value 255.')
+
         for ori_id, new_id in self.label_id_map.items():
             gt_semantic_seg[gt_semantic_seg == int(ori_id)] = new_id
 

@@ -216,11 +216,11 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 32
+train_batch_size_per_gpu = 8
 train_num_workers = 8
-test_batch_size_per_gpu = 32
+test_batch_size_per_gpu = 8
 test_num_workers = 8
-persistent_workers = False
+persistent_workers = True
 
 
 # data_parent = '/data1/kyanchen/datasets/'

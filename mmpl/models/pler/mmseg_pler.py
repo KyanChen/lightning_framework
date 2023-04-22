@@ -42,6 +42,7 @@ class MMSegPLer(BasePLer):
         log_vars['loss'] = parsed_losses
         self.log_dict(log_vars, prog_bar=True)
         return log_vars
+        # return torch.tensor(0.0, requires_grad=True, device=self.device)
 
     def validation_step(self, batch, batch_idx):
         data = self.whole_model.data_preprocessor(batch, False)
