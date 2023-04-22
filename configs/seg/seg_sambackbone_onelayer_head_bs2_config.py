@@ -45,7 +45,7 @@ evaluator = dict(
     val_evaluator=evaluator_,
 )
 
-crop_size = (512, 512)
+
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 num_classes = 2
 
@@ -145,7 +145,7 @@ trainer_cfg = dict(
     # reload_dataloaders_every_n_epochs=0,
 )
 
-
+crop_size = (1024, 1024)
 train_pipeline = [
     dict(type='mmseg.LoadImageFromFile'),
     dict(type='mmseg.LoadAnnotations'),
