@@ -86,7 +86,7 @@ class SegSAMPLer(BasePLer):
     def validation_step(self, batch, batch_idx):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
         x = self.extract_feat(batch)
-        seg_logits = self.head.predict(x, batch['data_samples'])
+        seg_logits = self.head.predict(x)
         seg_logits = F.interpolate(seg_logits, size=seg_label.shape[-2:], mode='bilinear', align_corners=False)
         seg_label = seg_label.squeeze(1)
         seg_logits = torch.argmax(seg_logits, dim=1)
