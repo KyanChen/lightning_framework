@@ -79,8 +79,8 @@ class SegSAMPLer(BasePLer):
     def extract_feat(self, batch):
         x = torch.stack(batch['inputs'], dim=0)
         x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
-        x = (x - self.backbone.img_encoder.pixel_mean) / self.backbone.img_encoder.pixel_std
-        feat = self.img_encoder(x)
+        x = (x - self.backbone.image_encoder.pixel_mean) / self.backbone.image_encoder.pixel_std
+        feat = self.backbone.image_encoder(x)
         return feat
 
     def validation_step(self, batch, batch_idx):
