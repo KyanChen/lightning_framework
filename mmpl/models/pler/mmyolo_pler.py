@@ -23,8 +23,6 @@ from mmpl.datasets.data_utils import lafan1_utils_torch
 class MMYoloPLer(BasePLer):
     def __init__(self,
                  whole_model=None,
-                 train_cfg=None,
-                 test_cfg=None,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
