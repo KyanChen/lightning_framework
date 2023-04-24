@@ -70,7 +70,7 @@ model_cfg = dict(
         type='TransformerEncoderNeck',
         model_dim=hidden_size,
         with_pe=True,
-        max_position_embeddings=23,
+        max_position_embeddings=24,
         with_cls_token=True,
         num_encoder_layers=3
     ),
@@ -89,6 +89,7 @@ model_cfg = dict(
     head=dict(
         type='MotionGPTHead',
         in_channels=hidden_size,
+        num_layers=3,
         out_channels=dict(
             rot_6d=22*6,
             diff_root_zyx=3,
