@@ -228,7 +228,7 @@ datamodule_cfg = dict(
             test_mode=True,
             phase='predict',
             data_root='data/lafan1/',
-            n_offset=500,
+            n_offset=3000,
         )
     )
 )
