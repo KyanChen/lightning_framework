@@ -135,7 +135,7 @@ def draw_motion_based_global_pos(
         points = g_pos[i]
         # 如果需要换轴
         points = points[:, axis_order]
-        fig = plt.figure(0, figsize=(8, 6))
+        fig = plt.figure(0, figsize=(4, 3))
         ax = fig.add_subplot(projection='3d')
         # ax.set_aspect('equal')
         ax.scatter(points[:, 0], points[:, 1], points[:, 2], color='black', alpha=point_alpha, linewidths=0, marker='o')
