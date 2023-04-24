@@ -98,8 +98,8 @@ model_cfg = dict(
             diff_root_zyx=3*2,
         ),
         loss='uncertainty_loss',
-        return_certainty=True,
-        uncertainty_beta=10,
+        return_certainty=False,
+        uncertainty_beta=100,
         global_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
         rotation_loss=dict(type='UncertaintyRegressionLoss', choice='l2', loss_weight=1.0),
         root_position_loss=dict(type='UncertaintyRegressionLoss', choice='l2', loss_weight=1.0)
@@ -131,7 +131,7 @@ callbacks = [
     ),
     dict(
         type='MotionVisualizer',
-        save_dir='results/vis_uncertainty_certainty',
+        save_dir='results/vis_uncertainty_maxmin',
         fps=20,
     )
 ]
@@ -140,10 +140,10 @@ callbacks = [
 trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
-    strategy='ddp_find_unused_parameters_true',
+    # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=[1],
     # default_root_dir='results/tmp',
     default_root_dir=f'results/motiongpt/{exp_name}',
     max_epochs=max_epochs,
@@ -230,7 +230,7 @@ datamodule_cfg = dict(
             test_mode=True,
             phase='predict',
             data_root='data/lafan1/',
-            n_offset=100,
+            n_offset=500,
         )
     )
 )
