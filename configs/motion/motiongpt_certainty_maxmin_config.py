@@ -129,7 +129,7 @@ callbacks = [
     ),
     dict(
         type='MotionVisualizer',
-        save_dir='results/vis_certainty',
+        save_dir='results/vis_certainty_maxmin',
         fps=20,
     )
 ]
@@ -138,12 +138,12 @@ callbacks = [
 trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
-    strategy='ddp_find_unused_parameters_true',
+    # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
-    # default_root_dir='results/tmp',
-    default_root_dir=f'results/motiongpt/{exp_name}',
+    devices=1,
+    default_root_dir='results/tmp',
+    # default_root_dir=f'results/motiongpt/{exp_name}',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
@@ -228,7 +228,7 @@ datamodule_cfg = dict(
             test_mode=True,
             phase='predict',
             data_root='data/lafan1/',
-            n_offset=100,
+            n_offset=500,
         )
     )
 )

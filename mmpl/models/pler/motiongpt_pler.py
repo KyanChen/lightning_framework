@@ -182,7 +182,12 @@ class MotionGPTPLer(BasePLer):
                     std_rot_6d_with_position=self.std_rot_6d_with_position,
                     mean_diff_root_xz=self.mean_diff_root_xz,
                     std_diff_root_xz=self.std_diff_root_xz,
+                    max_rot_6d_with_position=self.max_rot_6d_with_position,
+                    min_rot_6d_with_position=self.min_rot_6d_with_position,
+                    max_diff_root_xz=self.max_diff_root_xz,
+                    min_diff_root_xz=self.min_diff_root_xz,
                 ),
+                min_max_norm=self.min_max_norm,
             )
 
             # project 6D rotation to 9D rotation

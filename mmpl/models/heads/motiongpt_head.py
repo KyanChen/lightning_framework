@@ -215,12 +215,6 @@ class MotionGPTHead(BaseModel):
     def predict(
             self,
             x,
-            # normalization_info=dict(
-            # max_rot_6d_with_position=0,
-            # min_rot_6d_with_position=0,
-            # max_diff_root_xz=0,
-            # min_diff_root_xz=0,
-            # ),
             normalization_info=dict(
                 mean_rot_6d_with_position=0,
                 std_rot_6d_with_position=0,
