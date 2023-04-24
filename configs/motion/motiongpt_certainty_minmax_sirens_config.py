@@ -97,7 +97,7 @@ model_cfg = dict(
         loss='certainty_loss',
         return_certainty=True,
         uncertainty_beta=10,
-        global_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
+        global_position_loss=dict(type='SmoothL1Loss', loss_weight=5.0),
         rotation_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
         root_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
         # out_channels=dict(
@@ -111,13 +111,13 @@ model_cfg = dict(
     ),
 )
 exp_name = 'E20230424_0'
-# logger = dict(
-#     type='WandbLogger',
-#     project='MotionGPT',
-#     group='certain',
-#     name=exp_name
-# )
-logger = None
+logger = dict(
+    type='WandbLogger',
+    project='MotionGPT',
+    group='certain',
+    name=exp_name
+)
+# logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -145,12 +145,12 @@ callbacks = [
 trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
-    # strategy='ddp_find_unused_parameters_true',
+    strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
-    default_root_dir='results/tmp',
-    # default_root_dir=f'results/motiongpt/{exp_name}',
+    devices=8,
+    # default_root_dir='results/tmp',
+    default_root_dir=f'results/motiongpt/{exp_name}',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
