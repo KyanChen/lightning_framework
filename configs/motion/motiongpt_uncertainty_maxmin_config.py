@@ -131,8 +131,8 @@ callbacks = [
     ),
     dict(
         type='MotionVisualizer',
-        save_dir='results/vis_uncertainty_maxmin',
-        fps=20,
+        save_dir=f'results/vis_uncertainty_maxmin_{exp_name}',
+        fps=29,
     )
 ]
 
