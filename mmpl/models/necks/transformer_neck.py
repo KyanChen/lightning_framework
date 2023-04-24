@@ -1,8 +1,10 @@
+import copy
+
 import torch
 import torch.nn as nn
-
 from mmpl.registry import MODELS
 from mmengine.model import BaseModule
+from mmcv.cnn.bricks.transformer import build_transformer_layer
 
 
 @MODELS.register_module()
@@ -18,19 +20,59 @@ class TransformerEncoderNeck(BaseModule):
             Default: 2
     """
 
-    def __init__(self, model_dim, with_cls_token=True, num_encoder_layers=3):
+    def __init__(self,
+                 model_dim,
+                 with_pe=True,
+                 max_position_embeddings=24,
+                 with_cls_token=True,
+                 num_encoder_layers=3
+                 ):
         super(TransformerEncoderNeck, self).__init__()
         self.embed_dims = model_dim
         self.with_cls_token = with_cls_token
+        self.with_pe = with_pe
+
         if self.with_cls_token:
             self.cls_token = nn.Parameter(torch.zeros(1, 1, self.embed_dims))
 
-        encoder_layer = nn.TransformerEncoderLayer(
-            self.embed_dims, nhead=8, dim_feedforward=self.embed_dims*2,
-            dropout=0.1, batch_first=True
+        if self.with_pe:
+            self.pe = nn.Parameter(torch.zeros(1, max_position_embeddings, self.embed_dims))
+
+        mlp_ratio = 4
+        embed_dims = model_dim
+        transformer_layer = dict(
+            type='BaseTransformerLayer',
+            attn_cfgs=[
+                dict(
+                    type='MultiheadAttention',
+                    embed_dims=embed_dims,
+                    num_heads=8,
+                    attn_drop=0.1,
+                    proj_drop=0.1,
+                    dropout_layer=dict(type='Dropout', drop_prob=0.1)
+                ),
+            ],
+            ffn_cfgs=dict(
+                type='FFN',
+                embed_dims=embed_dims,
+                feedforward_channels=embed_dims * mlp_ratio,
+                num_fcs=2,
+                act_cfg=dict(type='GELU'),
+                ffn_drop=0.1,
+                add_identity=True),
+            operation_order=('norm', 'self_attn', 'norm', 'ffn'),
+            norm_cfg=dict(type='LN'),
+            batch_first=True
         )
-        encoder_norm = nn.LayerNorm(self.embed_dims)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_encoder_layers, encoder_norm)
+
+        self.layers = nn.ModuleList()
+        transformer_layers = [
+            copy.deepcopy(transformer_layer) for _ in range(num_encoder_layers)
+        ]
+        for i in range(num_encoder_layers):
+            self.layers.append(build_transformer_layer(transformer_layers[i]))
+        self.embed_dims = self.layers[0].embed_dims
+        self.pre_norm = self.layers[0].pre_norm
 
     def init_weights(self):
         for p in self.parameters():
@@ -42,7 +84,11 @@ class TransformerEncoderNeck(BaseModule):
         if self.with_cls_token:
             cls_tokens = self.cls_token.expand(B, -1, -1)
             x = torch.cat((cls_tokens, x), dim=1)
-        x = self.transformer_encoder(x)
+        if self.with_pe:
+            x = x + self.pe[:, :x.shape[1], :]
+        for layer in self.layers:
+            x = layer(x)
+
         if self.with_cls_token:
             return x[:, 0], x
         return None, x
