@@ -114,7 +114,7 @@ exp_name = 'E20230424_1'
 logger = dict(
     type='WandbLogger',
     project='MotionGPT',
-    group='certain',
+    group='uncertain',
     name=exp_name
 )
 # logger = None
