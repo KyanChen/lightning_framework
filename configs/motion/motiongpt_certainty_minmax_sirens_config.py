@@ -1,6 +1,6 @@
 optimizer = dict(type='AdamW', lr=0.0001, weight_decay=1e-3)
 
-max_epochs = 150
+max_epochs = 120
 param_scheduler = [
     # warm up learning rate scheduler
     dict(
@@ -191,9 +191,9 @@ trainer_cfg = dict(
 # test_batch_size_per_gpu = 2
 # test_num_workers = 0
 # persistent_workers = False
-train_batch_size_per_gpu = 48
+train_batch_size_per_gpu = 32
 train_num_workers = 8
-test_batch_size_per_gpu = 48
+test_batch_size_per_gpu = 32
 test_num_workers = 8
 persistent_workers = True
 datamodule_cfg = dict(
