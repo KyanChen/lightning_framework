@@ -73,7 +73,7 @@ class MotionGPTHead(BaseModel):
                  max_diff_root_xz=0,
                  min_diff_root_xz=0,
              ),
-             min_max_norm=True,
+             norm_type='minmax',
              block_size=64,
              parents=[],
              rot_6d_with_position=None,
@@ -90,20 +90,20 @@ class MotionGPTHead(BaseModel):
         pred_diff_root_zyx = rearrange(pred_diff_root_zyx, 'b t (d c) -> b t d c', d=2)
 
         pred_rot_6d = rearrange(pred_rot_6d, 'b t d (n_j c) -> b t d n_j c', c=6)
-        if min_max_norm:
+        if norm_type == 'minmax':
             pred_rot_6d = (pred_rot_6d + 1) / 2
             pred_rot_6d = pred_rot_6d * (normalization_info['max_rot_6d_with_position'][:, :6] - normalization_info['min_rot_6d_with_position'][:, :6]) + \
                           normalization_info['min_rot_6d_with_position'][:, :6]
-        else:
+        elif norm_type == 'meanstd':
             pred_rot_6d = pred_rot_6d * normalization_info['std_rot_6d_with_position'][:, :6] + \
                             normalization_info['mean_rot_6d_with_position'][:, :6]
 
         pred_diff_root_zyx = pred_diff_root_zyx.unsqueeze(-2)
-        if min_max_norm:
+        if norm_type == 'minmax':
             pred_diff_root_zyx = (pred_diff_root_zyx + 1) / 2
             pred_diff_root_zyx = pred_diff_root_zyx * (normalization_info['max_diff_root_xz'] - normalization_info['min_diff_root_xz']) + \
                                  normalization_info['min_diff_root_xz']
-        else:
+        elif norm_type == 'meanstd':
             pred_diff_root_zyx = pred_diff_root_zyx * normalization_info['std_diff_root_xz'] + \
                                     normalization_info['mean_diff_root_xz']
 
@@ -153,7 +153,7 @@ class MotionGPTHead(BaseModel):
                 max_diff_root_xz=0,
                 min_diff_root_xz=0,
             ),
-            min_max_norm=True,
+            norm_type='minmax',
             block_size=64,
             parents=[],
             rot_6d_with_position=None,
@@ -168,20 +168,20 @@ class MotionGPTHead(BaseModel):
         pred_rot_6d, pred_diff_root_zyx = self.forward(x)
         pred_rot_6d = rearrange(pred_rot_6d, 'b t (n_j c) -> b t n_j c', c=6)
 
-        if min_max_norm:
+        if norm_type == 'minmax':
             pred_rot_6d = (pred_rot_6d + 1) / 2
             pred_rot_6d = pred_rot_6d * (normalization_info['max_rot_6d_with_position'][:, :6] - normalization_info['min_rot_6d_with_position'][:, :6]) + \
                           normalization_info['min_rot_6d_with_position'][:, :6]
-        else:
+        elif norm_type == 'meanstd':
             pred_rot_6d = pred_rot_6d * normalization_info['std_rot_6d_with_position'][:, :6] + \
                             normalization_info['mean_rot_6d_with_position'][:, :6]
 
         pred_diff_root_zyx = rearrange(pred_diff_root_zyx, 'b t (n_j c) -> b t n_j c', n_j=1)
-        if min_max_norm:
+        if norm_type == 'minmax':
             pred_diff_root_zyx = (pred_diff_root_zyx + 1) / 2
             pred_diff_root_zyx = pred_diff_root_zyx * (normalization_info['max_diff_root_xz'] - normalization_info['min_diff_root_xz']) + \
                                  normalization_info['min_diff_root_xz']
-        else:
+        elif norm_type == 'meanstd':
             pred_diff_root_zyx = pred_diff_root_zyx * normalization_info['std_diff_root_xz'] + \
                                     normalization_info['mean_diff_root_xz']
 
@@ -225,7 +225,7 @@ class MotionGPTHead(BaseModel):
                 max_diff_root_xz=0,
                 min_diff_root_xz=0,
             ),
-            min_max_norm=True,
+            norm_type='minmax',
             *args,
             **kwargs):
         """Compute loss.
@@ -237,11 +237,11 @@ class MotionGPTHead(BaseModel):
         else:
             pred_rot_6d = rearrange(pred_rot_6d, 'b t (d n_j c) -> b t d n_j c', d=2, c=6)
 
-        if min_max_norm:
+        if norm_type == 'minmax':
             pred_rot_6d = (pred_rot_6d + 1) / 2
             pred_rot_6d = pred_rot_6d * (normalization_info['max_rot_6d_with_position'][:, :6] - normalization_info['min_rot_6d_with_position'][:, :6]) + \
                           normalization_info['min_rot_6d_with_position'][:, :6]
-        else:
+        elif norm_type == 'meanstd':
             pred_rot_6d = pred_rot_6d * normalization_info['std_rot_6d_with_position'][:, :6] + \
                           normalization_info['mean_rot_6d_with_position'][:, :6]
 
@@ -250,11 +250,11 @@ class MotionGPTHead(BaseModel):
         else:
             pred_diff_root_zyx = rearrange(pred_diff_root_zyx, 'b t (d n_j c) -> b t d n_j c', d=2, n_j=1)
 
-        if min_max_norm:
+        if norm_type == 'minmax':
             pred_diff_root_zyx = (pred_diff_root_zyx + 1) / 2
             pred_diff_root_zyx = pred_diff_root_zyx * (normalization_info['max_diff_root_xz'] - normalization_info['min_diff_root_xz']) + \
                                  normalization_info['min_diff_root_xz']
-        else:
+        elif norm_type == 'meanstd':
             pred_diff_root_zyx = pred_diff_root_zyx * normalization_info['std_diff_root_xz'] + \
                                     normalization_info['mean_diff_root_xz']
 

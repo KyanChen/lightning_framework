@@ -25,7 +25,7 @@ class MotionGPTPLer(BasePLer):
                  temporal_transformer,
                  head,
                  mean_std_info,
-                 min_max_norm=True,
+                 norm_type='minmax',
                  block_size=512,
                  max_frames_predict=128,
                  n_prompt_tokens=20,
@@ -43,7 +43,7 @@ class MotionGPTPLer(BasePLer):
         self.mean_std_info = mean_std_info
         self.max_frames_predict = max_frames_predict
         self.n_prompt_tokens = n_prompt_tokens
-        self.min_max_norm = min_max_norm
+        self.norm_type = norm_type
 
     def setup(self, stage: str) -> None:
         mean_std = mmengine.load(self.mean_std_info)
@@ -106,7 +106,7 @@ class MotionGPTPLer(BasePLer):
             diff_root_zyx=diff_root_zyx,
             positions_shift=positions_shift,
             rotations_shift=rotations_shift,
-            min_max_norm=self.min_max_norm,
+            norm_type=self.norm_type,
         )
 
         parsed_losses, log_vars = self.parse_losses(losses)
@@ -124,7 +124,7 @@ class MotionGPTPLer(BasePLer):
 
     def forward(self, rot_6d_with_position_input, diff_root_zyx_input, *args: Any, **kwargs: Any) -> Any:
 
-        if self.min_max_norm:
+        if self.norm_type == 'minmax':
             # min-max normalization
             rot_6d_with_position_input = (rot_6d_with_position_input - self.min_rot_6d_with_position) / (
                     self.max_rot_6d_with_position - self.min_rot_6d_with_position)
@@ -187,7 +187,7 @@ class MotionGPTPLer(BasePLer):
                     max_diff_root_xz=self.max_diff_root_xz,
                     min_diff_root_xz=self.min_diff_root_xz,
                 ),
-                min_max_norm=self.min_max_norm,
+                norm_type=self.norm_type,
             )
 
             # project 6D rotation to 9D rotation
