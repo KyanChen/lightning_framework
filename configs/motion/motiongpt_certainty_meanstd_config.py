@@ -31,6 +31,7 @@ model_cfg = dict(
     block_size=block_size,
     max_frames_predict=max_frames_predict,
     n_prompt_tokens=40,
+    min_max_norm=False,
     mean_std_info=f'data/lafan1_train_mean_std_info_{block_size}.pkl',
     hyperparameters=dict(
         optimizer=optimizer,
@@ -82,26 +83,24 @@ model_cfg = dict(
     head=dict(
         type='MotionGPTHead',
         in_channels=768,
-        # out_channels=dict(
-        #     rot_6d=22*6,
-        #     diff_root_zyx=3,
-        # ),
-        # loss='certainty_loss',
-        # return_certainty=True,
-        # uncertainty_beta=10,
-        # global_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
-        # rotation_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
-        # root_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
         out_channels=dict(
-            rot_6d=22*6*2,
-            diff_root_zyx=3*2,
+            rot_6d=22*6,
+            diff_root_zyx=3,
         ),
-        loss='uncertainty_loss',
+        loss='certainty_loss',
         return_certainty=True,
         uncertainty_beta=10,
         global_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
-        rotation_loss=dict(type='UncertaintyRegressionLoss', choice='l2', loss_weight=1.0),
-        root_position_loss=dict(type='UncertaintyRegressionLoss', choice='l2', loss_weight=1.0)
+        rotation_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
+        root_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
+        # out_channels=dict(
+        #     rot_6d=22*6*2,
+        #     diff_root_zyx=3*2,
+        # ),
+        # loss='uncertainty_loss',
+        # global_position_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
+        # rotation_loss=dict(type='UncertaintyRegressionLoss', choice='l2', loss_weight=1.0),
+        # root_position_loss=dict(type='UncertaintyRegressionLoss', choice='l2', loss_weight=1.0)
     ),
 )
 exp_name = 'E20230418_1'
@@ -129,8 +128,8 @@ callbacks = [
     ),
     dict(
         type='MotionVisualizer',
-        save_dir='results/vis_uncertainty_certainty',
-        fps=20,
+        save_dir=f'results/vis_certainty_meanstd_{exp_name}',
+        fps=29,
     )
 ]
 
@@ -142,7 +141,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=[2],
     default_root_dir='results/tmp',
     # default_root_dir=f'results/motiongpt/{exp_name}',
     max_epochs=max_epochs,
@@ -159,7 +158,7 @@ trainer_cfg = dict(
     # limit_train_batches=1,
     # limit_val_batches=1,
     # limit_test_batches=None,
-    limit_predict_batches=20,
+    # limit_predict_batches=20,
     # overfit_batches=0.0,
 
     # val_check_interval=None,
@@ -181,11 +180,11 @@ trainer_cfg = dict(
 )
 
 # train_batch_size_per_gpu = 32
-train_batch_size_per_gpu = 2
-train_num_workers = 0
-test_batch_size_per_gpu = 2
-test_num_workers = 0
-persistent_workers = False
+train_batch_size_per_gpu = 32
+train_num_workers = 8
+test_batch_size_per_gpu = 32
+test_num_workers = 8
+persistent_workers = True
 datamodule_cfg = dict(
     type='PLDataModule',
     train_loader=dict(
@@ -229,7 +228,7 @@ datamodule_cfg = dict(
             test_mode=True,
             phase='predict',
             data_root='data/lafan1/',
-            n_offset=100,
+            n_offset=3000,
         )
     )
 )
