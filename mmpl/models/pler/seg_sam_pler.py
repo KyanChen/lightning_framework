@@ -27,7 +27,8 @@ from module.segment_anything.utils.amg import build_all_layer_point_grids
 class SegSAMPLer(BasePLer):
     def __init__(self,
                  backbone,
-                 seg_head=None,
+                 neck=None,
+                 head=None,
                  need_train_names=None,
                  train_cfg=None,
                  test_cfg=None,
@@ -39,8 +40,10 @@ class SegSAMPLer(BasePLer):
         if backbone is not None:
             backbone_type = backbone.pop('type')
             self.backbone = sam_model_registry[backbone_type](**backbone)
-        if seg_head is not None:
-            self.seg_head = MODELS.build(seg_head)
+        if neck is not None:
+            self.prompt_neck = MODELS.build(neck)
+        if head is not None:
+            self.seg_head = MODELS.build(head)
 
     def setup(self, stage: str) -> None:
         if self.need_train_names is not None:
@@ -83,10 +86,27 @@ class SegSAMPLer(BasePLer):
         feat = self.backbone.image_encoder(x)
         return tuple(feat)
 
+    def _seg_data_to_instance_data(self, batch_data_samples: SampleList):
+        batch_img_metas = []
+        batch_gt_instances = []
+
+        for data_sample in batch_data_samples:
+            batch_img_metas.append(data_sample.metainfo)
+            gt_masks = data_sample.instances_data.long()
+            gt_labels = data_sample.instances_label.long()
+
+            instance_data = InstanceData(labels=gt_labels, masks=gt_masks)
+            batch_gt_instances.append(instance_data)
+        return batch_gt_instances, batch_img_metas
+
     def validation_step(self, batch, batch_idx):
         seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
         x = self.extract_feat(batch)
-        seg_logits = self.seg_head.predict(x)
+        if hasattr(self, 'prompt_neck'):
+            cls_logits, l1_masks, l2_masks, iou_preds = self.prompt_neck(
+                x, self.backbone.prompt_encoder, self.backbone.mask_decoder)
+            x = cls_logits, l1_masks, l2_masks, iou_preds
+        seg_logits = self.seg_head.predict(*x)
         seg_logits = F.interpolate(seg_logits, size=seg_label.shape[-2:], mode='bilinear', align_corners=False)
         seg_label = seg_label.squeeze(1)
         seg_logits = torch.argmax(seg_logits, dim=1)
@@ -94,7 +114,18 @@ class SegSAMPLer(BasePLer):
 
     def training_step(self, batch, batch_idx):
         x = self.extract_feat(batch)
-        losses = self.seg_head.loss(x, batch['data_samples'])
+        if hasattr(self, 'prompt_neck'):
+            cls_logits, l1_masks, l2_masks, iou_preds = self.prompt_neck(x, self.backbone.prompt_encoder, self.backbone.mask_decoder)
+            batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(batch['data_samples'])
+            losses = self.seg_head.loss(
+                cls_scores=cls_logits,
+                mask_preds=l1_masks,
+                batch_gt_instances=batch_gt_instances,
+                batch_img_metas=batch_img_metas,
+                aux_mask=l2_masks,
+            )
+        else:
+            losses = self.seg_head.loss(x, batch['data_samples'])
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'train_{k}': v for k, v in log_vars.items()}
         log_vars['loss'] = parsed_losses

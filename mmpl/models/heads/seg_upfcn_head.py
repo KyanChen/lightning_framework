@@ -121,6 +121,7 @@ class UpFCNHead(BaseModule):
     def _forward_feature(self, inputs):
         img_feat, inner_states = inputs
         if hasattr(self, 'pre_layers'):
+            inner_states = inner_states[-len(self.in_channels):]
             inner_states = [einops.rearrange(x, 'b h w c -> b c h w') for x in inner_states]
             inner_states = [layer(x) for layer, x in zip(self.pre_layers[:-1], inner_states)]
             img_feat = self.pre_layers[-1](torch.cat(inner_states, dim=1))

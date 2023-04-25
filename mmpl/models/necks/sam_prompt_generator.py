@@ -97,7 +97,7 @@ class SAMTransformerPromptGenNeck(nn.Module):
         self.cls_head = nn.Sequential(
             nn.Linear(out_channels, out_channels//2),
             nn.ReLU(),
-            nn.Linear(out_channels, n_classes)
+            nn.Linear(out_channels//2, n_classes)
         )
 
         self.point_emb = nn.Sequential(
@@ -131,11 +131,13 @@ class SAMTransformerPromptGenNeck(nn.Module):
 
         img_embs, inner_states = inputs
         if hasattr(self, 'pre_layers'):
+            inner_states = inner_states[-len(self.in_channels):]
             inner_states = [einops.rearrange(x, 'b h w c -> b c h w') for x in inner_states]
             inner_states = [layer(x) for layer, x in zip(self.pre_layers[:-1], inner_states)]
             img_feats = self.pre_layers[-1](torch.cat(inner_states, dim=1))
         bs, c, h, w = img_feats.shape
-        img_feats_pe = self.generator_pe(img_feats)
+        mask_pe = torch.zeros((bs, h, w), device=img_feats.device)
+        img_feats_pe = self.generator_pe(mask_pe)
         query_feat = self.query_feat.weight.unsqueeze(0).expand(bs, -1, -1)  # Bx256x256
         query_emb = self.query_emb.weight.unsqueeze(0).expand(bs, -1, -1)
         img_feats, query_feats = self.transformer(
@@ -153,13 +155,13 @@ class SAMTransformerPromptGenNeck(nn.Module):
         b, c, h, w = upscaled_embedding.shape
         l1_masks = (hyper_in @ upscaled_embedding.view(b, c, h * w)).view(b, -1, h, w)
 
-        dense_masks = einops.rearrange(l1_masks, 'b n h w -> (b n) t h w', t=1)
+        dense_masks = einops.rearrange(l1_masks, 'b (n t) h w -> (b n) t h w', t=1)
         sparse, dense = prompt_encoder(points=None, boxes=None, masks=dense_masks)
         dense = einops.rearrange(dense, '(b n) t h w -> b n t h w', n=self.num_queries)
 
         l2_masks = []
         iou_preds = []
-        for curr_embedding, curr_mask, sparse_embeddings, dense_embeddings in zip(img_embs, dense, point_embs, dense):
+        for curr_embedding, sparse_embeddings, dense_embeddings in zip(img_embs, point_embs, dense):
             low_res_masks, iou_predictions = mask_decoder(
                 image_embeddings=curr_embedding.unsqueeze(0),
                 image_pe=prompt_encoder.get_dense_pe(),

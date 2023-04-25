@@ -136,7 +136,7 @@ callbacks = [
     ),
     dict(
         type='MotionVisualizer',
-        save_dir=f'results/vis_certainty_minmax_siren_{exp_name}',
+        save_dir=f'results/motiongpt_vis/vis_certainty_minmax_siren_{exp_name}',
         fps=29,
     )
 ]

@@ -63,10 +63,12 @@ class InstanceMatchingHead(BaseModel):
         return
 
     def loss(self,
-             cls_scores: Tensor,
-             mask_preds: Tensor,
+             cls_scores,
+             mask_preds,
              batch_gt_instances: List[InstanceData],
-             batch_img_metas: List[dict]) -> Tuple[Tensor]:
+             batch_img_metas: List[dict],
+             aux_mask=None
+             ) -> Tuple[Tensor]:
         """Loss function for outputs from a single decoder layer.
 
         Args:
@@ -87,6 +89,10 @@ class InstanceMatchingHead(BaseModel):
         num_imgs = cls_scores.size(0)
         cls_scores_list = [cls_scores[i] for i in range(num_imgs)]
         mask_preds_list = [mask_preds[i] for i in range(num_imgs)]
+        if aux_mask is not None:
+            aux_mask_list = [aux_mask[i] for i in range(num_imgs)]
+        else:
+            aux_mask_list = [None for i in range(num_imgs)]
 
         (labels_list, label_weights_list, mask_targets_list, mask_weights_list,
          avg_factor) = self.get_targets(cls_scores_list, mask_preds_list,
@@ -121,6 +127,14 @@ class InstanceMatchingHead(BaseModel):
         mask_preds = mask_preds[mask_weights > 0]
         target_shape = mask_targets.shape[-2:]
 
+        if aux_mask is not None:
+            aux_mask = aux_mask[mask_weights > 0]
+            aux_mask = F.interpolate(
+                aux_mask.unsqueeze(1),
+                target_shape,
+                mode='bilinear',
+                align_corners=False).squeeze(1)
+
         if mask_targets.shape[0] == 0:
             # zero match
             if hasattr(self, 'loss_dice'):
@@ -146,6 +160,9 @@ class InstanceMatchingHead(BaseModel):
         if hasattr(self, 'loss_dice'):
             loss_dice = self.loss_dice(
                 mask_preds, mask_targets, avg_factor=num_total_masks)
+            if aux_mask is not None:
+                loss_dice += 5*self.loss_dice(
+                    aux_mask, mask_targets, avg_factor=num_total_masks)
         else:
             loss_dice = torch.zeros([]).to(mask_preds.device)
 
@@ -158,6 +175,9 @@ class InstanceMatchingHead(BaseModel):
         mask_targets = mask_targets.reshape(-1, 1)
         # target is (1 - mask_targets) !!!
         loss_mask = self.loss_mask(mask_preds, mask_targets)
+        if aux_mask is not None:
+            aux_mask = aux_mask.reshape(-1, 1)
+            loss_mask += 5*self.loss_mask(aux_mask, mask_targets)
 
         loss_dict = dict()
         loss_dict['loss_cls'] = loss_cls
@@ -213,6 +233,7 @@ class InstanceMatchingHead(BaseModel):
         results = multi_apply(self._get_targets_single, cls_scores_list,
                               mask_preds_list, batch_gt_instances,
                               batch_img_metas)
+
         (labels_list, label_weights_list, mask_targets_list, mask_weights_list,
          pos_inds_list, neg_inds_list, sampling_results_list) = results[:7]
         rest_results = list(results[7:])
@@ -229,7 +250,8 @@ class InstanceMatchingHead(BaseModel):
 
     def _get_targets_single(self, cls_score: Tensor, mask_pred: Tensor,
                             gt_instances: InstanceData,
-                            img_meta: dict) -> Tuple[Tensor]:
+                            img_meta: dict,
+                            ) -> Tuple[Tensor]:
         """Compute classification and mask targets for one image.
 
         Args:
@@ -299,3 +321,8 @@ class InstanceMatchingHead(BaseModel):
         return (labels, label_weights, mask_targets, mask_weights, pos_inds,
                 neg_inds, sampling_result)
 
+    def predict(self, cls_logits, l1_masks, l2_masks, iou_preds):
+        cls_prob = torch.softmax(cls_logits, dim=-1)
+        l2_masks = torch.sigmoid(l2_masks)
+        pred_masks = torch.einsum('ncd, nchw->ndhw', cls_prob, l2_masks)
+        return pred_masks

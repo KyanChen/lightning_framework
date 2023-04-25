@@ -22,11 +22,11 @@ def parse_args():
     # parser.add_argument('--config', default='configs/det/yolov8_dynamic_sirens.py', help='train config file path')
     # parser.add_argument('--config', default='configs/seg/seg_just_backbone_with_clip_config.py', help='train config file path')
     # parser.add_argument('--config', default='configs/seg/seg_just_sam_backbone_config.py', help='train config file path')
-    # parser.add_argument('--config', default='configs/seg/seg_sambackbone_onelayer_head_bs2_config.py',
-    #                     help='train config file path')
+    parser.add_argument('--config', default='configs/seg/seg_samprompt_16layer_bs6_config.py',
+                        help='train config file path')
     # parser.add_argument('--config', default='configs/seg_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/seg_mask2former_config.py', help='train config file path')
-    parser.add_argument('--config', default='configs/motion/motiongpt_certainty_minmax_sirens_config.py', help='train config file path')
+    # parser.add_argument('--config', default='configs/motion/motiongpt_certainty_minmax_sirens_config.py', help='train config file path')
     parser.add_argument('--is-debug', default=False, action='store_true', help='debug mode')
     parser.add_argument('--ckpt-path', default=None, help='checkpoint path')
     parser.add_argument('--status', default='fit', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
