@@ -125,7 +125,7 @@ class SegSAMPLer(BasePLer):
                 aux_mask=l2_masks,
             )
         else:
-            losses = self.seg_head.loss(x, batch['data_samples'])
+            losses = self.seg_head.loss(*x, batch['data_samples'])
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'train_{k}': v for k, v in log_vars.items()}
         log_vars['loss'] = parsed_losses
@@ -133,7 +133,10 @@ class SegSAMPLer(BasePLer):
         return log_vars
 
     def on_before_optimizer_step(self, optimizer) -> None:
-        self.log_grad(module=self.prompt_neck)
+        if hasattr(self, 'prompt_neck'):
+            self.log_grad(module=self.prompt_neck)
+        else:
+            self.log_grad(module=self.seg_head)
 
 
 

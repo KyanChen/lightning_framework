@@ -118,8 +118,7 @@ class UpFCNHead(BaseModule):
             self.loss_decode = MODELS.build(loss_decode)
         self.conv_seg = nn.Conv2d(mid_channels[-1], num_classes, kernel_size=1)
 
-    def _forward_feature(self, inputs):
-        img_feat, inner_states = inputs
+    def _forward_feature(self, img_feat, inner_states):
         if hasattr(self, 'pre_layers'):
             inner_states = inner_states[-len(self.in_channels):]
             inner_states = [einops.rearrange(x, 'b h w c -> b c h w') for x in inner_states]
@@ -128,13 +127,13 @@ class UpFCNHead(BaseModule):
         feats = self.convs(img_feat)
         return feats
 
-    def forward(self, inputs):
+    def forward(self, img_feat, inner_states):
         """Forward function."""
-        output = self._forward_feature(inputs)
+        output = self._forward_feature(img_feat, inner_states)
         output = self.conv_seg(output)
         return output
 
-    def loss(self, inputs, batch_data_samples) -> dict:
+    def loss(self, img_feat, inner_states, batch_data_samples) -> dict:
         """Forward function for training.
 
         Args:
@@ -147,7 +146,7 @@ class UpFCNHead(BaseModule):
         Returns:
             dict[str, Tensor]: a dictionary of loss components
         """
-        seg_logits = self.forward(inputs)
+        seg_logits = self.forward(img_feat, inner_states)
         losses = self.loss_by_feat(seg_logits, batch_data_samples)
         return losses
 
@@ -177,6 +176,6 @@ class UpFCNHead(BaseModule):
         losses['loss_ce'] = self.loss_decode(seg_logits, seg_label)
         return losses
 
-    def predict(self, inputs):
-        seg_logits = self.forward(inputs)
+    def predict(self, img_feat, inner_states):
+        seg_logits = self.forward(img_feat, inner_states)
         return seg_logits

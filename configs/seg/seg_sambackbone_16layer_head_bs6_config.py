@@ -74,7 +74,7 @@ model_cfg = dict(
     )
 )
 
-exp_name = 'E20230422_3'
+exp_name = 'E20230425_3'
 logger = dict(
     type='WandbLogger',
     project='building',
