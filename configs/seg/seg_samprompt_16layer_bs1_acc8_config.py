@@ -158,7 +158,7 @@ trainer_cfg = dict(
     # strategy="ddp",
     strategy='ddp_find_unused_parameters_true',
     # precision='32',
-    precision='16-mixed',
+    # precision='16-mixed',
     devices=8,
     default_root_dir=f'results/building/{exp_name}',
     # default_root_dir='results/tmp',
@@ -182,7 +182,7 @@ trainer_cfg = dict(
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
-    # accumulate_grad_batches=32,
+    accumulate_grad_batches=8,
     gradient_clip_val=15,
     gradient_clip_algorithm='norm',
     # deterministic=None,
@@ -221,9 +221,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 2
+train_batch_size_per_gpu = 1
 train_num_workers = 2
-test_batch_size_per_gpu = 2
+test_batch_size_per_gpu = 1
 test_num_workers = 2
 persistent_workers = True
 
