@@ -133,7 +133,7 @@ class SegSAMPLer(BasePLer):
         return log_vars
 
     def on_before_optimizer_step(self, optimizer) -> None:
-        self.log_grad(module=self.seg_head)
+        self.log_grad(module=self.prompt_neck)
 
 
 
