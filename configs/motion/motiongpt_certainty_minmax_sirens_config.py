@@ -111,13 +111,13 @@ model_cfg = dict(
     ),
 )
 exp_name = 'E20230424_0'
-logger = dict(
-    type='WandbLogger',
-    project='MotionGPT',
-    group='certain',
-    name=exp_name
-)
-# logger = None
+# logger = dict(
+#     type='WandbLogger',
+#     project='MotionGPT',
+#     group='certain',
+#     name=exp_name
+# )
+logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -136,7 +136,7 @@ callbacks = [
     ),
     dict(
         type='MotionVisualizer',
-        save_dir=f'results/vis_certainty_maxmin_{exp_name}',
+        save_dir=f'results/vis_certainty_minmax_siren_{exp_name}',
         fps=29,
     )
 ]
@@ -145,12 +145,12 @@ callbacks = [
 trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
-    strategy='ddp_find_unused_parameters_true',
+    # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
-    # default_root_dir='results/tmp',
-    default_root_dir=f'results/motiongpt/{exp_name}',
+    devices=[0],
+    default_root_dir='results/tmp',
+    # default_root_dir=f'results/motiongpt/{exp_name}',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
