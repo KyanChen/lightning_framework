@@ -62,7 +62,7 @@ model_cfg = dict(
         type='vit_h',
         checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
     ),
-    seg_head=dict(
+    head=dict(
         type='UpFCNHead',
         in_channels=[1280]*16,
         mid_channels=[256, 128, 64],
