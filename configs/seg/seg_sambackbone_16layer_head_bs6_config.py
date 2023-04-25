@@ -75,14 +75,14 @@ model_cfg = dict(
 )
 
 exp_name = 'E20230425_3'
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='sam_backbone_only',
-    name=exp_name
-)
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='sam_backbone_only',
+#     name=exp_name
+# )
 
-# logger = None
+logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -106,11 +106,11 @@ trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
     # strategy="auto",
-    strategy="ddp",
+    # strategy="ddp",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=1,
     default_root_dir=f'results/building/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
