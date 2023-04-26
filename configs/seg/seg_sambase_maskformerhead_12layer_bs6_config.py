@@ -124,14 +124,14 @@ model_cfg = dict(
 )
 
 exp_name = 'E20230426_1'
-# logger = dict(
-#     type='WandbLogger',
-#     project='building',
-#     group='maskformerhead',
-#     name=exp_name
-# )
+logger = dict(
+    type='WandbLogger',
+    project='building',
+    group='maskformerhead',
+    name=exp_name
+)
 
-logger = None
+# logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -156,10 +156,10 @@ trainer_cfg = dict(
     accelerator="auto",
     # strategy="auto",
     # strategy="ddp",
-    # strategy='ddp_find_unused_parameters_true',
+    strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=[1],
+    devices=8,
     default_root_dir=f'results/building/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -221,9 +221,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 7
+train_batch_size_per_gpu = 6
 train_num_workers = 2
-test_batch_size_per_gpu = 7
+test_batch_size_per_gpu = 6
 test_num_workers = 2
 persistent_workers = True
 
