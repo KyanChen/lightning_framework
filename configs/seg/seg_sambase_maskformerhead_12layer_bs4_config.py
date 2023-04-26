@@ -61,15 +61,14 @@ model_cfg = dict(
     ),
     need_train_names=need_train_names,
     backbone=dict(
-        type='vit_h',
-        checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
+        type='vit_b',
+        checkpoint='pretrain/sam/sam_vit_b_01ec64.pth',
     ),
     neck=dict(
         type='SAMTransformerPromptGenNeck',
         prompt_shape=(100, 6),
-        in_channels=[1280]*24,
+        in_channels=[768]*12,
         out_channels=256,
-        stride=2,
         positional_encoding=dict(num_feats=128, normalize=True),
     ),
     head=dict(
@@ -124,7 +123,7 @@ model_cfg = dict(
     )
 )
 
-exp_name = 'E20230426_2'
+exp_name = 'E20230426_1'
 logger = dict(
     type='WandbLogger',
     project='building',
@@ -222,9 +221,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 5
+train_batch_size_per_gpu = 4
 train_num_workers = 2
-test_batch_size_per_gpu = 5
+test_batch_size_per_gpu = 4
 test_num_workers = 2
 persistent_workers = True
 
