@@ -87,11 +87,19 @@ class SAMTransformerPromptGenNeck(nn.Module):
         self.query_emb = nn.Embedding(self.num_queries, out_channels)
 
         self.output_upscaling = nn.Sequential(
-            nn.ConvTranspose2d(out_channels, out_channels // 4, kernel_size=2, stride=2),
-            LayerNorm2d(out_channels // 4),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
             nn.GELU(),
-            nn.ConvTranspose2d(out_channels // 4, out_channels // 8, kernel_size=2, stride=2),
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(out_channels, out_channels // 4, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels // 4),
             nn.GELU(),
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(out_channels // 4, out_channels // 8, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels // 8),
+            nn.GELU(),
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(out_channels // 8, out_channels // 8, kernel_size=3, padding=1),
         )
 
         self.cls_head = nn.Sequential(
@@ -100,13 +108,13 @@ class SAMTransformerPromptGenNeck(nn.Module):
             nn.Linear(out_channels//2, n_classes)
         )
 
-        self.point_emb = nn.Sequential(
-            nn.Linear(out_channels, out_channels),
-            nn.ReLU(),
-            nn.Linear(out_channels, out_channels),
-            nn.ReLU(),
-            nn.Linear(out_channels, self.per_query_point * out_channels)
-        )
+        # self.point_emb = nn.Sequential(
+        #     nn.Linear(out_channels, out_channels),
+        #     nn.ReLU(),
+        #     nn.Linear(out_channels, out_channels),
+        #     nn.ReLU(),
+        #     nn.Linear(out_channels, self.per_query_point * out_channels)
+        # )
         self.output_hypernetworks_mlps = MLP(out_channels, out_channels, out_channels // 8, 3)
 
 
@@ -146,8 +154,8 @@ class SAMTransformerPromptGenNeck(nn.Module):
             point_embedding=query_feat,
             point_pe=query_emb)
         cls_logits = self.cls_head(query_feats)
-        point_embs = self.point_emb(query_feats)
-        point_embs = rearrange(point_embs, 'b n (t c) -> b n t c', t=self.per_query_point)  # Bx100x6x256
+        # point_embs = self.point_emb(query_feats)
+        # point_embs = rearrange(point_embs, 'b n (t c) -> b n t c', t=self.per_query_point)  # Bx100x6x256
 
         src = img_feats.transpose(1, 2).view(bs, c, h, w)
         upscaled_embedding = self.output_upscaling(src)
@@ -155,23 +163,26 @@ class SAMTransformerPromptGenNeck(nn.Module):
         b, c, h, w = upscaled_embedding.shape
         l1_masks = (hyper_in @ upscaled_embedding.view(b, c, h * w)).view(b, -1, h, w)
 
-        dense_masks = einops.rearrange(l1_masks, 'b (n t) h w -> (b n) t h w', t=1)
-        sparse, dense = prompt_encoder(points=None, boxes=None, masks=dense_masks)
-        dense = einops.rearrange(dense, '(b n) t h w -> b n t h w', n=self.num_queries)
+        # dense_masks = einops.rearrange(l1_masks, 'b (n t) h w -> (b n) t h w', t=1)
+        # sparse, dense = prompt_encoder(points=None, boxes=None, masks=dense_masks)
+        # dense = einops.rearrange(dense, '(b n) t h w -> b n t h w', n=self.num_queries)
 
-        l2_masks = []
-        iou_preds = []
-        for curr_embedding, sparse_embeddings, dense_embeddings in zip(img_embs, point_embs, dense):
-            low_res_masks, iou_predictions = mask_decoder(
-                image_embeddings=curr_embedding.unsqueeze(0),
-                image_pe=prompt_encoder.get_dense_pe(),
-                sparse_prompt_embeddings=sparse_embeddings,
-                dense_prompt_embeddings=dense_embeddings
-            )
-            l2_masks.append(low_res_masks[:, 0])
-            iou_preds.append(iou_predictions[:, 0])
-        l2_masks = torch.stack(l2_masks, dim=0)
-        iou_preds = torch.stack(iou_preds, dim=0)
+        # l2_masks = []
+        # iou_preds = []
+        # for curr_embedding, sparse_embeddings, dense_embeddings in zip(img_embs, point_embs, dense):
+        #     low_res_masks, iou_predictions = mask_decoder(
+        #         image_embeddings=curr_embedding.unsqueeze(0),
+        #         image_pe=prompt_encoder.get_dense_pe(),
+        #         sparse_prompt_embeddings=sparse_embeddings,
+        #         dense_prompt_embeddings=dense_embeddings
+        #     )
+        #     l2_masks.append(low_res_masks[:, 0])
+        #     iou_preds.append(iou_predictions[:, 0])
+        # l2_masks = torch.stack(l2_masks, dim=0)
+        # iou_preds = torch.stack(iou_preds, dim=0)
+
+        l2_masks = None
+        iou_preds = None
 
         return cls_logits, l1_masks, l2_masks, iou_preds
 

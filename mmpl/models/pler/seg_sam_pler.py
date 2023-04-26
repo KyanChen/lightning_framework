@@ -109,7 +109,7 @@ class SegSAMPLer(BasePLer):
         seg_logits = self.seg_head.predict(*x)
         seg_logits = F.interpolate(seg_logits, size=seg_label.shape[-2:], mode='bilinear', align_corners=False)
         seg_label = seg_label.squeeze(1)
-        seg_logits = torch.argmax(seg_logits, dim=1)
+        seg_logits = seg_logits.squeeze(1) > 0.5
         self.val_evaluator.update(seg_logits, seg_label)
 
     def training_step(self, batch, batch_idx):
@@ -122,7 +122,7 @@ class SegSAMPLer(BasePLer):
                 mask_preds=l1_masks,
                 batch_gt_instances=batch_gt_instances,
                 batch_img_metas=batch_img_metas,
-                aux_mask=l2_masks,
+                # aux_mask=l2_masks,
             )
         else:
             losses = self.seg_head.loss(*x, batch['data_samples'])

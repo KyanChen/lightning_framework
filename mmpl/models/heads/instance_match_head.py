@@ -322,7 +322,7 @@ class InstanceMatchingHead(BaseModel):
                 neg_inds, sampling_result)
 
     def predict(self, cls_logits, l1_masks, l2_masks, iou_preds):
-        cls_prob = torch.softmax(cls_logits, dim=-1)
-        l2_masks = torch.sigmoid(l2_masks)
-        pred_masks = torch.einsum('ncd, nchw->ndhw', cls_prob, l2_masks)
+        cls_prob = torch.softmax(cls_logits, dim=-1)[..., 1:]
+        l1_masks = torch.sigmoid(l1_masks)
+        pred_masks = torch.einsum('ncd, nchw->ndhw', cls_prob, l1_masks)
         return pred_masks
