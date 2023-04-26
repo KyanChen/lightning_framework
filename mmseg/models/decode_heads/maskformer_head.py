@@ -34,12 +34,13 @@ class MaskFormerHead(MMDET_MaskFormerHead):
     """
 
     def __init__(self,
+                 threshold: float = 0.5,
                  num_classes: int = 150,
                  align_corners: bool = False,
                  ignore_index: int = 255,
                  **kwargs) -> None:
         super().__init__(**kwargs)
-
+        self.threshold = threshold
         self.out_channels = kwargs['out_channels']
         self.align_corners = True
         self.num_classes = num_classes
@@ -98,9 +99,11 @@ class MaskFormerHead(MMDET_MaskFormerHead):
                                         gt_sem_seg.shape[-1])).to(gt_sem_seg)
             else:
                 gt_masks = torch.stack(masks).squeeze(1)
-
-            instance_data = InstanceData(
-                labels=gt_labels, masks=gt_masks.long())
+            if hasattr(data_sample, 'instances_data'):
+                instance_data = InstanceData(labels=data_sample.instances_label, masks=data_sample.instances_data.long())
+            else:
+                instance_data = InstanceData(
+                    labels=gt_labels, masks=gt_masks.long())
             batch_gt_instances.append(instance_data)
         return batch_gt_instances, batch_img_metas
 
