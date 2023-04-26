@@ -23,6 +23,7 @@ class SAMTransformerPromptGenNeck(nn.Module):
             positional_encoding=dict(num_feats=128, normalize=True),
             n_classes=2,
             kernel_size=3,
+            stride=1,
             norm_cfg=None,
             act_cfg=dict(type='ReLU')
     ):
@@ -33,6 +34,7 @@ class SAMTransformerPromptGenNeck(nn.Module):
         self.act_cfg = act_cfg
         self.out_put_channels = out_channels
         self.n_classes = n_classes
+        self.stride = stride
 
         self.prompt_shape = prompt_shape
         self.num_queries = prompt_shape[0]
@@ -53,6 +55,15 @@ class SAMTransformerPromptGenNeck(nn.Module):
                         ),
                         ConvModule(
                             inner_channel,
+                            inner_channel*2,
+                            kernel_size=kernel_size,
+                            padding=kernel_size // 2,
+                            stride=self.stride,
+                            norm_cfg=self.norm_cfg,
+                            act_cfg=self.act_cfg
+                        ),
+                        ConvModule(
+                            inner_channel*2,
                             inner_channel,
                             kernel_size=kernel_size,
                             padding=kernel_size // 2,
