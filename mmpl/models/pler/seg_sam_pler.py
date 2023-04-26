@@ -114,6 +114,7 @@ class SegSAMPLer(BasePLer):
 
     def training_step(self, batch, batch_idx):
         x = self.extract_feat(batch)
+        import ipdb; ipdb.set_trace()
         if hasattr(self, 'prompt_neck'):
             cls_logits, l1_masks, l2_masks, iou_preds = self.prompt_neck(x, self.backbone.prompt_encoder, self.backbone.mask_decoder)
             batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(batch['data_samples'])
