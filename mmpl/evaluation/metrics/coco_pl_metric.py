@@ -311,8 +311,8 @@ class CocoPLMetric(Metric):
             image_infos.append(image_info)
             import ipdb; ipdb.set_trace()
             for ann in gt_dict['anns']:
-                label = ann['labels']
-                bbox = ann['bboxes']
+                label = ann['bbox_label']
+                bbox = ann['bbox']
                 coco_bbox = [
                     bbox[0],
                     bbox[1],
@@ -391,7 +391,8 @@ class CocoPLMetric(Metric):
                 assert 'gt_instances' in data_sample, \
                     'ground truth is required for evaluation when ' \
                     '`ann_file` is not provided'
-                import ipdb; ipdb.set_trace()
+                import ipdb;
+                ipdb.set_trace()
                 gt['anns'] = data_sample.gt_instances
             # add converted result to the results list
             self.results.append((gt, result))
