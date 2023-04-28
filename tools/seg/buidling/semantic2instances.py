@@ -11,8 +11,17 @@ seg_map[55:70, 75:80] = 0
 # plt.imshow(seg_map)
 # plt.show()
 
-# instances = label(seg_map)
+
+
+all_instances = []
 num_labels, instances, stats, centroids = cv2.connectedComponentsWithStats(seg_map, connectivity=8)
+for idx_label in range(1, num_labels):
+    all_instances.append(instances == idx_label)
+if len(all_instances) > 0:
+    all_instances = np.vstack(all_instances)
+
+# instances = label(seg_map)
+# num_labels, instances, stats, centroids = cv2.connectedComponentsWithStats(seg_map, connectivity=8)
 # contours, h = cv2.findContours(seg_map, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)  # 在二值化图像上搜索轮廓
 
 # instances = []
@@ -23,5 +32,5 @@ num_labels, instances, stats, centroids = cv2.connectedComponentsWithStats(seg_m
 #     instances.append(draw_img)
 
 # instances = np.vstack([seg_map]+instances)
-plt.imshow(instances)
+plt.imshow(all_instances)
 plt.show()

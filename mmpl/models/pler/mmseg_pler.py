@@ -53,6 +53,13 @@ class MMSegPLer(BasePLer):
         label = torch.cat(label, dim=0)
         self.val_evaluator.update(pred, label)
 
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
+        data = self.whole_model.data_preprocessor(batch, False)
+        data_samples = self.whole_model._run_forward(data, mode='predict')
+        return data_samples
+
+
+
 
 
 

@@ -1,5 +1,6 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_imports=False)
-
+# train max 71, min 1
+# val max 56, min 1
 max_epochs = 300
 
 optimizer = dict(
@@ -36,10 +37,6 @@ evaluator_ = [
     dict(
         type='MeanAveragePrecision',
         box_format='xyxy',
-        iou_type='bbox'),
-    dict(
-        type='MeanAveragePrecision',
-        box_format='xyxy',
         iou_type='segm')
 ]
 evaluator = dict(
@@ -63,7 +60,7 @@ data_preprocessor = dict(
 num_things_classes = 10
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-
+num_queries = 60
 model = dict(
     type='mmdet.MaskFormer',
     data_preprocessor=data_preprocessor,
@@ -85,7 +82,7 @@ model = dict(
         out_channels=256,
         num_things_classes=num_things_classes,
         num_stuff_classes=num_stuff_classes,
-        num_queries=100,
+        num_queries=num_queries,
         pixel_decoder=dict(
             type='mmdet.TransformerEncoderPixelDecoder',
             norm_cfg=dict(type='GN', num_groups=32),
@@ -191,13 +188,13 @@ model_cfg = dict(
 
 task_name = 'nwpu_ins'
 exp_name = 'E20230428_1'
-# logger = dict(
-#     type='WandbLogger',
-#     project='isaid',
-#     group='maskformer',
-#     name=exp_name
-# )
-logger = None
+logger = dict(
+    type='WandbLogger',
+    project=task_name,
+    group='maskformer',
+    name=exp_name
+)
+# logger = None
 
 
 callbacks = [
@@ -208,7 +205,7 @@ callbacks = [
         save_last=True,
         mode='max',
         monitor='valmap_0',
-        save_top_k=5,
+        save_top_k=2,
         filename='epoch_{epoch}-map_{valmap_0:.4f}'
     ),
     dict(
@@ -226,7 +223,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=4,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -284,18 +281,18 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 2
-train_num_workers = 0
-test_batch_size_per_gpu = 2
-test_num_workers = 0
-persistent_workers = False
+train_batch_size_per_gpu = 8
+train_num_workers = 2
+test_batch_size_per_gpu = 8
+test_num_workers = 2
+persistent_workers = True
 
-data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPU VHR-10_dataset'
-# data_parent = 'samples/seg/iSAID_patches/'
-train_data_prefix = 'train/'
-val_data_prefix = 'val/'
+# data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPU VHR-10_dataset/'
+data_parent = '/mnt/search01/dataset/cky_data/'
+train_data_prefix = ''
+val_data_prefix = ''
 
-dataset_type = 'ISAIDInsSegDataset'
+dataset_type = 'NWPUInsSegDataset'
 # metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
 
 val_loader = dict(
@@ -306,8 +303,8 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='annotations/instancesonly_filtered_gtFine_val.json',
-            data_prefix=dict(img_path=val_data_prefix),
+            ann_file='instances_val2017.json',
+            data_prefix=dict(img_path='positive image set'),
             test_mode=True,
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=test_pipeline,
@@ -323,8 +320,8 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            data_prefix=dict(img_path=train_data_prefix),
-            ann_file='annotations/instancesonly_filtered_gtFine_train.json',
+            ann_file='instances_train2017.json',
+            data_prefix=dict(img_path='positive image set'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
             backend_args=backend_args)

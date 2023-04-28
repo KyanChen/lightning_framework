@@ -18,10 +18,10 @@ from mmyolo.utils.misc import show_data_classes
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Distribution of categories and bbox instances')
-    parser.add_argument('--config', default='configs/ins_seg/seg_maskformer_isaid_bs8_config.py', help='config file path')
+    parser.add_argument('--config', default='configs/ins_seg/seg_maskformer_nwpu_bs8_config.py', help='config file path')
     parser.add_argument(
         '--val-dataset',
-        default=False,
+        default=True,
         action='store_true',
         help='The default train_dataset.'
         'To change it to val_dataset, enter "--val-dataset"')

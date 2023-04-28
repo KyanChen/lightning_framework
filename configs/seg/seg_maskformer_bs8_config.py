@@ -168,14 +168,14 @@ model_cfg = dict(
 )
 
 exp_name = 'E20230428_0'
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='maskformer',
-    name=exp_name
-)
+# logger = dict(
+#     type='WandbLogger',
+#     project='building',
+#     group='maskformer',
+#     name=exp_name
+# )
 
-# logger = None
+logger = None
 
 
 callbacks = [
@@ -187,24 +187,28 @@ callbacks = [
         mode='max',
         monitor='valmulticlassjaccardindex_1',
         save_top_k=5,
-        filename='epoch_{epoch}-iou_{metric_1:.4f}'
+        filename='epoch_{epoch}-iou_{valmulticlassjaccardindex_1:.4f}'
     ),
     dict(
         type='LearningRateMonitor',
         logging_interval='step'
+    ),
+    dict(
+        type='SegVisualizer',
+        save_dir=f'results/building/{exp_name}/visualizations',
     )
 ]
 
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="auto",
+    accelerator="cpu",
     strategy="auto",
     # strategy="ddp",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=1,
     default_root_dir=f'results/building/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -274,9 +278,9 @@ persistent_workers = True
 
 
 # data_parent = '/data1/kyanchen/datasets/'
-# data_parent = '/Users/kyanchen/datasets/Building/'
-data_parent = '/mnt/search01/dataset/cky_data/'
-# data_parent = 'samples/seg/'
+data_parent = '/Users/kyanchen/datasets/Building/'
+# data_parent = '/mnt/search01/dataset/cky_data/'
+data_parent = 'samples/seg/'
 data_root = data_parent+'WHU/'
 train_data_prefix = 'train/'
 val_data_prefix = 'test/'
@@ -330,6 +334,6 @@ datamodule_cfg = dict(
     ),
     val_loader=val_loader,
     # test_loader=val_loader
-    # predict_loader=val_loader
+    predict_loader=val_loader
 )
 
