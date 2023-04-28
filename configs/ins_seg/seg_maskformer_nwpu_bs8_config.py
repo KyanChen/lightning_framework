@@ -198,13 +198,13 @@ model_cfg = dict(
 
 task_name = 'nwpu_ins'
 exp_name = 'E20230428_1'
-logger = dict(
-    type='WandbLogger',
-    project=task_name,
-    group='maskformer',
-    name=exp_name
-)
-# logger = None
+# logger = dict(
+#     type='WandbLogger',
+#     project=task_name,
+#     group='maskformer',
+#     name=exp_name
+# )
+logger = None
 
 
 callbacks = [
