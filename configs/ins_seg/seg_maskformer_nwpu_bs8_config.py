@@ -36,7 +36,9 @@ param_scheduler_callback = dict(
 evaluator_ = dict(
         type='MeanAveragePrecision',
         box_format='xyxy',
-        iou_type='segm')
+        iou_type='segm',
+        max_detection_thresholds=[1, 10, 100],
+)
 
 evaluator = dict(
     # train_evaluator=evaluator_,

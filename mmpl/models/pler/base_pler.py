@@ -187,7 +187,10 @@ class BasePLer(pl.LightningModule, BaseModel):
 
     def on_validation_epoch_end(self) -> None:
         if hasattr(self, 'val_evaluator'):
-            metrics = self.val_evaluator.compute()
+            if self.local_rank == 0:
+                import ipdb; ipdb.set_trace()
+                metrics = self.val_evaluator.compute()
+            self.trainer.strategy.barrier()
             for k, v in metrics.items():
                 v = v.view(-1)
                 for i, data in enumerate(v):
