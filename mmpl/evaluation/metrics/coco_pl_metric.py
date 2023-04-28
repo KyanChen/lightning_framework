@@ -309,7 +309,6 @@ class CocoPLMetric(Metric):
                 height=gt_dict['height'],
                 file_name='')
             image_infos.append(image_info)
-            import ipdb; ipdb.set_trace()
             for ann in gt_dict['anns']:
                 label = ann['bbox_label']
                 bbox = ann['bbox']
