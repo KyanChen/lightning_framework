@@ -614,4 +614,5 @@ class CocoPLMetric(Metric):
 
         if tmp_dir is not None:
             tmp_dir.cleanup()
+        import ipdb; ipdb.set_trace()
         return eval_results
