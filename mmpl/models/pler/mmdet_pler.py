@@ -54,6 +54,7 @@ class MMDetPLer(BasePLer):
             if 'masks' in gt_data:
                 gt['masks'] = gt_data['masks'].to_tensor(dtype=torch.bool, device=result['masks'].device)
             targets.append(gt)
+        print()
         self.val_evaluator.update(preds, targets)
 
     def training_step(self, batch, batch_idx):

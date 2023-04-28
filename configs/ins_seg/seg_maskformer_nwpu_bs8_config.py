@@ -38,7 +38,8 @@ evaluator_ = dict(
         box_format='xyxy',
         iou_type='segm',
         max_detection_thresholds=[1, 10, 100],
-        dist_sync_on_step=True,
+        # dist_sync_on_step=True,
+        compute_on_cpu=True,
 )
 
 evaluator = dict(
@@ -219,13 +220,13 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="auto",
+    accelerator="cpu",
     strategy="auto",
     # strategy="ddp",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=[1, 2],
+    devices=[1,2],
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
