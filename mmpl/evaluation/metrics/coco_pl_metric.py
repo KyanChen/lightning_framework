@@ -396,7 +396,7 @@ class CocoPLMetric(Metric):
                     gt['anns'].append(
                         dict(
                             bbox_label=x_data['labels'].item(),
-                            bbox=x_data['bboxes'].cpu().numpy().reshape(1, 4),
+                            bbox=x_data['bboxes'].cpu().numpy().reshape(4),
                             mask=x_data['masks']
                         )
                     )
