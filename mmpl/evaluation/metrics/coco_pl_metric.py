@@ -597,8 +597,8 @@ class CocoPLMetric(Metric):
                     table_data = [headers]
                     table_data += [result for result in results_2d]
                     table = AsciiTable(table_data)
-                    if mmengine.dist.get_local_rank() == 0:
-                        logger.info('\n' + table.table)
+                    # if mmengine.dist.get_local_rank() == 0:
+                    logger.info('\n' + table.table)
 
                 if metric_items is None:
                     metric_items = [
@@ -611,10 +611,11 @@ class CocoPLMetric(Metric):
                     eval_results[key] = float(f'{round(val, 3)}')
 
                 ap = coco_eval.stats[:6]
-                if mmengine.dist.get_local_rank() == 0:
-                    logger.info(f'{metric}_mAP_copypaste: {ap[0]:.3f} '
-                                f'{ap[1]:.3f} {ap[2]:.3f} {ap[3]:.3f} '
-                                f'{ap[4]:.3f} {ap[5]:.3f}')
+                # if mmengine.dist.get_local_rank() == 0:
+
+                logger.info(f'{metric}_mAP_copypaste: {ap[0]:.3f} '
+                            f'{ap[1]:.3f} {ap[2]:.3f} {ap[3]:.3f} '
+                            f'{ap[4]:.3f} {ap[5]:.3f}')
 
         if tmp_dir is not None:
             tmp_dir.cleanup()
