@@ -616,4 +616,5 @@ class CocoPLMetric(Metric):
             tmp_dir.cleanup()
         for k, v in eval_results.items():
             eval_results[k] = torch.tensor(v).to(self.device)
+        self._coco_api = None
         return eval_results
