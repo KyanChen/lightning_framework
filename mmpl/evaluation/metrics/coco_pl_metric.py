@@ -614,7 +614,6 @@ class CocoPLMetric(Metric):
 
         if tmp_dir is not None:
             tmp_dir.cleanup()
-        import ipdb; ipdb.set_trace()
         for k, v in eval_results.items():
             eval_results[k] = torch.tensor(v)
         return eval_results
