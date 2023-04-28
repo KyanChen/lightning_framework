@@ -39,7 +39,7 @@ evaluator_ = dict(
         iou_type='segm',
         max_detection_thresholds=[1, 10, 100],
         # dist_sync_on_step=True,
-        compute_on_cpu=True,
+        # compute_on_cpu=True,
 )
 
 evaluator = dict(
@@ -191,13 +191,13 @@ model_cfg = dict(
 
 task_name = 'nwpu_ins'
 exp_name = 'E20230428_1'
-# logger = dict(
-#     type='WandbLogger',
-#     project=task_name,
-#     group='maskformer',
-#     name=exp_name
-# )
-logger = None
+logger = dict(
+    type='WandbLogger',
+    project=task_name,
+    group='maskformer',
+    name=exp_name
+)
+# logger = None
 
 
 callbacks = [
@@ -226,13 +226,13 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=[1,2],
+    devices=[1],
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=2,
+    log_every_n_steps=5,
     check_val_every_n_epoch=1,
     benchmark=True,
     # sync_batchnorm=True,
@@ -284,9 +284,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 2
+train_batch_size_per_gpu = 8
 train_num_workers = 2
-test_batch_size_per_gpu = 2
+test_batch_size_per_gpu = 8
 test_num_workers = 2
 persistent_workers = True
 
