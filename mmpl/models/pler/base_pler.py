@@ -33,12 +33,15 @@ class BasePLer(pl.LightningModule, BaseModel):
             for k, v in evaluator_cfg.items():
                 metrics = []
                 if isinstance(v, dict):
-                    metric = METRICS.build(v)
-                    metrics.append(metric)
-                elif isinstance(v, list):
+                    v = [v]
+                if isinstance(v, list):
                     for metric_cfg in v:
                         metric = METRICS.build(metric_cfg)
                         metrics.append(metric)
+                else:
+                    raise TypeError('evaluator should be a `dict` or '
+                                    f'`list` instance, but got '
+                                    f'{type(evaluator_cfg)}')
                 setattr(self, k, MetricCollection(metrics, prefix=k.split('_')[0]))
 
     def _set_grad(self, need_train_names: list=[], noneed_train_names: list=[]):
@@ -181,6 +184,18 @@ class BasePLer(pl.LightningModule, BaseModel):
             prog_bar=True,
             logger=True
         )
+
+    def setup(self, stage: str) -> None:
+        evaluators = ['train', 'val', 'test']
+        for evaluator in evaluators:
+            if hasattr(self, f'{evaluator}_evaluator'):
+                if hasattr(self.trainer.datamodule, f'{evaluator}_dataset'):
+                    dataset = getattr(self.trainer.datamodule, f'{evaluator}_dataset')
+                    if hasattr(dataset, 'metainfo'):
+                        evaluator_ = getattr(self, f'{evaluator}_evaluator')
+                        for v in evaluator_.values():
+                            if hasattr(v, 'dataset_meta'):
+                                v.dataset_meta = dataset.metainfo
 
     def on_before_optimizer_step(self, optimizer) -> None:
         self.log_grad()

@@ -29,33 +29,34 @@ class MMDetPLer(BasePLer):
         self.whole_model = MODELS.build(whole_model)
 
     def setup(self, stage: str) -> None:
-        pass
+        super().setup(stage)
 
     def validation_step(self, batch, batch_idx):
         data = self.whole_model.data_preprocessor(batch, False)
         batch_data_samples = self.whole_model._run_forward(data, mode='predict')  # type: ignore
 
-        preds = []
-        targets = []
-        for data_sample in batch_data_samples:
-            result = dict()
-            pred = data_sample.pred_instances
-            result['boxes'] = pred['bboxes']
-            result['scores'] = pred['scores']
-            result['labels'] = pred['labels']
-            if 'masks' in pred:
-                result['masks'] = pred['masks']
-            preds.append(result)
-            # parse gt
-            gt = dict()
-            gt_data = data_sample.get('gt_instances', None)
-            gt['boxes'] = gt_data['bboxes']
-            gt['labels'] = gt_data['labels']
-            if 'masks' in gt_data:
-                gt['masks'] = gt_data['masks'].to_tensor(dtype=torch.bool, device=result['masks'].device)
-            targets.append(gt)
-        print()
-        self.val_evaluator.update(preds, targets)
+        # preds = []
+        # targets = []
+        # for data_sample in batch_data_samples:
+        #     result = dict()
+        #     pred = data_sample.pred_instances
+        #     result['boxes'] = pred['bboxes']
+        #     result['scores'] = pred['scores']
+        #     result['labels'] = pred['labels']
+        #     if 'masks' in pred:
+        #         result['masks'] = pred['masks']
+        #     preds.append(result)
+        #     # parse gt
+        #     gt = dict()
+        #     gt_data = data_sample.get('gt_instances', None)
+        #     gt['boxes'] = gt_data['bboxes']
+        #     gt['labels'] = gt_data['labels']
+        #     if 'masks' in gt_data:
+        #         gt['masks'] = gt_data['masks'].to_tensor(dtype=torch.bool, device=result['masks'].device)
+        #     targets.append(gt)
+        #
+        # self.val_evaluator.update(preds, targets)
+        self.val_evaluator.update(batch, batch_data_samples)
 
     def training_step(self, batch, batch_idx):
         data = self.whole_model.data_preprocessor(batch, True)

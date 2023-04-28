@@ -33,14 +33,20 @@ param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
+# evaluator_ = dict(
+#         type='MeanAveragePrecision',
+#         box_format='xyxy',
+#         iou_type='segm',
+#         # iou_type='bbox',
+#         max_detection_thresholds=[1, 10, 100],
+#         # dist_sync_on_step=True,
+#         # compute_on_cpu=True,
+# )
+
 evaluator_ = dict(
-        type='MeanAveragePrecision',
-        box_format='xyxy',
-        iou_type='segm',
-        # iou_type='bbox',
-        max_detection_thresholds=[1, 10, 100],
-        # dist_sync_on_step=True,
-        # compute_on_cpu=True,
+    type='CocoPLMetric',
+    metric=['bbox', 'segm'],
+    proposal_nums=[1, 10, 100],
 )
 
 evaluator = dict(
@@ -74,8 +80,8 @@ model = dict(
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=-1,
-        norm_cfg=dict(type='BN', requires_grad=False),
-        norm_eval=True,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=False,
         style='pytorch',
         # init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')
     ),
@@ -227,7 +233,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=[0, 1],
+    devices=1,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -285,14 +291,14 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 6
+train_batch_size_per_gpu = 2
 train_num_workers = 2
-test_batch_size_per_gpu = 6
+test_batch_size_per_gpu = 2
 test_num_workers = 2
 persistent_workers = True
 
-# data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPUVHR-10_dataset/'
-data_parent = '/mnt/search01/dataset/cky_data/NWPU10'
+data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPUVHR-10_dataset/'
+# data_parent = '/mnt/search01/dataset/cky_data/NWPU10'
 train_data_prefix = ''
 val_data_prefix = ''
 
