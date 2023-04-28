@@ -220,7 +220,7 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="cpu",
+    accelerator="auto",
     strategy="auto",
     # strategy="ddp",
     # strategy='ddp_find_unused_parameters_true',
