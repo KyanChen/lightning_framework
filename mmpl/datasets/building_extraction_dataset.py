@@ -53,8 +53,12 @@ class BuildingExtractionDataset(BaseSegDataset):
         num_labels, instances, stats, centroids = cv2.connectedComponentsWithStats(seg_map, connectivity=8)
         for idx_label in range(1, num_labels):
             all_instances.append(instances == idx_label)
-        all_instances = np.stack(all_instances, axis=0)
-        all_instances = torch.from_numpy(all_instances).view(-1, *seg_map.shape[-2:])
+        if len(all_instances) > 0:
+            all_instances = np.stack(all_instances, axis=0)
+            all_instances = torch.from_numpy(all_instances)
+        else:
+            all_instances = torch.zeros((0, *seg_map.shape[-2:]))
+
         label = torch.zeros(all_instances.shape[0], dtype=torch.long)
         results['data_samples'].set_data(dict(instances_data=all_instances, instances_label=label))
 
