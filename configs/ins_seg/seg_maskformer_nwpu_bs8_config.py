@@ -38,6 +38,7 @@ evaluator_ = dict(
         box_format='xyxy',
         iou_type='segm',
         max_detection_thresholds=[1, 10, 100],
+        dist_sync_on_step=True,
 )
 
 evaluator = dict(
