@@ -214,9 +214,9 @@ callbacks = [
         dirpath=f'results/{task_name}/{exp_name}/checkpoints',
         save_last=True,
         mode='max',
-        monitor='valsegm_mAP_0',
+        monitor='valsegm_map_0',
         save_top_k=2,
-        filename='epoch_{epoch}-map_{valsegm_mAP_0:.4f}'
+        filename='epoch_{epoch}-map_{valsegm_map_0:.4f}'
     ),
     dict(
         type='LearningRateMonitor',

@@ -34,7 +34,6 @@ class MMDetPLer(BasePLer):
     def validation_step(self, batch, batch_idx):
         data = self.whole_model.data_preprocessor(batch, False)
         batch_data_samples = self.whole_model._run_forward(data, mode='predict')  # type: ignore
-
         # preds = []
         # targets = []
         # for data_sample in batch_data_samples:

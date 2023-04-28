@@ -6,6 +6,8 @@ import tempfile
 from collections import OrderedDict
 from typing import Dict, List, Optional, Sequence, Union
 
+import lightning
+import mmengine
 import numpy as np
 import torch
 from mmengine.fileio import dump, get_local_path, load
@@ -595,7 +597,8 @@ class CocoPLMetric(Metric):
                     table_data = [headers]
                     table_data += [result for result in results_2d]
                     table = AsciiTable(table_data)
-                    logger.info('\n' + table.table)
+                    if mmengine.dist.get_local_rank() == 0:
+                        logger.info('\n' + table.table)
 
                 if metric_items is None:
                     metric_items = [
@@ -608,9 +611,10 @@ class CocoPLMetric(Metric):
                     eval_results[key] = float(f'{round(val, 3)}')
 
                 ap = coco_eval.stats[:6]
-                logger.info(f'{metric}_mAP_copypaste: {ap[0]:.3f} '
-                            f'{ap[1]:.3f} {ap[2]:.3f} {ap[3]:.3f} '
-                            f'{ap[4]:.3f} {ap[5]:.3f}')
+                if mmengine.dist.get_local_rank() == 0:
+                    logger.info(f'{metric}_mAP_copypaste: {ap[0]:.3f} '
+                                f'{ap[1]:.3f} {ap[2]:.3f} {ap[3]:.3f} '
+                                f'{ap[4]:.3f} {ap[5]:.3f}')
 
         if tmp_dir is not None:
             tmp_dir.cleanup()
