@@ -19,6 +19,7 @@ from mmdet.structures.mask import encode_mask_results
 from mmdet.evaluation.functional import eval_recalls
 from torchmetrics import Metric
 from mmpl.registry import METRICS
+from torchmetrics.utilities import rank_zero_info
 
 
 @METRICS.register_module()
@@ -598,7 +599,7 @@ class CocoPLMetric(Metric):
                     table_data += [result for result in results_2d]
                     table = AsciiTable(table_data)
                     # if mmengine.dist.get_local_rank() == 0:
-                    logger.info('\n' + table.table)
+                    rank_zero_info('\n' + table.table)
 
                 if metric_items is None:
                     metric_items = [
@@ -613,7 +614,7 @@ class CocoPLMetric(Metric):
                 ap = coco_eval.stats[:6]
                 # if mmengine.dist.get_local_rank() == 0:
 
-                logger.info(f'{metric}_mAP_copypaste: {ap[0]:.3f} '
+                rank_zero_info(f'{metric}_mAP_copypaste: {ap[0]:.3f} '
                             f'{ap[1]:.3f} {ap[2]:.3f} {ap[3]:.3f} '
                             f'{ap[4]:.3f} {ap[5]:.3f}')
 
