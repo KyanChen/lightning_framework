@@ -397,8 +397,8 @@ class CocoPLMetric(Metric):
                         dict(
                             bbox_label=x_data['labels'].item(),
                             bbox=x_data['bboxes'].cpu().numpy().reshape(1, 4),
-                            mask=x_data['masks'],
-                            ignore_flag=x_data['gt_flags'])
+                            mask=x_data['masks']
+                        )
                     )
             # add converted result to the results list
             self.results.append((gt, result))
