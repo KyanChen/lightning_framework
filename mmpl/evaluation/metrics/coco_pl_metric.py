@@ -392,11 +392,14 @@ class CocoPLMetric(Metric):
                     '`ann_file` is not provided'
                 gt['anns'] = []
                 for x_data in data_sample.gt_instances:
+                    mask_ = encode_mask_results(x_data['masks'].masks)
+                    assert len(mask_) == 1, \
+                        'Only support one mask per instance for now'
                     gt['anns'].append(
                         dict(
                             bbox_label=x_data['labels'].item(),
                             bbox=x_data['bboxes'].cpu().numpy().reshape(4),
-                            mask=x_data['masks']
+                            mask=mask_[0]
                         )
                     )
             # add converted result to the results list
