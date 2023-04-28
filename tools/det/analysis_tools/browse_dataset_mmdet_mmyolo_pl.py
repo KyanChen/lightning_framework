@@ -21,7 +21,7 @@ from mmyolo.registry import DATASETS, VISUALIZERS
 # TODO: Support for printing the change in key of results
 def parse_args():
     parser = argparse.ArgumentParser(description='Browse a dataset')
-    parser.add_argument('--config', default='../../my_configs/yolov5_s.py', help='train config file path')
+    parser.add_argument('--config', default='configs/ins_seg/seg_maskformer_isaid_bs8_config.py', help='train config file path')
     parser.add_argument(
         '--phase',
         '-p',
@@ -182,11 +182,17 @@ def main():
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
 
-    init_default_scope(cfg.get('default_scope', 'mmyolo'))
+    init_default_scope(cfg.get('default_scope', 'mmpl'))
 
-    dataset_cfg = cfg.get(args.phase + '_dataloader').get('dataset')
+    dataset_cfg = cfg.get('datamodule_cfg').get(args.phase + '_loader').get('dataset')
     dataset = DATASETS.build(dataset_cfg)
-    visualizer = VISUALIZERS.build(cfg.visualizer)
+
+    # self added
+    vis_backends = [dict(type='mmdet.LocalVisBackend')]
+    visualizer = dict(
+        type='mmdet.DetLocalVisualizer', vis_backends=vis_backends, name='visualizer')
+
+    visualizer = VISUALIZERS.build(visualizer)
     visualizer.dataset_meta = dataset.metainfo
 
     intermediate_imgs = []

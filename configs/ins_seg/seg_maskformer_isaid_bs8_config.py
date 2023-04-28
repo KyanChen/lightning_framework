@@ -42,78 +42,86 @@ evaluator = dict(
     val_evaluator=evaluator_,
 )
 
-crop_size = (512, 512)
-norm_cfg = dict(type='SyncBN', requires_grad=True)
-num_classes = 1
+
+image_size = (1024, 1024)
 data_preprocessor = dict(
-    type='mmseg.SegDataPreProcessor',
-    mean=[0., 0., 0.],
-    std=[255., 255., 255.],
+    type='mmdet.DetDataPreprocessor',
+    mean=[123.675, 116.28, 103.53],
+    std=[58.395, 57.12, 57.375],
     bgr_to_rgb=True,
-    pad_val=0,
-    size=crop_size,
-    seg_pad_val=255)
+    pad_size_divisor=1,
+    pad_mask=True,
+    mask_pad_value=0,
+    pad_seg=True,
+    seg_pad_value=255)
+
+num_things_classes = 15
+num_stuff_classes = 0
+num_classes = num_things_classes + num_stuff_classes
+
 model = dict(
-    type='mmseg.EncoderDecoder',
+    type='mmdet.MaskFormer',
     data_preprocessor=data_preprocessor,
-    pretrained=None,
     backbone=dict(
-        type='mmseg.ResNet',
+        type='mmdet.ResNet',
         depth=50,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
-        dilations=(1, 1, 1, 1),
-        strides=(1, 2, 2, 2),
-        norm_cfg=norm_cfg,
+        frozen_stages=-1,
+        norm_cfg=dict(type='BN', requires_grad=False),
         norm_eval=True,
         style='pytorch',
-        contract_dilation=True,
         # init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')
     ),
-    decode_head=dict(
-        type='mmseg.MaskFormerHead',
-        threshold=0.5,
-        in_channels=[256, 512, 1024,
-                     2048],  # input channels of pixel_decoder modules
+    panoptic_head=dict(
+        type='mmdet.MaskFormerHead',
+        in_channels=[256, 512, 1024, 2048],  # pass to pixel_decoder inside
         feat_channels=256,
-        in_index=[0, 1, 2, 3],
-        num_classes=num_classes,
         out_channels=256,
+        num_things_classes=num_things_classes,
+        num_stuff_classes=num_stuff_classes,
         num_queries=100,
         pixel_decoder=dict(
-            type='mmdet.PixelDecoder',
+            type='mmdet.TransformerEncoderPixelDecoder',
             norm_cfg=dict(type='GN', num_groups=32),
-            act_cfg=dict(type='ReLU')),
+            act_cfg=dict(type='ReLU'),
+            encoder=dict(  # DetrTransformerEncoder
+                num_layers=6,
+                layer_cfg=dict(  # DetrTransformerEncoderLayer
+                    self_attn_cfg=dict(  # MultiheadAttention
+                        embed_dims=256,
+                        num_heads=8,
+                        dropout=0.1,
+                        batch_first=True),
+                    ffn_cfg=dict(
+                        embed_dims=256,
+                        feedforward_channels=2048,
+                        num_fcs=2,
+                        ffn_drop=0.1,
+                        act_cfg=dict(type='ReLU', inplace=True)))),
+            positional_encoding=dict(num_feats=128, normalize=True)),
         enforce_decoder_input_project=False,
-        positional_encoding=dict(  # SinePositionalEncoding
-            num_feats=128, normalize=True),
+        positional_encoding=dict(num_feats=128, normalize=True),
         transformer_decoder=dict(  # DetrTransformerDecoder
-            return_intermediate=True,
             num_layers=6,
             layer_cfg=dict(  # DetrTransformerDecoderLayer
                 self_attn_cfg=dict(  # MultiheadAttention
                     embed_dims=256,
                     num_heads=8,
-                    attn_drop=0.1,
-                    proj_drop=0.1,
-                    dropout_layer=None,
+                    dropout=0.1,
                     batch_first=True),
                 cross_attn_cfg=dict(  # MultiheadAttention
                     embed_dims=256,
                     num_heads=8,
-                    attn_drop=0.1,
-                    proj_drop=0.1,
-                    dropout_layer=None,
+                    dropout=0.1,
                     batch_first=True),
                 ffn_cfg=dict(
                     embed_dims=256,
                     feedforward_channels=2048,
                     num_fcs=2,
-                    act_cfg=dict(type='ReLU', inplace=True),
                     ffn_drop=0.1,
-                    dropout_layer=None,
-                    add_identity=True)),
-            init_cfg=None),
+                    act_cfg=dict(type='ReLU', inplace=True))),
+            return_intermediate=True),
         loss_cls=dict(
             type='mmdet.CrossEntropyLoss',
             use_sigmoid=False,
@@ -134,30 +142,40 @@ model = dict(
             reduction='mean',
             naive_dice=True,
             eps=1.0,
-            loss_weight=1.0),
-        train_cfg=dict(
-            assigner=dict(
-                type='mmdet.HungarianAssigner',
-                match_costs=[
-                    dict(type='mmdet.ClassificationCost', weight=1.0),
-                    dict(
-                        type='mmdet.FocalLossCost',
-                        weight=20.0,
-                        binary_input=True),
-                    dict(
-                        type='mmdet.DiceCost',
-                        weight=1.0,
-                        pred_act=True,
-                        eps=1.0)
-                ]),
-            sampler=dict(type='mmdet.MaskPseudoSampler'))),
-    # training and testing settings
-    train_cfg=dict(),
-    test_cfg=dict(mode='whole'),
-)
+            loss_weight=1.0)),
+    panoptic_fusion_head=dict(
+        type='mmdet.MaskFormerFusionHead',
+        num_things_classes=num_things_classes,
+        num_stuff_classes=num_stuff_classes,
+        loss_panoptic=None,
+        init_cfg=None),
+    train_cfg=dict(
+        assigner=dict(
+            type='mmdet.HungarianAssigner',
+            match_costs=[
+                dict(type='mmdet.ClassificationCost', weight=1.0),
+                dict(type='mmdet.FocalLossCost', weight=20.0, binary_input=True),
+                dict(type='mmdet.DiceCost', weight=1.0, pred_act=True, eps=1.0)
+            ]),
+        sampler=dict(type='mmdet.MaskPseudoSampler')),
+    test_cfg=dict(
+        panoptic_on=True,
+        # For now, the dataset does not support
+        # evaluating semantic segmentation metric.
+        semantic_on=False,
+        instance_on=True,
+        # max_per_image is for instance segmentation.
+        max_per_image=100,
+        object_mask_thr=0.8,
+        iou_thr=0.8,
+        # In MaskFormer's panoptic postprocessing,
+        # it will not filter masks whose score is smaller than 0.5 .
+        filter_low_score=False),
+    init_cfg=None)
+
 
 model_cfg = dict(
-    type='MMSegPLer',
+    type='MMDetPLer',
     hyperparameters=dict(
         optimizer=optimizer,
         param_scheduler=param_scheduler,
@@ -166,27 +184,26 @@ model_cfg = dict(
     whole_model=model,
 )
 
-exp_name = 'E20230426_5'
-logger = dict(
-    type='WandbLogger',
-    project='building',
-    group='maskformer',
-    name=exp_name
-)
-
-# logger = None
+exp_name = 'E20230427_0'
+# logger = dict(
+#     type='WandbLogger',
+#     project='isaid',
+#     group='maskformer',
+#     name=exp_name
+# )
+logger = None
 
 
 callbacks = [
     param_scheduler_callback,
     dict(
         type='ModelCheckpoint',
-        dirpath=f'results/building/{exp_name}/checkpoints',
+        dirpath=f'results/isaid/{exp_name}/checkpoints',
         save_last=True,
         mode='max',
-        monitor='valmulticlassjaccardindex_1',
+        monitor='valmap_0',
         save_top_k=5,
-        filename='epoch_{epoch}-iou_{metric_1:.4f}'
+        filename='epoch_{epoch}-map_{valmap_0:.4f}'
     ),
     dict(
         type='LearningRateMonitor',
@@ -203,8 +220,8 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
-    default_root_dir=f'results/building/{exp_name}',
+    devices=1,
+    default_root_dir=f'results/isaid/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
@@ -240,50 +257,41 @@ trainer_cfg = dict(
 )
 
 
+backend_args = None
 train_pipeline = [
-    dict(type='mmseg.LoadImageFromFile'),
-    dict(type='mmseg.LoadAnnotations'),
-    # dict(
-    #     type='mmseg.RandomResize',
-    #     scale=(2048, 512),
-    #     ratio_range=(1.0, 3.0),
-    #     keep_ratio=True),
-    # dict(type='mmseg.RandomCrop', crop_size=crop_size),
-    dict(type='mmseg.Resize', scale=crop_size),
-    dict(type='mmseg.RandomFlip', prob=0.5),
-    dict(type='mmseg.PhotoMetricDistortion'),
-    dict(type='mmseg.PackSegInputs')
+    dict(type='mmdet.LoadImageFromFile'),
+    dict(type='mmdet.LoadAnnotations', with_bbox=True, with_mask=True),
+    dict(type='mmdet.Resize', scale=image_size),
+    dict(type='mmdet.RandomFlip', prob=0.5),
+    dict(type='mmdet.PackDetInputs')
 ]
 
 test_pipeline = [
-    dict(type='mmseg.LoadImageFromFile'),
-    dict(type='mmseg.Resize', scale=crop_size),
-    # add loading annotation after ``Resize`` because ground truth
-    # does not need to do resize data transform
-    dict(type='mmseg.LoadAnnotations'),
-    dict(type='mmseg.PackSegInputs')
+    dict(type='mmdet.LoadImageFromFile', backend_args=backend_args),
+    dict(type='mmdet.Resize', scale=image_size),
+    # If you don't have a gt annotation, delete the pipeline
+    dict(type='mmdet.LoadAnnotations', with_bbox=True, with_mask=True),
+    dict(
+        type='mmdet.PackDetInputs',
+        meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape',
+                   'scale_factor'))
 ]
 
 
-train_batch_size_per_gpu = 8
-train_num_workers = 8
-test_batch_size_per_gpu = 8
-test_num_workers = 8
+train_batch_size_per_gpu = 2
+train_num_workers = 2
+test_batch_size_per_gpu = 2
+test_num_workers = 2
 persistent_workers = True
 
-
-# data_parent = '/data1/kyanchen/datasets/'
-# data_parent = '/Users/kyanchen/datasets/Building/'
-data_parent = '/mnt/search01/dataset/cky_data/'
-# data_parent = 'samples/seg/'
-data_root = data_parent+'WHU/'
+data_parent = '/Users/kyanchen/datasets/seg/iSAID_patches/'
+# data_parent = 'samples/seg/iSAID_patches/'
 train_data_prefix = 'train/'
-val_data_prefix = 'test/'
+val_data_prefix = 'val/'
 
-dataset_type = 'BuildingExtractionDataset'
-metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
+dataset_type = 'ISAIDInsSegDataset'
+# metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
 
-load_sam_cache_from = 'cache_data/sam_data'
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,
         num_workers=test_num_workers,
@@ -291,19 +299,13 @@ val_loader = dict(
         pin_memory=True,
         dataset=dict(
             type=dataset_type,
-            phrase='val',
-            # load_sam_cache_from=load_sam_cache_from,
-            img_suffix='.tif',
-            seg_map_suffix='.tif',
-            reduce_zero_label=False,
-            metainfo=metainfo,
-            data_root=data_root,
-            data_prefix=dict(img_path=val_data_prefix+'image', seg_map_path=val_data_prefix+'label'),
-            # indices=16,
+            data_root=data_parent,
+            ann_file='annotations/instancesonly_filtered_gtFine_val.json',
+            data_prefix=dict(img_path=val_data_prefix),
             test_mode=True,
+            filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=test_pipeline,
-        )
-    )
+            backend_args=backend_args))
 
 datamodule_cfg = dict(
     type='PLDataModule',
@@ -314,21 +316,29 @@ datamodule_cfg = dict(
         pin_memory=True,
         dataset=dict(
             type=dataset_type,
-            phrase='train',
-            # load_sam_cache_from=load_sam_cache_from,
-            img_suffix='.tif',
-            seg_map_suffix='.tif',
-            reduce_zero_label=False,
-            metainfo=metainfo,
-            data_root=data_root,
-            data_prefix=dict(img_path=train_data_prefix+'image', seg_map_path=train_data_prefix+'label'),
-            # indices=16,
-            test_mode=False,
+            data_root=data_parent,
+            data_prefix=dict(img_path=train_data_prefix),
+            ann_file='annotations/instancesonly_filtered_gtFine_train.json',
+            filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
-        )
+            backend_args=backend_args)
     ),
     val_loader=val_loader,
     # test_loader=val_loader
     # predict_loader=val_loader
 )
 
+
+# val_evaluator = [
+#     dict(
+#         type='CocoMetric',
+#         ann_file=data_root +
+#         'annotations/instancesonly_filtered_gtFine_val.json',
+#         metric=['bbox', 'segm'],
+#         backend_args=backend_args),
+#     dict(
+#         type='CityScapesMetric',
+#         seg_prefix=data_root + 'gtFine/val',
+#         outfile_prefix='./work_dirs/cityscapes_metric/instance',
+#         backend_args=backend_args)
+# ]

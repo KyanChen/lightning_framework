@@ -99,11 +99,12 @@ class MaskFormerHead(MMDET_MaskFormerHead):
                                         gt_sem_seg.shape[-1])).to(gt_sem_seg)
             else:
                 gt_masks = torch.stack(masks).squeeze(1)
+
             if hasattr(data_sample, 'instances_data'):
                 instance_data = InstanceData(labels=data_sample.instances_label, masks=data_sample.instances_data.long())
             else:
-                instance_data = InstanceData(
-                    labels=gt_labels, masks=gt_masks.long())
+                instance_data = InstanceData(labels=gt_labels, masks=gt_masks.long())
+
             batch_gt_instances.append(instance_data)
         return batch_gt_instances, batch_img_metas
 

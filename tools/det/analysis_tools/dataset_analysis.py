@@ -18,7 +18,7 @@ from mmyolo.utils.misc import show_data_classes
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Distribution of categories and bbox instances')
-    parser.add_argument('--config', default='../../my_configs/yolov5_s.py', help='config file path')
+    parser.add_argument('--config', default='configs/ins_seg/seg_maskformer_isaid_bs8_config.py', help='config file path')
     parser.add_argument(
         '--val-dataset',
         default=False,
@@ -39,7 +39,7 @@ def parse_args():
         ' e.g., 30 70 125')
     parser.add_argument(
         '--func',
-        default=None,
+        default='show_bbox_num',
         type=str,
         choices=[
             'show_bbox_num', 'show_bbox_wh', 'show_bbox_wh_ratio',
@@ -48,7 +48,7 @@ def parse_args():
         help='Dataset analysis function selection.')
     parser.add_argument(
         '--out-dir',
-        default='./dataset_analysis',
+        default='./results/dataset_analysis',
         type=str,
         help='Output directory of dataset analysis visualization results,'
         ' Save in "./dataset_analysis/" by default')
@@ -348,7 +348,7 @@ def main():
     args = parse_args()
     cfg = Config.fromfile(args.config)
 
-    init_default_scope(cfg.get('default_scope', 'mmyolo'))
+    init_default_scope(cfg.get('default_scope', 'mmpl'))
 
     def replace_pipeline_to_none(cfg):
         """Recursively iterate over all dataset(or datasets) and set their
@@ -371,12 +371,13 @@ def main():
             replace_pipeline_to_none(dataset)
 
     # 1.Build Dataset
+    dataset_cfg = cfg.get('datamodule_cfg')
     if args.val_dataset is False:
-        replace_pipeline_to_none(cfg.train_dataloader)
-        dataset = DATASETS.build(cfg.train_dataloader.dataset)
+        replace_pipeline_to_none(dataset_cfg.train_loader)
+        dataset = DATASETS.build(dataset_cfg.train_loader.dataset)
     else:
-        replace_pipeline_to_none(cfg.val_dataloader)
-        dataset = DATASETS.build(cfg.val_dataloader.dataset)
+        replace_pipeline_to_none(dataset_cfg.val_loader)
+        dataset = DATASETS.build(dataset_cfg.val_loader.dataset)
 
     # 2.Prepare data
     # Drawing settings
@@ -427,12 +428,14 @@ def main():
     class_bbox_h = []
     class_bbox_ratio = []
     bbox_area_num = []
+    instance_num = []
 
     show_data_list(args, area_rule)
     # Get the quantity and bbox data corresponding to each category
     print('\nRead the information of each picture in the dataset:')
     progress_bar = ProgressBar(len(dataset))
     for index in range(len(dataset)):
+        instance_num.append(len(dataset[index]['instances']))
         for instance in dataset[index]['instances']:
             if instance[
                     'bbox_label'] in classes_idx and args.class_name is None:
@@ -481,6 +484,10 @@ def main():
                        bbox_area_num)
     elif args.func == 'show_bbox_num':
         show_bbox_num(cfg, args.out_dir, fig_set, class_name, class_num)
+        print('num_instances_info:')
+        print('max num_instances=', max(instance_num))
+        print('min num_instances=', min(instance_num))
+        print('mean num_instances=', np.mean(instance_num))
     elif args.func == 'show_bbox_wh':
         show_bbox_wh(args.out_dir, fig_set, class_bbox_w, class_bbox_h,
                      class_name)

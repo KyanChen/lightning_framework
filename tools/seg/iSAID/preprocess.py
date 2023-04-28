@@ -2,6 +2,7 @@
 # from __future__ import division
 # from __future__ import print_function
 # from __future__ import unicode_literals
+import tqdm
 from natsort import natsorted
 import re
 import argparse
@@ -14,11 +15,12 @@ import cv2
 import sys
 import random
 random.seed(0)
-import cityscapesscripts
-# import cityscapesscripts.evaluation.instances2dict_with_polygons as cs
-# import detectron.utils.segms as segms_util
-# import detectron.utils.boxes as bboxs_util
-# from cityscapesscripts.helpers.labels import *
+# import cityscapesscripts
+# from instances2dict_with_polygons import instances2dict_with_polygons
+from cityscapesscripts.evaluation.instances2dict_with_polygons import instances2dict_with_polygons
+import detectron_utils.segms as segms_util
+import detectron_utils.boxes as bboxs_util
+from cityscapesscripts.helpers.labels import *
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Convert dataset')
@@ -71,7 +73,7 @@ def convert_cityscapes_instance_only(data_dir, out_dir):
         'plane',
         'Harbor'
     ]
-    for data_set, ann_dir in zip(sets, ann_dirs):
+    for data_set, ann_dir in tqdm.tqdm(zip(sets, ann_dirs)):
         print('Starting %s' % data_set)
         ann_dict = {}
         images = []
@@ -114,10 +116,11 @@ def convert_cityscapes_instance_only(data_dir, out_dir):
                     if not os.path.exists(seg_fullname):
                         print("YOU DONT HAVE TEST MASKS")
                         sys.exit(0)
-                    objects = cs.instances2dict_with_polygons([seg_fullname],[inst_fullname], verbose=True)
+                    objects = instances2dict_with_polygons([seg_fullname],[inst_fullname], verbose=True)
                     for k,v in objects.items():
                         for object_cls in list(v.keys()):
                             if object_cls not in category_instancesonly: #to get the labels only mentioned in category_instancesonly
+                                print('Warning: Ignoring {} instances...'.format(object_cls))
                                 continue
                             for obj in v[object_cls]:
                                 if obj['contours'] == []:

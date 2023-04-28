@@ -6,16 +6,16 @@
 from __future__ import print_function, absolute_import, division
 import os, sys
 
-sys.path.append( os.path.normpath( os.path.join( os.path.dirname( __file__ ) , '..' , 'helpers' ) ) )
-from csHelpers import *
+# sys.path.append( os.path.normpath( os.path.join( os.path.dirname( __file__ ) , '..' , 'helpers' ) ) )
+from ..helpers.csHelpers import *
 
 # Cityscapes imports
-from cityscapesscripts.evaluation.instance import *
-from cityscapesscripts.helpers.csHelpers import *
-from cityscapesscripts.helpers.labels import *
+from .instance import *
+from ..helpers.csHelpers import *
+from ..helpers.labels import *
 
 import cv2
-import lycon
+# import lycon
 #from create_dataset.utils import cv2_util
 
 
@@ -51,8 +51,10 @@ def instances2dict_with_polygons(seg_imageFileList,ins_imageFileList,verbose=Fal
     for imageFileName_seg,imageFileName_ins in zip(seg_imageFileList,ins_imageFileList):
         print("Segment file:",imageFileName_seg)
         print("Instance files:",imageFileName_ins)
-        img = lycon.load(imageFileName_ins) # (1738, 1956, 3)
-        img_seg = lycon.load(imageFileName_seg) # (1738, 1956, 3) segmentation file
+        # img = lycon.load(imageFileName_ins) # (1738, 1956, 3)
+        # img_seg = lycon.load(imageFileName_seg) # (1738, 1956, 3) segmentation file
+        img = cv2.imread(imageFileName_ins)[...,::-1]
+        img_seg = cv2.imread(imageFileName_seg)[...,::-1]
 
         # Image as numpy array
         imgNp = np.array(img) # Gives h * w * 3 matrix
@@ -77,7 +79,7 @@ def instances2dict_with_polygons(seg_imageFileList,ins_imageFileList,verbose=Fal
             instanceObj_dict = instanceObj.toDict()
 
             #instances[id2label[instanceObj.labelID].name].append(instanceObj.toDict())
-            #if id2label[instanceObj.labelID].hasInstances:
+            # if id2label[instanceObj.labelID].hasInstances:
             if m2label[instanceObj.labelID].hasInstances:
                 mask = (imgNp == instanceId).astype(np.uint8)
                 #contour, hier = cv2_util.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)

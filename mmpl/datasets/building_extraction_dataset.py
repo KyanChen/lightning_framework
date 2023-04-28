@@ -13,7 +13,7 @@ from torch.nn import functional as F
 
 @DATASETS.register_module()
 class BuildingExtractionDataset(BaseSegDataset):
-    METAINFO = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
+    METAINFO = dict(classes=('building',), palette=[(0, 0, 255)])
     def __init__(self,
                  img_suffix='.jpg',
                  seg_map_suffix='.png',
@@ -45,21 +45,16 @@ class BuildingExtractionDataset(BaseSegDataset):
         results = self.pipeline(data_info)
         seg_map = results['data_samples'].gt_sem_seg.data
         # 如果是pillow，已经是1通道的了
-        seg_map[seg_map == 255] = 1
+        assert set(torch.unique(seg_map).numpy().astype(int)).issubset({0, 1})  # only can be 0 and 1
         results['data_samples'].gt_sem_seg.data = seg_map
 
         all_instances = []
         seg_map = seg_map.squeeze(0).numpy().astype(np.uint8)
-        contours, h = cv2.findContours(seg_map, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # 在二值化图像上搜索轮廓
-
-        for i in range(len(contours)):
-            draw_img = np.zeros(seg_map.shape, dtype=np.uint8)
-            cv2.drawContours(draw_img, contours, i, 1, -1)
-            all_instances.append(draw_img)
-        if len(all_instances) == 0:
-            all_instances.append(seg_map)
+        num_labels, instances, stats, centroids = cv2.connectedComponentsWithStats(seg_map, connectivity=8)
+        for idx_label in range(1, num_labels):
+            all_instances.append(instances == idx_label)
         all_instances = np.stack(all_instances, axis=0)
-        all_instances = torch.from_numpy(all_instances)
+        all_instances = torch.from_numpy(all_instances).view(-1, *seg_map.shape[-2:])
         label = torch.zeros(all_instances.shape[0], dtype=torch.long)
         results['data_samples'].set_data(dict(instances_data=all_instances, instances_label=label))
 
