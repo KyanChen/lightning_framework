@@ -615,5 +615,5 @@ class CocoPLMetric(Metric):
         if tmp_dir is not None:
             tmp_dir.cleanup()
         for k, v in eval_results.items():
-            eval_results[k] = torch.tensor(v)
+            eval_results[k] = torch.tensor(v).to(self.device)
         return eval_results
