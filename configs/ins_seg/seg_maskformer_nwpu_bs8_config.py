@@ -297,8 +297,8 @@ test_batch_size_per_gpu = 2
 test_num_workers = 2
 persistent_workers = True
 
-data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPUVHR-10_dataset/'
-# data_parent = '/mnt/search01/dataset/cky_data/NWPU10'
+# data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPUVHR-10_dataset/'
+data_parent = '/mnt/search01/dataset/cky_data/NWPU10'
 train_data_prefix = ''
 val_data_prefix = ''
 
