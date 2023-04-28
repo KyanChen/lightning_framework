@@ -391,9 +391,15 @@ class CocoPLMetric(Metric):
                 assert 'gt_instances' in data_sample, \
                     'ground truth is required for evaluation when ' \
                     '`ann_file` is not provided'
-                import ipdb;
-                ipdb.set_trace()
-                gt['anns'] = data_sample.gt_instances
+                gt['anns'] = []
+                for x_data in data_sample.gt_instances:
+                    gt['anns'].append(
+                        dict(
+                            bbox_label=x_data['labels'].item(),
+                            bbox=x_data['bboxes'].cpu().numpy().reshape(1, 4),
+                            mask=x_data['masks'],
+                            ignore_flag=x_data['gt_flags'])
+                    )
             # add converted result to the results list
             self.results.append((gt, result))
 
