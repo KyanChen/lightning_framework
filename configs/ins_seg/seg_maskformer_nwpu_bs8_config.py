@@ -33,12 +33,11 @@ param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
-evaluator_ = [
-    dict(
+evaluator_ = dict(
         type='MeanAveragePrecision',
         box_format='xyxy',
         iou_type='segm')
-]
+
 evaluator = dict(
     # train_evaluator=evaluator_,
     val_evaluator=evaluator_,
