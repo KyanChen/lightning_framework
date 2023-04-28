@@ -52,7 +52,8 @@ class MMDetPLer(BasePLer):
             gt['boxes'] = gt_data['bboxes']
             gt['labels'] = gt_data['labels']
             if 'masks' in gt_data:
-                gt['masks'] = gt_data['masks'].to_tensor(dtype=torch.bool, device=self.device)
+                import ipdb; ipdb.set_trace()
+                gt['masks'] = gt_data['masks'].to_tensor(dtype=torch.bool, device=result['masks'].device)
             targets.append(gt)
         self.val_evaluator.update(preds, targets)
 
