@@ -1,7 +1,7 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_imports=False)
 # train max 71, min 1
 # val max 56, min 1
-max_epochs = 300
+max_epochs = 800
 
 optimizer = dict(
     type='AdamW',
@@ -198,13 +198,13 @@ model_cfg = dict(
 
 task_name = 'nwpu_ins'
 exp_name = 'E20230428_1'
-# logger = dict(
-#     type='WandbLogger',
-#     project=task_name,
-#     group='maskformer',
-#     name=exp_name
-# )
-logger = None
+logger = dict(
+    type='WandbLogger',
+    project=task_name,
+    group='maskformer',
+    name=exp_name
+)
+# logger = None
 
 
 callbacks = [
@@ -233,13 +233,13 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=8,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=5,
+    log_every_n_steps=3,
     check_val_every_n_epoch=1,
     benchmark=True,
     # sync_batchnorm=True,
@@ -291,9 +291,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 1
+train_batch_size_per_gpu = 6
 train_num_workers = 2
-test_batch_size_per_gpu = 1
+test_batch_size_per_gpu = 6
 test_num_workers = 2
 persistent_workers = True
 
