@@ -33,21 +33,21 @@ param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
-# evaluator_ = dict(
-#         type='MeanAveragePrecision',
-#         box_format='xyxy',
-#         iou_type='segm',
-#         # iou_type='bbox',
-#         max_detection_thresholds=[1, 10, 100],
-#         # dist_sync_on_step=True,
-#         # compute_on_cpu=True,
-# )
-
 evaluator_ = dict(
-    type='CocoPLMetric',
-    metric=['bbox', 'segm'],
-    proposal_nums=[1, 10, 100],
+        type='MeanAveragePrecision',
+        box_format='xyxy',
+        # iou_type='segm',
+        iou_type='bbox',
+        max_detection_thresholds=[1, 10, 100],
+        # dist_sync_on_step=True,
+        # compute_on_cpu=True,
 )
+
+# evaluator_ = dict(
+#     type='CocoPLMetric',
+#     metric=['bbox', 'segm'],
+#     proposal_nums=[1, 10, 100],
+# )
 
 evaluator = dict(
     # train_evaluator=evaluator_,
