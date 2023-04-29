@@ -39,8 +39,8 @@ class BBoxHead(BaseModule):
                  predict_box_type: str = 'hbox',
                  reg_class_agnostic: bool = False,
                  reg_decoded_bbox: bool = False,
-                 reg_predictor_cfg: ConfigType = dict(type='Linear'),
-                 cls_predictor_cfg: ConfigType = dict(type='Linear'),
+                 reg_predictor_cfg: ConfigType = dict(type='mmdet.Linear'),
+                 cls_predictor_cfg: ConfigType = dict(type='mmdet.Linear'),
                  loss_cls: ConfigType = dict(
                      type='CrossEntropyLoss',
                      use_sigmoid=False,
