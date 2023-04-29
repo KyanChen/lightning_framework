@@ -488,6 +488,9 @@ class CocoPLMetric(Metric):
                 coco_dt = self._coco_api.loadRes(predictions)
 
             except IndexError:
+                # for k, v in eval_results.items():
+                #     eval_results[k] = torch.tensor(v).to(self.device)
+                # self._coco_api = None
                 logger.error(
                     'The testing results of the whole dataset is empty.')
                 break
