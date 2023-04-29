@@ -224,14 +224,14 @@ callbacks = [
         type='ModelCheckpoint',
         dirpath=f'results/{task_name}/{exp_name}/checkpoints',
         save_last=True,
-        # mode='max',
-        # monitor='valsegm_map_0',
-        # save_top_k=2,
-        # filename='epoch_{epoch}-map_{valsegm_map_0:.4f}'
-        mode='min',
-        monitor='train_loss',
+        mode='max',
+        monitor='valmap_0',
         save_top_k=2,
-        filename='epoch_{epoch}-trainloss_{train_loss:.4f}'
+        filename='epoch_{epoch}-map_{valmap_0:.4f}'
+        # mode='min',
+        # monitor='train_loss',
+        # save_top_k=2,
+        # filename='epoch_{epoch}-trainloss_{train_loss:.4f}'
     ),
     dict(
         type='LearningRateMonitor',
