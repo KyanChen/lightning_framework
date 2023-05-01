@@ -34,11 +34,11 @@ class ISAIDInsSegDataset(CocoDataset):
         Returns:
             List[dict]: Filtered results.
         """
-        if self.test_mode:
-            return self.data_list
+        # if self.test_mode:
+        #     return self.data_list
 
-        if self.filter_cfg is None:
-            return self.data_list
+        # if self.filter_cfg is None:
+        #     return self.data_list
 
         filter_empty_gt = self.filter_cfg.get('filter_empty_gt', False)
         min_size = self.filter_cfg.get('min_size', 0)

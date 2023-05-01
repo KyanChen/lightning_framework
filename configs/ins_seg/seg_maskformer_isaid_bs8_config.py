@@ -1,10 +1,10 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_imports=False)
 
-max_epochs = 300
+max_epochs = 800
 
 optimizer = dict(
     type='AdamW',
-    lr=0.0001,
+    lr=0.001,
     weight_decay=1e-4
 )
 
@@ -32,16 +32,13 @@ param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
-evaluator_ = [
-    dict(
+evaluator_ = dict(
         type='MeanAveragePrecision',
         box_format='xyxy',
-        iou_type='bbox'),
-    dict(
-        type='MeanAveragePrecision',
-        box_format='xyxy',
-        iou_type='segm')
-]
+        iou_type='segm',
+        max_detection_thresholds=[1, 10, 100]
+)
+
 evaluator = dict(
     # train_evaluator=evaluator_,
     val_evaluator=evaluator_,
@@ -51,8 +48,8 @@ evaluator = dict(
 image_size = (1024, 1024)
 data_preprocessor = dict(
     type='mmdet.DetDataPreprocessor',
-    mean=[123.675, 116.28, 103.53],
-    std=[58.395, 57.12, 57.375],
+    mean=[0., 0., 0.],
+    std=[255., 255., 255.],
     bgr_to_rgb=True,
     pad_size_divisor=1,
     pad_mask=True,
@@ -60,9 +57,10 @@ data_preprocessor = dict(
     pad_seg=True,
     seg_pad_value=255)
 
-num_things_classes = 10
+num_things_classes = 12
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
+num_queries = 100
 
 model = dict(
     type='mmdet.MaskFormer',
@@ -73,8 +71,8 @@ model = dict(
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=-1,
-        norm_cfg=dict(type='BN', requires_grad=False),
-        norm_eval=True,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=False,
         style='pytorch',
         # init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')
     ),
@@ -85,7 +83,7 @@ model = dict(
         out_channels=256,
         num_things_classes=num_things_classes,
         num_stuff_classes=num_stuff_classes,
-        num_queries=100,
+        num_queries=num_queries,
         pixel_decoder=dict(
             type='mmdet.TransformerEncoderPixelDecoder',
             norm_cfg=dict(type='GN', num_groups=32),
@@ -189,15 +187,15 @@ model_cfg = dict(
     whole_model=model,
 )
 
-task_name = 'nwpu_ins'
-exp_name = 'E20230428_1'
-# logger = dict(
-#     type='WandbLogger',
-#     project='isaid',
-#     group='maskformer',
-#     name=exp_name
-# )
-logger = None
+task_name = 'isaid_ins'
+exp_name = 'E20230501_1'
+logger = dict(
+    type='WandbLogger',
+    project=task_name,
+    group='maskformer',
+    name=exp_name
+)
+# logger = None
 
 
 callbacks = [
@@ -208,7 +206,7 @@ callbacks = [
         save_last=True,
         mode='max',
         monitor='valmap_0',
-        save_top_k=5,
+        save_top_k=2,
         filename='epoch_{epoch}-map_{valmap_0:.4f}'
     ),
     dict(
@@ -226,7 +224,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=8,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -284,14 +282,14 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 2
-train_num_workers = 0
-test_batch_size_per_gpu = 2
-test_num_workers = 0
-persistent_workers = False
+train_batch_size_per_gpu = 6
+train_num_workers = 2
+test_batch_size_per_gpu = 6
+test_num_workers = 2
+persistent_workers = True
 
-data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPU VHR-10_dataset'
-# data_parent = 'samples/seg/iSAID_patches/'
+# data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPU VHR-10_dataset'
+data_parent = '/mnt/search01/dataset/cky_data/iSAID_patches'
 train_data_prefix = 'train/'
 val_data_prefix = 'val/'
 
