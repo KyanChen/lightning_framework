@@ -21,7 +21,7 @@ from mmyolo.registry import DATASETS, VISUALIZERS
 # TODO: Support for printing the change in key of results
 def parse_args():
     parser = argparse.ArgumentParser(description='Browse a dataset')
-    parser.add_argument('--config', default='configs/ins_seg/seg_maskformer_nwpu_bs8_config.py', help='train config file path')
+    parser.add_argument('--config', default='configs/ins_seg/seg_maskrcnn_isaid_bs8_config.py', help='train config file path')
     parser.add_argument(
         '--phase',
         '-p',

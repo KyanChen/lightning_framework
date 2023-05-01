@@ -18,7 +18,7 @@ from mmyolo.utils.misc import show_data_classes
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Distribution of categories and bbox instances')
-    parser.add_argument('--config', default='configs/ins_seg/seg_maskformer_nwpu_bs8_config.py', help='config file path')
+    parser.add_argument('--config', default='configs/ins_seg/seg_maskrcnn_isaid_bs8_config.py', help='config file path')
     parser.add_argument(
         '--val-dataset',
         default=True,
@@ -434,8 +434,20 @@ def main():
     # Get the quantity and bbox data corresponding to each category
     print('\nRead the information of each picture in the dataset:')
     progress_bar = ProgressBar(len(dataset))
+
+    counts_instances = 0
     for index in range(len(dataset)):
-        instance_num.append(len(dataset[index]['instances']))
+        instances = dataset[index]['instances']
+        if len(instances) > 100:
+            counts_instances += 1
+            # continue
+            labels = [instance['bbox_label'] for instance in instances]
+            counts = np.bincount(labels)
+            label_id = np.argmax(counts)
+            # Harbor Large_Vehicle Small_Vehicle ship
+            print(f'the class is {dataset.metainfo["classes"][label_id]}')
+            print('The number of bboxes in the picture is greater than 100')
+        instance_num.append(len(instances))
         for instance in dataset[index]['instances']:
             if instance[
                     'bbox_label'] in classes_idx and args.class_name is None:
@@ -446,6 +458,7 @@ def main():
                 class_bbox[0].append(instance['bbox'])
         progress_bar.update()
     show_class_list(classes, class_num)
+    print(f'The number of bboxes in the picture is greater than 120: {counts_instances}')
     # Get the width, height and area of bbox corresponding to each category
     print('\nRead bbox information in each class:')
     progress_bar_classes = ProgressBar(len(classes))

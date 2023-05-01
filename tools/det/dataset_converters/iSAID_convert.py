@@ -196,10 +196,10 @@ def cvt_annotations(image_infos, out_json_name):
 def parse_args():
     parser = argparse.ArgumentParser(
         description='Convert Cityscapes annotations to COCO format')
-    parser.add_argument('--cityscapes_path', default='/Users/kyanchen/codes/lightning_framework/samples/seg/iSAID_patches', help='cityscapes data path')
+    parser.add_argument('--cityscapes_path', default='/Users/kyanchen/datasets/seg/iSAID_patches', help='cityscapes data path')
     parser.add_argument('--img-dir', default='', type=str)
     parser.add_argument('--gt-dir', default='', type=str)
-    parser.add_argument('-o', '--out-dir', default='/Users/kyanchen/codes/lightning_framework/samples/seg/iSAID_patches/annotations', help='output path')
+    parser.add_argument('-o', '--out-dir', default='/Users/kyanchen/datasets/seg/iSAID_patches/annotations', help='output path')
     parser.add_argument(
         '--nproc', default=8, type=int, help='number of process')
     args = parser.parse_args()

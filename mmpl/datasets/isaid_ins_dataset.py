@@ -7,11 +7,25 @@ from mmdet.datasets.coco import CocoDataset
 @DATASETS.register_module()
 class ISAIDInsSegDataset(CocoDataset):
     """Dataset for Cityscapes."""
+    # Large_Vehicle Small_Vehicle ship
+    # METAINFO = {
+    #     'classes': ['ship', 'storage_tank', 'baseball_diamond', 'tennis_court', 'basketball_court', 'Ground_Track_Field', 'Bridge', 'Large_Vehicle', 'Small_Vehicle', 'Helicopter', 'Swimming_pool', 'Roundabout', 'Soccer_ball_field', 'plane', 'Harbor'],
+    #     'palette': [(220, 20, 60), (255, 0, 0), (0, 0, 142), (0, 0, 70),
+    #                 (0, 60, 100), (0, 80, 100), (0, 0, 230), (119, 11, 32),
+    #                 (0, 255, 0), (0, 0, 255), (0, 255, 255), (255, 0, 255),
+    #                 (0, 127, 191), (  0,127,255), (  0,100,155)
+    #                 ]
+    # }
 
     METAINFO = {
-        'classes': ['ship', 'storage_tank', 'baseball_diamond', 'tennis_court', 'basketball_court', 'Ground_Track_Field', 'Bridge', 'Large_Vehicle', 'Small_Vehicle', 'Helicopter', 'Swimming_pool', 'Roundabout', 'Soccer_ball_field', 'plane', 'Harbor'],
+        'classes': ['storage_tank', 'baseball_diamond', 'tennis_court', 'basketball_court',
+                    'Ground_Track_Field', 'Bridge', 'Helicopter', 'Swimming_pool',
+                    'Roundabout', 'Soccer_ball_field', 'plane', 'Harbor'],
         'palette': [(220, 20, 60), (255, 0, 0), (0, 0, 142), (0, 0, 70),
-                    (0, 60, 100), (0, 80, 100), (0, 0, 230), (119, 11, 32), (0, 255, 0), (0, 0, 255)]
+                    (0, 60, 100), (0, 80, 100), (0, 0, 230), (119, 11, 32),
+                    (0, 255, 0), (0, 0, 255), (0, 255, 255), (255, 0, 255),
+                    (0, 127, 191), (0, 127, 255), (0, 100, 155)
+                    ]
     }
 
     def filter_data(self) -> List[dict]:
