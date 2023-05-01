@@ -50,7 +50,7 @@ class MMDetPLer(BasePLer):
             gt_data = data_sample.get('gt_instances', None)
             gt['boxes'] = gt_data['bboxes']
             gt['labels'] = gt_data['labels']
-            if 'masks' in gt_data:
+            if 'masks' in pred:
                 gt['masks'] = gt_data['masks'].to_tensor(dtype=torch.bool, device=result['masks'].device)
             targets.append(gt)
 
