@@ -209,13 +209,13 @@ model_cfg = dict(
 
 task_name = 'isaid_ins'
 exp_name = 'E20230501_0'
-# logger = dict(
-#     type='WandbLogger',
-#     project=task_name,
-#     group='maskrcnn',
-#     name=exp_name
-# )
-logger = None
+logger = dict(
+    type='WandbLogger',
+    project=task_name,
+    group='maskrcnn',
+    name=exp_name
+)
+# logger = None
 
 
 callbacks = [
@@ -248,13 +248,13 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=2,
+    devices=8,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=3,
+    log_every_n_steps=10,
     check_val_every_n_epoch=1,
     benchmark=True,
     # sync_batchnorm=True,
@@ -267,7 +267,7 @@ trainer_cfg = dict(
     # overfit_batches=0.0,
 
     # val_check_interval=None,
-    num_sanity_val_steps=1,
+    # num_sanity_val_steps=1,
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
@@ -306,9 +306,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 6
+train_batch_size_per_gpu = 8
 train_num_workers = 2
-test_batch_size_per_gpu = 6
+test_batch_size_per_gpu = 8
 test_num_workers = 2
 persistent_workers = True
 
