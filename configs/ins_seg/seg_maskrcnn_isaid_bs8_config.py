@@ -267,7 +267,7 @@ trainer_cfg = dict(
     # overfit_batches=0.0,
 
     # val_check_interval=None,
-    num_sanity_val_steps=2,
+    num_sanity_val_steps=1,
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
