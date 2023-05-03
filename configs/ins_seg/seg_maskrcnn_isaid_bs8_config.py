@@ -5,7 +5,7 @@ max_epochs = 800
 
 optimizer = dict(
     type='AdamW',
-    lr=0.001,
+    lr=0.0001,
     weight_decay=1e-4
 )
 
