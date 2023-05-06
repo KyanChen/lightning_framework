@@ -42,7 +42,7 @@ class BvhDataset(_BaseDataset):
         # load bvh files that match given actors
         for f in glob.glob(os.path.join(self.data_root, "*.bvh")):
             file_name = os.path.basename(f).rsplit(".", 1)[0]
-            seq_name, actor = file_name.rsplit("_", 1)
+            seq_name, actor = file_name.split("_")[:2]
             if actor in self.actors:
                 bvh_files.append(f)
 
