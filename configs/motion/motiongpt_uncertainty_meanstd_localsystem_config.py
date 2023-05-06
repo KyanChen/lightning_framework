@@ -142,12 +142,12 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="cpu",
+    accelerator="auto",
     strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=[0,1],
     default_root_dir='results/tmp',
     # default_root_dir=f'results/motiongpt/{exp_name}',
     max_epochs=max_epochs,
