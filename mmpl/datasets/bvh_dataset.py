@@ -54,7 +54,7 @@ class BvhDataset(_BaseDataset):
 
         data_list = []
         bvh_files.sort()
-        for bvh_path in bvh_files:
+        for bvh_path in bvh_files[:1]:
             data_info = {}
             print("Processing file {}".format(bvh_path))
             anim = load_bvh_file(bvh_path)
