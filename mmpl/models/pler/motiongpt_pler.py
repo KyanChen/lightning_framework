@@ -45,9 +45,14 @@ class MotionGPTPLer(BasePLer):
         self.norm_type = norm_type
 
     def setup(self, stage: str) -> None:
-        mean_std = mmengine.load(self.mean_std_file)
-        self.mean_std_info = mean_std
-        for k, v in mean_std.items():
+        self.mean_std_info = mmengine.load(self.mean_std_file)
+        # for k, v in mean_std.items():
+        #     for kk, vv in v.items():
+        #         self.mean_std_info[k][kk] = vv.to(self.device)
+    
+    def on_fit_start(self) -> None:
+        super().on_fit_start()
+        for k, v in self.mean_std_info.items():
             for kk, vv in v.items():
                 self.mean_std_info[k][kk] = vv.to(self.device)
 
