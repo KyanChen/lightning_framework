@@ -34,9 +34,9 @@ class MotionGPTPLer(BasePLer):
 
         # for k, v in proj_nets.items():
         #     self.register_module(k, build_neck(v))
-        # self.spatial_transformer = build_neck(spatial_transformer)
+        self.spatial_transformer = build_neck(spatial_transformer)
         # self.temporal_transformer = build_neck(temporal_transformer)
-        self.head = build_head(head)
+        # self.head = build_head(head)
 
         self.block_size = block_size
         self.mean_std_file = mean_std_file
