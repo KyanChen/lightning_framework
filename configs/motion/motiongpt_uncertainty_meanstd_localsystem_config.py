@@ -177,7 +177,7 @@ trainer_cfg = dict(
     # gradient_clip_algorithm=None,
     # deterministic=None,
     # inference_mode: bool=True,
-    # use_distributed_sampler=True,
+    use_distributed_sampler=True,
     # profiler="simple",
     # detect_anomaly=True,
     # barebones=False,
@@ -186,11 +186,11 @@ trainer_cfg = dict(
 )
 
 # train_batch_size_per_gpu = 32
-train_batch_size_per_gpu = 2
-train_num_workers = 0
-test_batch_size_per_gpu = 2
-test_num_workers = 0
-persistent_workers = False
+train_batch_size_per_gpu = 32
+train_num_workers = 4
+test_batch_size_per_gpu = 32
+test_num_workers = 4
+persistent_workers = True
 datamodule_cfg = dict(
     type='PLDataModule',
     train_loader=dict(
