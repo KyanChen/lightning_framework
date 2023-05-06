@@ -22,7 +22,7 @@ from mmpl.datasets.data_utils import lafan1_utils_torch
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Browse a dataset')
-    parser.add_argument('--config', default='configs/motion/motiongpt_uncertainty_meanstd_globalsystem_config.py', help='train config file path')
+    parser.add_argument('--config', default='configs/motion/motiongpt_uncertainty_meanstd_localsystem_config.py', help='train config file path')
     parser.add_argument(
         '--output-dir',
         '-o',
