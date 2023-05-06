@@ -204,7 +204,7 @@ datamodule_cfg = dict(
             block_size=block_size,
             test_mode=False,
             data_root='data/lafan1/',
-            n_offset=10,
+            n_offset=20,
         )
     ),
     val_loader=dict(

@@ -8,3 +8,4 @@ pretrain
 *.ckpt
 cache_data
 output
+data

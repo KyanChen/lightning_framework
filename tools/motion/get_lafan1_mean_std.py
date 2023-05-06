@@ -91,6 +91,7 @@ def parse_args():
 
 
 def main():
+    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     args = parse_args()
     cfg = Config.fromfile(args.config)
     if args.cfg_options is not None:
@@ -122,7 +123,7 @@ def main():
             # )
             x = lafan1_utils_torch.get_model_input(positions_shift, rotations_shift)
             for k, v in x.items():
-                input_data[k] = input_data.get(k, []) + [v]
+                input_data[k] = input_data.get(k, []) + [v.to(device)]
     for k, v in input_data.items():
         input_data[k] = torch.cat(v, dim=0)
     mean_std_info = {}
