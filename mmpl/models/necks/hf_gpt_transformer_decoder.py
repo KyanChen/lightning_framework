@@ -26,6 +26,7 @@ class HFGPTTransformerDecoderNeck(BaseModule):
             config = GPT2Config.from_pretrained(model_name)
             config.update(update_kwargs)
             self.gpt_model = GPT2Model(config=config)
+            # self.wte = nn.Embedding(0, 512)
 
     def forward(self, *args, **kwargs):
         out_puts = self.gpt_model(*args, **kwargs)
