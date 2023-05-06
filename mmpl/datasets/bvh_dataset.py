@@ -77,10 +77,10 @@ class BvhDataset(_BaseDataset):
         count = 0
         for idx, data in enumerate(data_list):
             num_frame = data['frames']
-            num_train_frames = num_frame - self.block_size - 1
+            num_train_frames = num_frame - self.block_size
             assert num_train_frames > 0, "num_train_frames should be positive"
             for i in range(num_train_frames):
-                if i % self.n_offset == 1:
+                if i % self.n_offset == 0:
                     self.idx2seq[count] = (idx, i)
                     count += 1
         self.num_samples = count

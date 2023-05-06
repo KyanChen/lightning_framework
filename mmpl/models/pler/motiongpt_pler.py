@@ -19,94 +19,66 @@ from mmpl.datasets.data_utils import lafan1_utils_torch
 @MODELS.register_module()
 class MotionGPTPLer(BasePLer):
     def __init__(self,
-                 rotation_proj,
-                 position_proj,
+                 proj_nets,
                  spatial_transformer,
                  temporal_transformer,
                  head,
-                 mean_std_info,
-                 norm_type='minmax',
+                 mean_std_file,
+                 norm_type='meanstd',
                  block_size=512,
                  max_frames_predict=128,
                  n_prompt_tokens=20,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
-        self.rotation_proj = build_neck(rotation_proj)
-        self.position_proj = build_neck(position_proj)
 
+        for k, v in proj_nets.items():
+            self.register_module(k, build_neck(v))
         self.spatial_transformer = build_neck(spatial_transformer)
         self.temporal_transformer = build_neck(temporal_transformer)
-
         self.head = build_head(head)
+
         self.block_size = block_size
-        self.mean_std_info = mean_std_info
+        self.mean_std_file = mean_std_file
         self.max_frames_predict = max_frames_predict
         self.n_prompt_tokens = n_prompt_tokens
         self.norm_type = norm_type
 
     def setup(self, stage: str) -> None:
-        mean_std = mmengine.load(self.mean_std_info)
-        keys = ['mean_rot_6d_with_position', 'std_rot_6d_with_position',
-                'mean_diff_root_xz', 'std_diff_root_xz',
-                'max_rot_6d_with_position', 'min_rot_6d_with_position',
-                'max_diff_root_xz', 'min_diff_root_xz']
-        for key in keys:
-            assert key in mean_std, f"Key {key} not found in {self.mean_std_info}"
-            self.register_buffer(key, mean_std[key])
-        zero_mask = self.max_rot_6d_with_position - self.min_rot_6d_with_position == 0
-        self.max_rot_6d_with_position[zero_mask] = 1
-        self.min_rot_6d_with_position[zero_mask] = 0
-        zero_mask = self.max_diff_root_xz - self.min_diff_root_xz == 0
-        self.max_diff_root_xz[zero_mask] = 1
-        self.min_diff_root_xz[zero_mask] = 0
-        zero_mask = self.std_rot_6d_with_position == 0
-        self.std_rot_6d_with_position[zero_mask] = 1
-        zero_mask = self.std_diff_root_xz == 0
-        self.std_diff_root_xz[zero_mask] = 1
-        # if self.local_rank == 0:
-        #     assert torch.all(self.max_rot_6d_with_position - self.min_rot_6d_with_position > 0)
-        #     assert torch.all(self.max_diff_root_xz - self.min_diff_root_xz > 0)
+        mean_std = mmengine.load(self.mean_std_file)
+        self.mean_std_info = mean_std
+        for k, v in mean_std.items():
+            for kk, vv in v.items():
+                self.mean_std_info[k][kk] = vv.to(self.device)
 
     def training_val_step(self, batch, batch_idx, prefix=''):
         positions = batch['positions']
         rotations = batch['rotations']
-        global_positions = batch['global_positions']
-        global_rotations = batch['global_rotations']
+        # global_positions = batch['global_positions']
+        # global_rotations = batch['global_rotations']
         foot_contact = batch['foot_contact']
         parents = batch['parents'][0]
 
         positions_shift, rotations_shift = lafan1_utils_torch.reduce_frame_root_shift_and_rotation(
             positions, rotations, base_frame_id=0)
+        # shift_global_rotations, shift_global_positions = lafan1_utils_torch.fk_torch(
+        #     rotations_shift.clone(), positions_shift.clone(), parents)
 
-        rot_6d_with_position, diff_root_zyx = lafan1_utils_torch.get_shift_model_input(positions_shift.clone(), rotations_shift.clone())
-        # rot_6d_with_position BxTxJx9
-        # diff_root_zyx BxTxJx3
+        arranged_x_dict = lafan1_utils_torch.get_model_input(positions_shift.clone(), rotations_shift.clone())
+        x_inputs = {k: v[:, :self.block_size].clone() for k, v in arranged_x_dict.items()}
 
-        rot_6d_with_position_input = rot_6d_with_position[:, :self.block_size].clone()
-        diff_root_zyx_input = diff_root_zyx[:, :self.block_size].clone()
-
-        x = self.forward(rot_6d_with_position_input, diff_root_zyx_input)
+        x = self.forward(inputs=x_inputs)
 
         losses = self.head.loss(
             x,
-            normalization_info=dict(
-                mean_rot_6d_with_position=self.mean_rot_6d_with_position,
-                std_rot_6d_with_position=self.std_rot_6d_with_position,
-                mean_diff_root_xz=self.mean_diff_root_xz,
-                std_diff_root_xz=self.std_diff_root_xz,
-                max_rot_6d_with_position=self.max_rot_6d_with_position,
-                min_rot_6d_with_position=self.min_rot_6d_with_position,
-                max_diff_root_xz=self.max_diff_root_xz,
-                min_diff_root_xz=self.min_diff_root_xz,
-            ),
+            norm_type=self.norm_type,
+            normalization_info=self.mean_std_info,
             block_size=self.block_size,
             parents=parents,
-            rot_6d_with_position=rot_6d_with_position,
-            diff_root_zyx=diff_root_zyx,
-            positions_shift=positions_shift,
             rotations_shift=rotations_shift,
-            norm_type=self.norm_type,
+            positions_shift=positions_shift,
+            foot_contact=foot_contact,
+            arranged_x_dict=arranged_x_dict,
         )
 
         parsed_losses, log_vars = self.parse_losses(losses)
@@ -122,28 +94,32 @@ class MotionGPTPLer(BasePLer):
     def training_step(self, batch, batch_idx):
         return self.training_val_step(batch, batch_idx, prefix='train')
 
-    def forward(self, rot_6d_with_position_input, diff_root_zyx_input, *args: Any, **kwargs: Any) -> Any:
+    def forward(self, inputs, *args: Any, **kwargs: Any) -> Any:
 
         if self.norm_type == 'minmax':
             # min-max normalization
-            rot_6d_with_position_input = (rot_6d_with_position_input - self.min_rot_6d_with_position) / (
+            rot_6d_input = (rot_6d_input - self.min_rot_6d_with_position) / (
                     self.max_rot_6d_with_position - self.min_rot_6d_with_position)
-            rot_6d_with_position_input = rot_6d_with_position_input * 2 - 1
+            rot_6d_input = rot_6d_input * 2 - 1
 
-            diff_root_zyx_input = (diff_root_zyx_input - self.min_diff_root_xz) / (
+            root_pos_input = (root_pos_input - self.min_diff_root_xz) / (
                     self.max_diff_root_xz - self.min_diff_root_xz)
-            diff_root_zyx_input = diff_root_zyx_input * 2 - 1
-        else:
-            rot_6d_with_position_input = (rot_6d_with_position_input - self.mean_rot_6d_with_position) / self.std_rot_6d_with_position
-            diff_root_zyx_input = (diff_root_zyx_input - self.mean_diff_root_xz) / self.std_diff_root_xz
+            root_pos_input = root_pos_input * 2 - 1
+        elif self.norm_type == 'meanstd':
+            for k, v in inputs.items():
+                inputs[k] = (v - self.mean_std_info[k]['mean']) / self.mean_std_info[k]['std']
 
-        x_rot = self.rotation_proj(rot_6d_with_position_input)
-        x_pos = self.position_proj(diff_root_zyx_input)
-
-        x = torch.cat([x_rot, x_pos], dim=-2)
+        # arrange input
+        x_inputs = []
+        for k, v in inputs.items():
+            if hasattr(self, f'{k}_proj'):
+                x = getattr(self, f'{k}_proj')(v)
+                x_inputs.append(x)
+        x = torch.cat(x_inputs, dim=-2)
+        bs = x.shape[0]
         x = rearrange(x, 'b t j d -> (b t) j d')
         x, _ = self.spatial_transformer(x)
-        x = rearrange(x, '(b t) d -> b t d', b=rot_6d_with_position_input.shape[0])
+        x = rearrange(x, '(b t) d -> b t d', b=bs)
 
         outputs = self.temporal_transformer(inputs_embeds=x)
         x = outputs['last_hidden_state']
@@ -169,19 +145,19 @@ class MotionGPTPLer(BasePLer):
             # rot_6d_with_position BxTxJx9
             # diff_root_zyx BxTxJx3
 
-            rot_6d_with_position_input = rot_6d_with_position[:, -self.block_size:].clone()
-            diff_root_zyx_input = diff_root_zyx[:, -self.block_size:].clone()
+            rot_6d_input = rot_6d_with_position[:, -self.block_size:].clone()
+            root_pos_input = diff_root_zyx[:, -self.block_size:].clone()
 
-            x = self.forward(rot_6d_with_position_input, diff_root_zyx_input)
+            x = self.forward(rot_6d_input, root_pos_input)
             x = x[:, -1:, :]
 
             pred_rot_6d, pred_diff_root_zyx = self.head.predict(
                 x,
                 normalization_info=dict(
-                    mean_rot_6d_with_position=self.mean_rot_6d_with_position,
-                    std_rot_6d_with_position=self.std_rot_6d_with_position,
-                    mean_diff_root_xz=self.mean_diff_root_xz,
-                    std_diff_root_xz=self.std_diff_root_xz,
+                    mean_rot_6d=self.mean_rot_6d,
+                    std_rot_6d=self.std_rot_6d,
+                    mean_root_pos=self.mean_root_pos,
+                    std_root_pos=self.std_root_pos,
                     max_rot_6d_with_position=self.max_rot_6d_with_position,
                     min_rot_6d_with_position=self.min_rot_6d_with_position,
                     max_diff_root_xz=self.max_diff_root_xz,

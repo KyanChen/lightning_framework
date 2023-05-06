@@ -413,14 +413,40 @@ def to_start_centered_data(positions, rotations, context_len,
         return pos.detach(), rot.detach()
 
 
+# def get_model_input(positions, rotations):
+#     # positions: (batch, seq, joint, 3)
+#     # rotation: (batch, seq, joint, 3, 3)
+#     # return (batch, seq, joint*6+3)
+#     rot_6d = matrix9D_to_6D_torch(rotations)
+#     rot = rot_6d.flatten(start_dim=-2)
+#     x = torch.cat([rot, positions[..., 0, :]], dim=-1)
+#     return x
+
 def get_model_input(positions, rotations):
     # positions: (batch, seq, joint, 3)
     # rotation: (batch, seq, joint, 3, 3)
     # return (batch, seq, joint*6+3)
-    rot_6d = matrix9D_to_6D_torch(rotations)
-    rot = rot_6d.flatten(start_dim=-2)
-    x = torch.cat([rot, positions[..., 0, :]], dim=-1)
-    return x
+    
+    # local joint rotation
+    local_rot_6d = matrix9D_to_6D_torch(rotations)
+    # root position
+    root_pos = positions[..., 0:1, :]
+    
+    # local joint rotation shift
+    diff_local_rot_6d = local_rot_6d[..., 1:, :, :] - local_rot_6d[..., :-1, :, :]  # B S-1 22 6
+    pad_local_rot_6d = torch.zeros_like(diff_local_rot_6d[..., :1, :, :], device=diff_local_rot_6d.device)
+    diff_local_rot_6d = torch.cat([pad_local_rot_6d, diff_local_rot_6d], dim=-3)  # B S 22 6
+    
+    # root position shift
+    diff_root_pos = root_pos[..., 1:, :, :] - root_pos[..., :-1, :, :]  # B S-1 1 3
+    pad_root_pos = torch.zeros_like(root_pos[..., :1, :, :], device=diff_root_pos.device)
+    root_pos = torch.cat([pad_root_pos, diff_root_pos], dim=-3)  # B S 1 3
+    return dict(
+        rot_6d=local_rot_6d,
+        root_pos=root_pos,
+        diff_rot_6d=diff_local_rot_6d,
+        diff_root_pos=diff_root_pos
+    )
 
 
 def get_shift_model_input(positions, rotations, return_offset=False):
@@ -430,35 +456,36 @@ def get_shift_model_input(positions, rotations, return_offset=False):
     rot_6d = matrix9D_to_6D_torch(rotations)  # B S 22 6
 
     skeleton_offset = positions.clone()  # B S 22 3
-    frame0_root_zyx = skeleton_offset[..., 0:1, :].clone()  # B S 1 3
+    frame0_root_pos = skeleton_offset[..., 0:1, :].clone()  # B S 1 3
     # 将root的位置设置为0
     skeleton_offset[..., 0, :] = 0
     rot_6d_with_skeleton_offset = torch.cat([rot_6d, skeleton_offset], dim=-1)  # B S 22 9
 
     # 得到root的位置
-    root_zyx = positions[..., 0:1, :].clone()  # B S 1 3
+    root_pos = positions[..., 0:1, :].clone()  # B S 1 3
     # 得到root在帧之间的差
-    diff_root_zyx = root_zyx[..., 1:, :, :] - root_zyx[..., :-1, :, :]  # B S-1 1 3
-    pad_root_zyx = torch.zeros_like(diff_root_zyx[..., :1, :, :], device=diff_root_zyx.device)
-    diff_root_zyx = torch.cat([pad_root_zyx, diff_root_zyx], dim=-3)  # B S 1 3
+    root_pos = root_pos[..., 1:, :, :] - root_pos[..., :-1, :, :]  # B S-1 1 3
+    pad_root_pos = torch.zeros_like(root_pos[..., :1, :, :], device=root_pos.device)
+    root_pos = torch.cat([pad_root_pos, root_pos], dim=-3)  # B S 1 3
 
     if return_offset:
-        return rot_6d_with_skeleton_offset, diff_root_zyx, frame0_root_zyx
+        return rot_6d_with_skeleton_offset, root_pos, frame0_root_pos
     else:
-        return rot_6d_with_skeleton_offset, diff_root_zyx
+        return rot_6d_with_skeleton_offset, root_pos
 
 
-def reverse_shift_model_input(diff_root_zyx, frame0_root_zyx_offset):
-    # diff_root_zyx: (batch, seq, 1, 3)
+def reverse_shift_model_input(root_pos, frame0_root_pos_offset):
+    # root_pos: (batch, seq, 1, 3)
     # rotation: (batch, seq, joint, 3, 3)
     # return (batch, seq, joint*6+3)
-    root_zyx = torch.cumsum(diff_root_zyx, dim=-3)  # B S 1 3
-    root_zyx = root_zyx + frame0_root_zyx_offset  # B S 1 3
-    return root_zyx
+    root_pos = torch.cumsum(root_pos, dim=-3)  # B S 1 3
+    root_pos = root_pos + frame0_root_pos_offset  # B S 1 3
+    return root_pos
 
 
 def reduce_frame_root_shift_and_rotation(
-        positions, rotations, base_frame_id, forward_axis="x", root_idx=0, return_offset=False):
+        positions, rotations, base_frame_id=0,
+        forward_axis="x", root_idx=0, return_offset=False):
     """
     Center raw data at the start of transition.
     Last context frame is moved to origin (only x and z axis, y unchanged)
@@ -562,8 +589,9 @@ def reverse_root_pos_rot_offset(positions, rotations, root_pos_offset,
     return pos.detach(), rot.detach()
 
 
-def _get_root_rot_offset_at_frame(pos, rot, frame,
-                                  forward_axis="x", root_idx=0):
+def _get_root_rot_offset_at_frame(
+        pos, rot, frame,
+        forward_axis="x", root_idx=0):
     """
     Get the rotation offset that makes root joint faces forward_axis at
     given frame.

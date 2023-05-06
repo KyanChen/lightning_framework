@@ -22,7 +22,7 @@ from mmpl.datasets.data_utils import lafan1_utils_torch
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Browse a dataset')
-    parser.add_argument('--config', default='../../configs/motion/motiongpt_config.py', help='train config file path')
+    parser.add_argument('--config', default='configs/motion/motiongpt_uncertainty_meanstd_globalsystem_config.py', help='train config file path')
     parser.add_argument(
         '--output-dir',
         '-o',
@@ -100,51 +100,44 @@ def main():
     register_all_modules()
 
     dataset_cfg = cfg.get('datamodule_cfg').get(args.phase + '_loader').get('dataset')
-    dataset_cfg['data_root'] = '../'+dataset_cfg['data_root']
+    # dataset_cfg['data_root'] = '../'+dataset_cfg['data_root']
     dataset = build_dataset(dataset_cfg)
 
     progress_bar = ProgressBar(len(dataset))
     input_data = {}
     for i, item in zip(range(len(dataset)), dataset):
         progress_bar.update()
-        # if i % 100 == 0:
-        if True:
+        if i % 10000 == 0:
+        # if True:
             positions, rotations, global_positions, global_rotations, foot_contact, parents, _, _, _ = item.values()
             x_positions = positions[:dataset.block_size]
             x_rotations = rotations[:dataset.block_size]
             positions_shift, rotations_shift = lafan1_utils_torch.reduce_frame_root_shift_and_rotation(
                 x_positions, x_rotations, base_frame_id=0)
-            rot_6d_with_position, diff_root_xz = lafan1_utils_torch.get_shift_model_input(positions_shift, rotations_shift)
-            input_data['rot_6d_with_position'] = input_data.get('rot_6d_with_position', []) + [rot_6d_with_position]
-            input_data['diff_root_xz'] = input_data.get('diff_root_xz', []) + [diff_root_xz]
+            # dict(
+            #     rot_6d=local_rot_6d,
+            #     root_pos=root_pos,
+            #     diff_rot_6d=diff_local_rot_6d,
+            #     diff_root_pos=diff_root_pos
+            # )
+            x = lafan1_utils_torch.get_model_input(positions_shift, rotations_shift)
+            for k, v in x.items():
+                input_data[k] = input_data.get(k, []) + [v]
+    for k, v in input_data.items():
+        input_data[k] = torch.cat(v, dim=0)
+    mean_std_info = {}
+    for k, v in input_data.items():
+        mean_std_info[k] = {}
+        mean_std_info[k]['mean'] = torch.mean(v, dim=0)
+        mean_std_info[k]['std'] = torch.std(v, dim=0)
+        mean_std_info[k]['max'] = torch.max(v, dim=0)[0]
+        mean_std_info[k]['min'] = torch.min(v, dim=0)[0]
 
-    input_data['rot_6d_with_position'] = torch.cat(input_data['rot_6d_with_position'], dim=0)
-    input_data['diff_root_xz'] = torch.cat(input_data['diff_root_xz'], dim=0)
-    mean_rot_6d_with_position = torch.mean(input_data['rot_6d_with_position'], dim=0)
-    std_rot_6d_with_position = torch.std(input_data['rot_6d_with_position'], dim=0)
-    mean_diff_root_xz = torch.mean(input_data['diff_root_xz'], dim=0)
-    std_diff_root_xz = torch.std(input_data['diff_root_xz'], dim=0)
-
-    max_rot_6d_with_position = torch.max(input_data['rot_6d_with_position'], dim=0)[0]
-    min_rot_6d_with_position = torch.min(input_data['rot_6d_with_position'], dim=0)[0]
-    max_diff_root_xz = torch.max(input_data['diff_root_xz'], dim=0)[0]
-    min_diff_root_xz = torch.min(input_data['diff_root_xz'], dim=0)[0]
-
-    train_stats = {
-        'mean_rot_6d_with_position': mean_rot_6d_with_position,
-        'std_rot_6d_with_position': std_rot_6d_with_position,
-        'mean_diff_root_xz': mean_diff_root_xz,
-        'std_diff_root_xz': std_diff_root_xz,
-        'max_rot_6d_with_position': max_rot_6d_with_position,
-        'min_rot_6d_with_position': min_rot_6d_with_position,
-        'max_diff_root_xz': max_diff_root_xz,
-        'min_diff_root_xz': min_diff_root_xz,
-    }
-
-    mmengine.dump(train_stats, f"../../data/lafan1_train_mean_std_info_{dataset.block_size}.pkl")
-    for key, value in train_stats.items():
-        train_stats[key] = value.tolist()
-    mmengine.dump(train_stats, f"../../data/lafan1_train_mean_std_info_{dataset.block_size}.json", indent=4)
+    mmengine.dump(mean_std_info, f"data/lafan1_train_mean_std_info_{dataset.block_size}.pkl")
+    for key, value in mean_std_info.items():
+        for k, v in value.items():
+            mean_std_info[key][k] = v.tolist()
+    mmengine.dump(mean_std_info, f"data/lafan1_train_mean_std_info_{dataset.block_size}.json", indent=4)
 
 
 if __name__ == '__main__':
