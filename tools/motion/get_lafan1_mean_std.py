@@ -107,8 +107,8 @@ def main():
     input_data = {}
     for i, item in zip(range(len(dataset)), dataset):
         progress_bar.update()
-        if i % 10000 == 0:
-        # if True:
+        # if i % 10000 == 0:
+        if True:
             positions, rotations, global_positions, global_rotations, foot_contact, parents, _, _, _ = item.values()
             x_positions = positions[:dataset.block_size]
             x_rotations = rotations[:dataset.block_size]
