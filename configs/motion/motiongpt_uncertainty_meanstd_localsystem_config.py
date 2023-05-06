@@ -110,13 +110,13 @@ model_cfg = dict(
     ),
 )
 exp_name = 'E20230506_0'
-# logger = dict(
-#     type='WandbLogger',
-#     project='MotionGPT',
-#     group='uncertain',
-#     name=exp_name
-# )
-logger = None
+logger = dict(
+    type='WandbLogger',
+    project='MotionGPT',
+    group='uncertain',
+    name=exp_name
+)
+# logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -143,11 +143,11 @@ callbacks = [
 trainer_cfg = dict(
     compiled_model=False,
     accelerator="auto",
-    strategy="auto",
-    # strategy='ddp_find_unused_parameters_true',
+    # strategy="auto",
+    strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=[0, 1],
+    devices=8,
     # default_root_dir='results/tmp',
     default_root_dir=f'results/motiongpt/{exp_name}',
     max_epochs=max_epochs,
@@ -204,7 +204,7 @@ datamodule_cfg = dict(
             block_size=block_size,
             test_mode=False,
             data_root='data/lafan1/',
-            n_offset=20,
+            n_offset=10,
         )
     ),
     val_loader=dict(
