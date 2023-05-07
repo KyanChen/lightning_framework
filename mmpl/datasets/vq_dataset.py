@@ -9,11 +9,12 @@ from mmengine.dataset import BaseDataset as _BaseDataset
 import os
 import requests
 import numpy as np
+import os.path as osp
 from .data_utils import load_bvh_file, lafan1_utils_np
 
 
 @DATASETS.register_module()
-class BvhDataset(_BaseDataset):
+class KITMLDataset(_BaseDataset):
     def __init__(self,
                  block_size: int = 1024,
                  data_root: str = '../data/lafan1/',
@@ -54,7 +55,7 @@ class BvhDataset(_BaseDataset):
 
         data_list = []
         bvh_files.sort()
-        for bvh_path in bvh_files:
+        for bvh_path in bvh_files[:1]:
             data_info = {}
             print("Processing file {}".format(bvh_path))
             anim = load_bvh_file(bvh_path)
@@ -143,4 +144,91 @@ class BvhDataset(_BaseDataset):
             return self.get_test_item(idx)
         return self.get_train_item(idx)
 
+
+class VQMotionDataset(_BaseDataset):
+    def __init__(
+            self,
+            data_root,
+            dataset_name='kit',
+            window_size=64,
+            unit_length=4,
+            max_motion_length=196,
+            joints_num=21,
+            test_mode=False,
+            pipeline=[],
+            **kwargs
+    ):
+        self.window_size = window_size
+        self.unit_length = unit_length
+        self.dataset_name = dataset_name
+        self.data_root = data_root
+        self.max_motion_length = max_motion_length
+        self.joints_num = joints_num
+        self.test_mode = test_mode
+
+        self.motion_dir = osp.join(self.data_root, 'new_joint_vecs')
+        self.text_dir = osp.join(self.data_root, 'texts')
+
+        if dataset_name == 't2m':
+            assert self.joints_num == 22
+        elif dataset_name == 'kit':
+            assert self.joints_num == 21
+        else:
+            raise NotImplementedError
+
+        mean = np.load(pjoin(self.meta_dir, 'mean.npy'))
+        std = np.load(pjoin(self.meta_dir, 'std.npy'))
+
+        split_file = pjoin(self.data_root, 'train.txt')
+
+        self.data = []
+        self.lengths = []
+        id_list = []
+        with cs.open(split_file, 'r') as f:
+            for line in f.readlines():
+                id_list.append(line.strip())
+
+        for name in tqdm(id_list):
+            try:
+                motion = np.load(pjoin(self.motion_dir, name + '.npy'))
+                if motion.shape[0] < self.window_size:
+                    continue
+                self.lengths.append(motion.shape[0] - self.window_size)
+                self.data.append(motion)
+            except:
+                # Some motion may not exist in KIT dataset
+                pass
+
+        self.mean = mean
+        self.std = std
+        print("Total number of motions {}".format(len(self.data)))
+        super().__init__(
+            ann_file='',
+            data_root=data_root,
+            test_mode=test_mode,
+            pipeline=pipeline,
+            **kwargs)
+
+    def inv_transform(self, data):
+        return data * self.std + self.mean
+
+    def compute_sampling_prob(self):
+
+        prob = np.array(self.lengths, dtype=np.float32)
+        prob /= np.sum(prob)
+        return prob
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, item):
+        motion = self.data[item]
+
+        idx = random.randint(0, len(motion) - self.window_size)
+
+        motion = motion[idx:idx + self.window_size]
+        "Z Normalization"
+        motion = (motion - self.mean) / self.std
+
+        return motion
 
