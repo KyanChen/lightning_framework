@@ -1,6 +1,6 @@
 optimizer = dict(type='AdamW', lr=0.0002, weight_decay=1e-3)
 
-max_epochs = 150
+max_epochs = 200
 param_scheduler = [
     # warm up learning rate scheduler
     dict(
@@ -71,7 +71,7 @@ logger = dict(
     group='motionvqvae',
     name=exp_name
 )
-logger = None
+# logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -102,7 +102,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=2,
+    devices=4,
     # default_root_dir='results/tmp',
     default_root_dir=f'results/{task_name}/{exp_name}',
     max_epochs=max_epochs,
@@ -180,7 +180,7 @@ datamodule_cfg = dict(
             ann_file='test.txt',
             # dataset_name='kit',
             block_size=block_size,
-            n_offset=50,
+            n_offset=5,
             test_mode=True,
         )
     ),

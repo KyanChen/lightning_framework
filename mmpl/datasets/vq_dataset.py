@@ -84,7 +84,7 @@ class VQMotionDataset(_BaseDataset):
         # rank_zero_info("Total number of motion files {}".format(len(glob.glob(osp.join(self.motion_dir, '*.npy')))))
         # rank_zero_info("Total number of motions txt ids {}".format(len(id_list)))
         # rank_zero_info("Total number of motions final {}".format(len(data_list)))
-
+        mmengine.dist
         if get_rank() == 0:
             print("Total number of motion files {}".format(len(glob.glob(osp.join(self.motion_dir, '*.npy')))))
             print("Total number of motions txt ids {}".format(len(id_list)))
