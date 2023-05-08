@@ -35,11 +35,11 @@ class MotionVQVQEPLer(BasePLer):
     def setup(self, stage: str) -> None:
         self.mean_std_info = mmengine.load(self.mean_std_file)
 
-    # def on_fit_start(self) -> None:
-    #     super().on_fit_start()
-    #     for k, v in self.mean_std_info.items():
-    #         for kk, vv in v.items():
-    #             self.mean_std_info[k][kk] = vv.to(self.device)
+    def on_fit_start(self) -> None:
+        super().on_fit_start()
+        for k, v in self.mean_std_info.items():
+            for kk, vv in v.items():
+                self.mean_std_info[k][kk] = vv.to(self.device)
 
     def training_val_step(self, batch, batch_idx, prefix=''):
         gt_motion = batch['motion']

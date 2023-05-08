@@ -9,6 +9,7 @@ from mmengine.dataset import BaseDataset as _BaseDataset
 import numpy as np
 import os.path as osp
 from lightning.fabric.utilities import rank_zero_info
+from torch.distributed import get_rank
 
 
 @DATASETS.register_module()
@@ -66,9 +67,9 @@ class VQMotionDataset(_BaseDataset):
             try:
                 motion = np.load(osp.join(self.motion_dir, name + '.npy'))
                 if motion.shape[0] < self.block_size:
-                    rank_zero_info("Motion {} is too short".format(name))
-                    # if mmengine.dist.get_local_rank() == 0:
-                    #     print("Motion {} is too short".format(name))
+                    # rank_zero_info("Motion {} is too short".format(name))
+                    if get_rank() == 0:
+                        print("Motion {} is too short".format(name))
                     continue
                 # self.lengths.append(motion.shape[0] - self.block_size)
                 data_list.append(
@@ -76,18 +77,18 @@ class VQMotionDataset(_BaseDataset):
                 )
             except Exception as e:
                 rank_zero_info(e)
-                # if mmengine.dist.get_local_rank() == 0:
-                #     print(e)
+                if get_rank() == 0:
+                    print(e)
             tracker.update()
 
-        rank_zero_info("Total number of motion files {}".format(len(glob.glob(osp.join(self.motion_dir, '*.npy')))))
-        rank_zero_info("Total number of motions txt ids {}".format(len(id_list)))
-        rank_zero_info("Total number of motions final {}".format(len(data_list)))
+        # rank_zero_info("Total number of motion files {}".format(len(glob.glob(osp.join(self.motion_dir, '*.npy')))))
+        # rank_zero_info("Total number of motions txt ids {}".format(len(id_list)))
+        # rank_zero_info("Total number of motions final {}".format(len(data_list)))
 
-        # if mmengine.dist.get_local_rank() == 0:
-        #     print("Total number of motion files {}".format(len(glob.glob(osp.join(self.motion_dir, '*.npy')))))
-        #     print("Total number of motions txt ids {}".format(len(id_list)))
-        #     print("Total number of motions final {}".format(len(data_list)))
+        if get_rank() == 0:
+            print("Total number of motion files {}".format(len(glob.glob(osp.join(self.motion_dir, '*.npy')))))
+            print("Total number of motions txt ids {}".format(len(id_list)))
+            print("Total number of motions final {}".format(len(data_list)))
 
         self.idx2seq = {}
         count = 0
