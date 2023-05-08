@@ -63,7 +63,7 @@ model_cfg = dict(
 )
 
 task_name = 'motiongpt'
-exp_name = 'E20230506_0'
+exp_name = 'E20230508_0'
 
 logger = dict(
     type='WandbLogger',
