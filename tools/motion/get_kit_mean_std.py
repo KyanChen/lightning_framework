@@ -125,11 +125,13 @@ def main():
         mean_std_info[k]['max'] = torch.max(v, dim=0)[0].to(device)
         mean_std_info[k]['min'] = torch.min(v, dim=0)[0].to(device)
 
-    mmengine.dump(mean_std_info, f"data/motion/kit_train_mean_std_info_{dataset.block_size}.pkl")
+    save_folder = f"data/motion"
+    mmengine.mkdir_or_exist(save_folder)
+    mmengine.dump(mean_std_info, f"{save_folder}/kit_train_mean_std_info_{dataset.block_size}.pkl")
     for key, value in mean_std_info.items():
         for k, v in value.items():
             mean_std_info[key][k] = v.tolist()
-    mmengine.dump(mean_std_info, f"data/motion/kit_train_mean_std_info_{dataset.block_size}.json", indent=4)
+    mmengine.dump(mean_std_info, f"{save_folder}/kit_train_mean_std_info_{dataset.block_size}.json", indent=4)
 
 
 if __name__ == '__main__':
