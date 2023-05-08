@@ -97,12 +97,12 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="cpu",
+    accelerator="auto",
     # strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=2,
     # default_root_dir='results/tmp',
     default_root_dir=f'results/{task_name}/{exp_name}',
     max_epochs=max_epochs,
@@ -141,11 +141,11 @@ trainer_cfg = dict(
 )
 
 # train_batch_size_per_gpu = 32
-train_batch_size_per_gpu = 2
-train_num_workers = 0
-test_batch_size_per_gpu = 2
-test_num_workers = 0
-persistent_workers = False
+train_batch_size_per_gpu = 256
+train_num_workers = 8
+test_batch_size_per_gpu = 256
+test_num_workers = 8
+persistent_workers = True
 
 # data_root = '/Users/kyanchen/codes/motion/KIT-ML'
 data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
