@@ -78,7 +78,7 @@ model_cfg = dict(
     ),
     temporal_transformer=dict(
         type='HFGPTTransformerDecoderNeck',
-        model_name='distilgpt2',
+        model_name='huggingface_configs/distilgpt2',
         from_pretrained=False,
         update_kwargs=dict(
             vocab_size=1,
