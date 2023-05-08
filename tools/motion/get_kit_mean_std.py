@@ -111,19 +111,19 @@ def main():
         # if i % 1000 == 0:
         if True:
             x = dict(
-                motion=item['motion'].to(device),
+                motion=item['motion'].to('cpu'),
             )
             for k, v in x.items():
-                input_data[k] = input_data.get(k, []) + [v.to(device)]
+                input_data[k] = input_data.get(k, []) + [v]
     for k, v in input_data.items():
         input_data[k] = torch.cat(v, dim=0)
     mean_std_info = {}
     for k, v in input_data.items():
         mean_std_info[k] = {}
-        mean_std_info[k]['mean'] = torch.mean(v, dim=0)
-        mean_std_info[k]['std'] = torch.std(v, dim=0)
-        mean_std_info[k]['max'] = torch.max(v, dim=0)[0]
-        mean_std_info[k]['min'] = torch.min(v, dim=0)[0]
+        mean_std_info[k]['mean'] = torch.mean(v, dim=0).to(device)
+        mean_std_info[k]['std'] = torch.std(v, dim=0).to(device)
+        mean_std_info[k]['max'] = torch.max(v, dim=0)[0].to(device)
+        mean_std_info[k]['min'] = torch.min(v, dim=0)[0].to(device)
 
     mmengine.dump(mean_std_info, f"data/motion/kit_train_mean_std_info_{dataset.block_size}.pkl")
     for key, value in mean_std_info.items():
