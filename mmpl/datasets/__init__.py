@@ -6,6 +6,7 @@ from .bvh_dataset import BvhDataset
 from .building_extraction_dataset import BuildingExtractionDataset
 from .isaid_ins_dataset import ISAIDInsSegDataset
 from .nwpu_ins_dataset import NWPUInsSegDataset
+from .vq_dataset import VQMotionDataset
 
 __all__ = [
     'build_dataset', 'PLDataModule', 'MNIST', 'GPTDataset', 'BvhDataset'
