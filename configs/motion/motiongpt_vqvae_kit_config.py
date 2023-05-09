@@ -59,8 +59,8 @@ model_cfg = dict(
         nb_joints=nb_joints,
         commit_loss_weight=0.02,
         losses=dict(
-            motion_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
-            motion_vec_loss=dict(type='SmoothL1Loss', loss_weight=0.1)
+            motion_loss=dict(type='mmdet.SmoothL1Loss', loss_weight=1.0),
+            motion_vec_loss=dict(type='mmdet.SmoothL1Loss', loss_weight=0.1)
         ),
     ),
 )
