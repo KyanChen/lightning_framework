@@ -185,7 +185,7 @@ datamodule_cfg = dict(
             ann_file='test.txt',
             # dataset_name='kit',
             block_size=block_size,
-            n_offset=5,
+            n_offset=10,
             test_mode=True,
         )
     ),

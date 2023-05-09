@@ -44,10 +44,10 @@ model_cfg = dict(
     ),
     backbone=dict(
         type='MotionTransformer',
-        num_vq=512,
+        num_vq=nb_code,
         embed_dim=512,  # 263
         block_size=block_size,
-        num_layers=2,
+        num_layers=3,
         n_head=8,
         drop_out_rate=0.1,
         fc_rate=4
@@ -179,7 +179,7 @@ datamodule_cfg = dict(
             token_dir=f'cache_data/{task_name}/kit',
             # dataset_name='kit',
             block_size=block_size,
-            n_offset=5,
+            n_offset=10,
             test_mode=True,
         )
     ),
