@@ -68,7 +68,7 @@ class BatchFixedSizePadTokenMaskGPT(BaseDataPreprocessor):
         for item in batch['motion_token']:
             input_token_len = len(item)
             input_token_len_list.append(input_token_len)
-            input_index = torch.cat([item, torch.ones(longest - len(item), dtype=torch.long) * self.pad_token])
+            input_index = torch.cat([item, torch.ones(longest - len(item), dtype=torch.long, device=self.device) * self.pad_token])
             input_index_list.append(input_index)
         tg_index = torch.stack(input_index_list, dim=0).to(self.device)
         input_token_len = torch.tensor(input_token_len_list, dtype=torch.long).to(self.device)
