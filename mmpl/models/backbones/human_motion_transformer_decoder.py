@@ -33,7 +33,10 @@ class PositionEmbedding(nn.Module):
 
     def __init__(self, seq_length, dim, dropout, grad=False):
         super().__init__()
-        self.embed = nn.Parameter(data=PE1d_sincos(seq_length, dim), requires_grad=grad)
+        if grad:
+            self.embed = nn.Parameter(data=PE1d_sincos(seq_length, dim), requires_grad=grad)
+        else:
+            self.register_buffer('embed', PE1d_sincos(seq_length, dim))
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x):

@@ -15,6 +15,7 @@ from mmpl.utils import register_all_modules
 
 torch.set_float32_matmul_precision('high')
 register_all_modules()
+# TORCH_DISTRIBUTED_DEBUG=DETAIL
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a pl model')
