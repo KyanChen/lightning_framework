@@ -149,8 +149,8 @@ test_batch_size_per_gpu = 4
 test_num_workers = 0
 persistent_workers = False
 
-# data_root = '/Users/kyanchen/codes/motion/KIT-ML'
-data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
+data_root = '/Users/kyanchen/codes/motion/KIT-ML'
+# data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
 
 datamodule_cfg = dict(
     type='PLDataModule',
@@ -183,23 +183,6 @@ datamodule_cfg = dict(
             # dataset_name='kit',
             block_size=block_size,
             n_offset=5,
-            test_mode=True,
-        )
-    ),
-    test_loader=dict(
-        batch_size=1,
-        num_workers=0,
-        persistent_workers=persistent_workers,
-        pin_memory=True,
-        collate_fn=dict(type='default_collate'),
-        dataset=dict(
-            type='VQMotionDataset',
-            data_root=data_root,
-            ann_file='train.txt',
-            cache_mode=True,
-            # dataset_name='kit',
-            block_size=24,  # 40
-            n_offset=1,
             test_mode=True,
         )
     ),

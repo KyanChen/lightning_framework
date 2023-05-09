@@ -120,10 +120,10 @@ def main():
     mean_std_info = {}
     for k, v in input_data.items():
         mean_std_info[k] = {}
-        mean_std_info[k]['mean'] = torch.mean(v, dim=0).to(device)
-        mean_std_info[k]['std'] = torch.std(v, dim=0).to(device)
-        mean_std_info[k]['max'] = torch.max(v, dim=0)[0].to(device)
-        mean_std_info[k]['min'] = torch.min(v, dim=0)[0].to(device)
+        mean_std_info[k]['mean'] = torch.mean(v, dim=0).float()
+        mean_std_info[k]['std'] = torch.std(v, dim=0).float()
+        mean_std_info[k]['max'] = torch.max(v, dim=0)[0].float()
+        mean_std_info[k]['min'] = torch.min(v, dim=0)[0].float()
 
     save_folder = f"data/motion"
     mmengine.mkdir_or_exist(save_folder)

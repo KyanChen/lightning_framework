@@ -25,6 +25,8 @@ class VQMotionDataset(_BaseDataset):
             # max_motion_length=196,
             # joints_num=21,
             test_mode=False,
+            cache_mode=False,
+            predict_seq_len=None,
             pipeline=[],
             **kwargs
     ):
@@ -36,6 +38,8 @@ class VQMotionDataset(_BaseDataset):
         # self.joints_num = joints_num
         self.test_mode = test_mode
         self.n_offset = n_offset
+        self.predict_seq_len = predict_seq_len
+        self.cache_mode = cache_mode
 
         self.motion_dir = osp.join(self.data_root, 'new_joint_vecs')
         self.text_dir = osp.join(self.data_root, 'texts')
@@ -65,30 +69,28 @@ class VQMotionDataset(_BaseDataset):
         tracker = mmengine.ProgressBar(len(id_list))
         for name in id_list:
             try:
-                motion = np.load(osp.join(self.motion_dir, name + '.npy'))
-                if motion.shape[0] < self.block_size:
+                motion = np.load(osp.join(self.motion_dir, name + '.npy')).astype(np.float32)
+                if motion.shape[0] <= self.block_size:
                     # rank_zero_info("Motion {} is too short".format(name))
-                    if get_rank() == 0:
-                        print("Motion {} is too short".format(name))
+                    # if get_rank() == 0:
+                    #     print("Motion {} is too short".format(name))
                     continue
                 # self.lengths.append(motion.shape[0] - self.block_size)
                 data_list.append(
                     dict(motion=motion, name=name)
                 )
             except Exception as e:
-                rank_zero_info(e)
-                if get_rank() == 0:
-                    print(e)
+                # if get_rank() == 0:
+                print(e)
             tracker.update()
 
         # rank_zero_info("Total number of motion files {}".format(len(glob.glob(osp.join(self.motion_dir, '*.npy')))))
         # rank_zero_info("Total number of motions txt ids {}".format(len(id_list)))
         # rank_zero_info("Total number of motions final {}".format(len(data_list)))
-        mmengine.dist
-        if get_rank() == 0:
-            print("Total number of motion files {}".format(len(glob.glob(osp.join(self.motion_dir, '*.npy')))))
-            print("Total number of motions txt ids {}".format(len(id_list)))
-            print("Total number of motions final {}".format(len(data_list)))
+        # if get_rank() == 0:
+        print("Total number of motion files {}".format(len(glob.glob(osp.join(self.motion_dir, '*.npy')))))
+        print("Total number of motions txt ids {}".format(len(id_list)))
+        print("Total number of motions final {}".format(len(data_list)))
 
         self.idx2seq = {}
         count = 0
@@ -103,9 +105,32 @@ class VQMotionDataset(_BaseDataset):
         return data_list
 
     def __len__(self):
+        if self.cache_mode:
+            return super().__len__()
+        if self.test_mode and self.predict_seq_len is not None:
+            return self.predict_seq_len
         return self.num_samples
 
+    def get_cache_data(self, idx):
+        data_info = self.get_data_info(idx)
+        motion = torch.from_numpy(data_info['motion'])
+        m_length = motion.shape[0]
+        unit_length = 2 * 2
+        m_length = (m_length // unit_length) * unit_length
+
+        start_idx = random.randint(0, len(motion) - m_length)
+        motion = motion[start_idx:start_idx + m_length]
+
+        res = dict(
+            motion=motion,
+            name=data_info['name'],
+        )
+        return res
+
     def __getitem__(self, idx):
+        if self.cache_mode:
+            return self.get_cache_data(idx)
+
         seq_idx, frame_idx = self.idx2seq[idx]
         data_info = self.get_data_info(seq_idx)
         motion = torch.from_numpy(data_info['motion'][frame_idx:frame_idx + self.block_size])

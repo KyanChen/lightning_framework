@@ -131,31 +131,41 @@ def draw_motion_based_global_pos(
     plt.ion()
     if torch.is_tensor(g_pos):
         g_pos = g_pos.cpu().numpy()  # T x N x 3
+    # 如果需要换轴
+    g_pos = g_pos[..., axis_order]
+    MINS = g_pos.min(axis=0).min(axis=0)
+    MAXS = g_pos.max(axis=0).max(axis=0)
+
     for i in range(len(g_pos)):
         points = g_pos[i]
-        # 如果需要换轴
-        points = points[:, axis_order]
         fig = plt.figure(0, figsize=(4, 3))
         ax = fig.add_subplot(projection='3d')
         # ax.set_aspect('equal')
         ax.scatter(points[:, 0], points[:, 1], points[:, 2], color='black', alpha=point_alpha, linewidths=0, marker='o')
-        for k in range(len(parents)):
-            if parents[k] == -1:
-                continue
 
-            start_id = k
-            end_id = int(parents[k])
-            ax.plot(points[[start_id, end_id], 0],
-                    points[[start_id, end_id], 1],
-                    points[[start_id, end_id], 2], color=fg_color, alpha=fg_alpha, linewidth=1)
+        if isinstance(parents[0], list):
+            for chain in parents:
+                ax.plot(points[chain, 0],
+                        points[chain, 1],
+                        points[chain, 2], color=fg_color, alpha=fg_alpha, linewidth=1)
+        else:
+            for k in range(len(parents)):
+                if parents[k] == -1:
+                    continue
+
+                start_id = k
+                end_id = int(parents[k])
+                ax.plot(points[[start_id, end_id], 0],
+                        points[[start_id, end_id], 1],
+                        points[[start_id, end_id], 2], color=fg_color, alpha=fg_alpha, linewidth=1)
 
         if i > 1:
             ax.plot(g_pos[:i, 0, 0],
                     g_pos[:i, 0, 2],
                     g_pos[:i, 0, 1], color="green", alpha=0.5, linewidth=0.5)
-        ax.set_xlim3d(-200, 200)
-        ax.set_ylim3d(-200, 200)
-        ax.set_zlim3d(-150, 150)
+        ax.set_xlim3d(MINS[0], MAXS[0])
+        ax.set_ylim3d(MINS[1], MAXS[1])
+        ax.set_zlim3d(MINS[2], MAXS[2])
         """
         ax.set_xlim3d(-200, 200)
         ax.set_ylim3d(-200, 200)
