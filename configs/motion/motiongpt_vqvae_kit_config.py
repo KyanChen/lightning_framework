@@ -104,7 +104,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=4,
     # default_root_dir='results/tmp',
     default_root_dir=f'results/{task_name}/{exp_name}',
     max_epochs=max_epochs,
@@ -149,8 +149,8 @@ test_batch_size_per_gpu = 4
 test_num_workers = 0
 persistent_workers = False
 
-# data_root = '/Users/kyanchen/codes/motion/KIT-ML'
-data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
+data_root = '/Users/kyanchen/codes/motion/KIT-ML'
+# data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
 
 datamodule_cfg = dict(
     type='PLDataModule',
@@ -188,7 +188,7 @@ datamodule_cfg = dict(
     ),
     test_loader=dict(
         batch_size=1,
-        num_workers=0,
+        num_workers=4,
         persistent_workers=persistent_workers,
         pin_memory=True,
         collate_fn=dict(type='default_collate'),

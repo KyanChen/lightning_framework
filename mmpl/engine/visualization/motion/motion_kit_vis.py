@@ -156,7 +156,7 @@ class MotionKITVisualizer(Callback):
         batch_idx: int,
         dataloader_idx: int = 0,
     ) -> None:
-        pred_tokens = outputs
+        pred_tokens = outputs.cpu().detach().numpy()
         assert len(pred_tokens) == 1, "batch size must be 1"
         name = batch['name'][0]
         np.save(os.path.join(self.cache_dir, name + '.npy'), pred_tokens)
