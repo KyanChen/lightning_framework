@@ -22,7 +22,7 @@ def parse_args():
     # parser.add_argument('--config', default='configs/det/yolov8_dynamic_sirens.py', help='train config file path')
     # parser.add_argument('--config', default='configs/seg/seg_just_backbone_with_clip_config.py', help='train config file path')
     # parser.add_argument('--config', default='configs/seg/seg_just_sam_backbone_config.py', help='train config file path')
-    parser.add_argument('--config', default='configs/motion/motiongpt_vqvae_kit_config.py',
+    parser.add_argument('--config', default='configs/motion/motiongpt_gpt_kit_config.py',
                         help='train config file path')
     # parser.add_argument('--config', default='configs/seg_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/seg_mask2former_config.py', help='train config file path')

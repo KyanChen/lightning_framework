@@ -1,11 +1,18 @@
+import os
 from typing import Any
+
+import mmengine
+import torch
+import torch.nn as nn
+from einops import rearrange
+
 from mmpl.registry import MODELS
-from ..builder import build_backbone, build_head
+from ..builder import build_backbone, build_loss, build_neck, build_head
 from .base_pler import BasePLer
 
 
 @MODELS.register_module()
-class MotionVQVQEPLer(BasePLer):
+class MotionLMGPTPLer(BasePLer):
     def __init__(self,
                  backbone,
                  head,
@@ -19,14 +26,14 @@ class MotionVQVQEPLer(BasePLer):
     def training_val_step(self, batch, batch_idx, prefix=''):
         if hasattr(self, 'data_preprocessor'):
             data = self.data_preprocessor(batch)
-        gt_motion = data['inputs']
-        pred_motion, loss_commit, perplexity = self.backbone(gt_motion)
+            x = data['inputs']['input_index']
+        logits = self.backbone(x)
 
         losses = self.head.loss(
-            pred_motion=pred_motion,
-            loss_commit=loss_commit,
-            perplexity=perplexity,
-            gt_motion=gt_motion,
+            logits=logits,
+            labels=data['inputs']['tg_index'],
+            # input_token_len=data['inputs']['input_token_len'],
+            # pad_token=self.data_preprocessor.pad_token,
         )
 
         parsed_losses, log_vars = self.parse_losses(losses)
@@ -43,19 +50,21 @@ class MotionVQVQEPLer(BasePLer):
         return self.training_val_step(batch, batch_idx, prefix='train')
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
-        if hasattr(self, 'data_preprocessor'):
-            data = self.data_preprocessor(batch)
-        gt_motion = data['inputs']
-
+        for k, v in self.mean_std_info.items():
+            for kk, vv in v.items():
+                self.mean_std_info[k][kk] = vv.to(self.device, dtype=torch.float32)
+        gt_motion = batch['motion']
+        gt_motion = (gt_motion - self.mean_std_info['motion']['mean']) / self.mean_std_info['motion']['std']
         pred_motion, loss_commit, perplexity = self.backbone(gt_motion)
-        pred_denorm = self.data_preprocessor.denormalize(pred_motion)
+        pred_denorm = pred_motion * self.mean_std_info['motion']['std'] + self.mean_std_info['motion']['mean']
         return pred_denorm
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0):
-        if hasattr(self, 'data_preprocessor'):
-            data = self.data_preprocessor(batch)
-        gt_motion = data['inputs']
-
+        for k, v in self.mean_std_info.items():
+            for kk, vv in v.items():
+                self.mean_std_info[k][kk] = vv.to(self.device, dtype=torch.float32)
+        gt_motion = batch['motion']
+        gt_motion = (gt_motion - self.mean_std_info['motion']['mean']) / self.mean_std_info['motion']['std']
         pred_tokens = self.backbone.encode(gt_motion)
         return pred_tokens
 

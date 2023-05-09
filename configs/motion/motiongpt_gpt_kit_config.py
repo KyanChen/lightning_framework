@@ -1,4 +1,4 @@
-optimizer = dict(type='AdamW', lr=0.0002, weight_decay=1e-3)
+optimizer = dict(type='AdamW', lr=0.0002, betas=(0.5, 0.9), weight_decay=1e-3)
 
 max_epochs = 200
 param_scheduler = [
@@ -25,53 +25,51 @@ param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
-block_size = 64
 nb_joints = 21
+nb_code = 512
+block_size = 128
+pad_token = nb_code
 
 model_cfg = dict(
-    type='MotionVQVQEPLer',
-    block_size=block_size,
-    mean_std_file=f'data/motion/kit_train_mean_std_info_{block_size}.pkl',
+    type='MotionLMGPTPLer',
+    data_preprocessor=dict(
+        type='BatchFixedSizePadTokenMaskGPT',
+        pad_token=pad_token,
+        p_token_keep=0.8,
+        nb_code=nb_code,
+    ),
     hyperparameters=dict(
         optimizer=optimizer,
         param_scheduler=param_scheduler,
     ),
     backbone=dict(
-        type='HumanVQVAE',
-        quantizer='ema_reset',
-        in_channel=251,  # 263
-        nb_code=512,
-        code_dim=512,
-        output_emb_width=512,
-        down_t=2,
-        stride_t=2,
-        width=512,
-        depth=3,
-        dilation_growth_rate=3,
-        activation='relu',
-        norm=None
+        type='MotionTransformer',
+        num_vq=512,
+        embed_dim=512,  # 263
+        block_size=block_size,
+        num_layers=2,
+        n_head=8,
+        drop_out_rate=0.1,
+        fc_rate=4
     ),
     head=dict(
-        type='MotionVQVAEPseudoHead',
-        nb_joints=nb_joints,
-        commit_loss_weight=0.02,
+        type='MotionGPTPseudoHead',
         losses=dict(
-            motion_loss=dict(type='SmoothL1Loss', loss_weight=1.0),
-            motion_vec_loss=dict(type='SmoothL1Loss', loss_weight=0.1)
+            cls_loss=dict(type='mmdet.CrossEntropyLoss', ignore_index=pad_token),
         ),
     ),
 )
 
 task_name = 'motiongpt'
-exp_name = 'E20230508_0'
+exp_name = 'E20230509_0'
 
 logger = dict(
     type='WandbLogger',
     project=task_name,
-    group='motionvqvae',
+    group='motionlmgpt',
     name=exp_name
 )
-logger = None
+# logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -99,12 +97,12 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="cpu",
+    accelerator="auto",
     # strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=4,
     # default_root_dir='results/tmp',
     default_root_dir=f'results/{task_name}/{exp_name}',
     max_epochs=max_epochs,
@@ -143,14 +141,14 @@ trainer_cfg = dict(
 )
 
 # train_batch_size_per_gpu = 32
-train_batch_size_per_gpu = 256
+train_batch_size_per_gpu = 128
 train_num_workers = 8
-test_batch_size_per_gpu = 4
-test_num_workers = 0
-persistent_workers = False
+test_batch_size_per_gpu = 128
+test_num_workers = 8
+persistent_workers = True
 
-data_root = '/Users/kyanchen/codes/motion/KIT-ML'
-# data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
+# data_root = '/Users/kyanchen/codes/motion/KIT-ML'
+data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
 
 datamodule_cfg = dict(
     type='PLDataModule',
@@ -159,12 +157,11 @@ datamodule_cfg = dict(
         num_workers=train_num_workers,
         persistent_workers=persistent_workers,
         pin_memory=True,
-        collate_fn=dict(type='default_collate'),
         dataset=dict(
-            type='VQMotionDataset',
+            type='MotionGPTDataset',
             data_root=data_root,
             ann_file='train.txt',
-            # dataset_name='kit',
+            token_dir=f'cache_data/{task_name}/kit',
             block_size=block_size,
             n_offset=1,
             test_mode=False,
@@ -175,33 +172,16 @@ datamodule_cfg = dict(
         num_workers=test_num_workers,
         persistent_workers=persistent_workers,
         pin_memory=True,
-        collate_fn=dict(type='default_collate'),
         dataset=dict(
-            type='VQMotionDataset',
+            type='MotionGPTDataset',
             data_root=data_root,
             ann_file='test.txt',
+            token_dir=f'cache_data/{task_name}/kit',
             # dataset_name='kit',
             block_size=block_size,
             n_offset=5,
             test_mode=True,
         )
     ),
-    predict_loader=dict(
-        batch_size=test_batch_size_per_gpu,
-        num_workers=test_num_workers,
-        persistent_workers=persistent_workers,
-        pin_memory=True,
-        collate_fn=dict(type='default_collate'),
-        dataset=dict(
-            type='VQMotionDataset',
-            data_root=data_root,
-            ann_file='test.txt',
-            predict_seq_len=32,
-            # dataset_name='kit',
-            block_size=block_size,
-            n_offset=50,
-            test_mode=True,
-        )
-    )
 )
 
