@@ -169,8 +169,8 @@ test_batch_size_per_gpu = 128
 test_num_workers = 8
 persistent_workers = True
 
-data_root = '/Users/kyanchen/codes/motion/KIT-ML'
-# data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
+# data_root = '/Users/kyanchen/codes/motion/KIT-ML'
+data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
 
 datamodule_cfg = dict(
     type='PLDataModule',
