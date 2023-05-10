@@ -70,7 +70,7 @@ class VQMotionDataset(_BaseDataset):
         for name in id_list:
             try:
                 motion = np.load(osp.join(self.motion_dir, name + '.npy')).astype(np.float32)
-                if motion.shape[0] <= self.block_size:
+                if motion.shape[0] < self.block_size:
                     # rank_zero_info("Motion {} is too short".format(name))
                     # if get_rank() == 0:
                     #     print("Motion {} is too short".format(name))
