@@ -53,11 +53,21 @@ model_cfg = dict(
             hidden_size=hidden_size,
             num_hidden_layers=3,
             num_attention_heads=8,
+
+            _from_model_config=True,
+            eos_token_id=None,
+            pad_token_id=nb_code,
         )
     ),
     test_cfg=dict(
-        num_prompt=10,
-        sample_length=64,
+        num_prompt=20,
+        max_new_tokens=64,
+        # num_return_sequences=1,
+        # num_beams=0,
+        num_return_sequences=2,
+        num_beams=1,
+        do_sample=True,
+
         data_preprocessor=dict(
             type='NormalizationMotion',
             mean_std_file=f'data/motion/kit_train_mean_std_info_{64}.pkl',
@@ -85,13 +95,13 @@ model_cfg = dict(
 task_name = 'motiongpt'
 exp_name = 'E20230510_0'
 
-logger = dict(
-    type='WandbLogger',
-    project=task_name,
-    group='motionlmgpt',
-    name=exp_name
-)
-# logger = None
+# logger = dict(
+#     type='WandbLogger',
+#     project=task_name,
+#     group='motionlmgpt',
+#     name=exp_name
+# )
+logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -119,7 +129,7 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="auto",
+    accelerator="cpu",
     # strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
@@ -169,8 +179,8 @@ test_batch_size_per_gpu = 128
 test_num_workers = 8
 persistent_workers = True
 
-# data_root = '/Users/kyanchen/codes/motion/KIT-ML'
-data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
+data_root = '/Users/kyanchen/codes/motion/KIT-ML'
+# data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
 
 datamodule_cfg = dict(
     type='PLDataModule',

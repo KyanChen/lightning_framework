@@ -82,12 +82,13 @@ class BatchFixedSizePadTokenMaskGPT(BaseDataPreprocessor):
         r_indices = torch.randint_like(input_ids, self.nb_code)
         a_indices = mask * input_ids + mask.logical_not() * r_indices
 
+        tgt_ids[tgt_ids == self.pad_token] = -100
+
         data = dict()
         data['inputs'] = dict(
             input_ids=a_indices,
             attention_mask=attention_mask,
             labels=tgt_ids,
-
         )
         data['data_samples'] = batch
         return data

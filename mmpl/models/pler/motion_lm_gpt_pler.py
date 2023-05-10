@@ -91,11 +91,42 @@ class MotionLMGPTPLer(BasePLer):
         pred_vqvae_pose = self.vqvae.forward_decoder(pred_tokens)
 
         num_prompt = self.test_cfg['num_prompt']
-        sample_length = self.test_cfg['sample_length']
+        max_new_tokens = self.test_cfg['max_new_tokens']
+        num_return_sequences = self.test_cfg['num_return_sequences']
+        num_beams = self.test_cfg['num_beams']
+        do_sample = self.test_cfg['do_sample']
+
         pred_tokens_clip = pred_tokens[:, :num_prompt]
 
-        index_motion = self.backbone.sample(pred_tokens_clip, sample_length=sample_length, if_categorial=True)
-        pred_gpt_pose = self.vqvae.forward_decoder(index_motion)
+        if hasattr(self, 'head'):
+            index_motions = self.backbone.sample(pred_tokens_clip, sample_length=max_new_tokens, if_categorial=True)
+        else:
+            inputs = dict(
+                input_ids=pred_tokens_clip,
+                attention_mask=torch.ones_like(pred_tokens_clip, dtype=torch.long, device=pred_tokens_clip.device),
+            )
+            if num_beams > 1:
+                outputs = self.backbone.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    num_beams=num_beams,
+                    do_sample=do_sample,
+                    num_return_sequences=num_return_sequences,
+                    return_dict_in_generate=True,
+                    output_scores=True,
+                )
+            else:
+                outputs = self.backbone.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=do_sample,
+                    num_return_sequences=num_return_sequences,
+                    return_dict_in_generate=True,
+                    output_scores=True
+                )
+            index_motions = outputs.sequences
+
+        pred_gpt_pose = self.vqvae.forward_decoder(index_motions)
 
         pred_vqvae_pose = self.vqvae_preprocessor.denormalize(pred_vqvae_pose)
         pred_gpt_pose = self.vqvae_preprocessor.denormalize(pred_gpt_pose)

@@ -15,13 +15,13 @@ register_all_modules()
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a pl model')
     # parser.add_argument('--config', default='configs/motion/motiongpt_certainty_config.py', help='train config file path')
-    parser.add_argument('--config', default='configs/motion/motiongpt_gpt_kit_config.py',
+    parser.add_argument('--config', default='configs/motion/motiongpt_huggpt_kit_config.py',
                         help='train config file path')
     parser.add_argument('--status', default='predict', help='fit or test', choices=['fit', 'test', 'predict', 'validate'])
     # parser.add_argument('--ckpt-path', default='pretrain/motiongpt/E20230418_0_epoch_epoch=96-valloss_val_loss=0.9393.ckpt',
     #                     help='checkpoint path')
     parser.add_argument('--ckpt-path',
-                        default='pretrain/motiongpt/LM_GPT_E20230509_0.pth',
+                        default='pretrain/motiongpt/LM_GPT_E20230510_0.pth',
                         help='checkpoint path')
     parser.add_argument('--work-dir', default=None, help='the dir to save logs and mmpl')
     args = parser.parse_args()
