@@ -15,26 +15,32 @@ from .base_pler import BasePLer
 class MotionLMGPTPLer(BasePLer):
     def __init__(self,
                  backbone,
-                 head,
+                 head=None,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
 
         self.backbone = build_backbone(backbone)
-        self.head = build_head(head)
+        if head is not None:
+            self.head = build_head(head)
 
     def training_val_step(self, batch, batch_idx, prefix=''):
         if hasattr(self, 'data_preprocessor'):
             data = self.data_preprocessor(batch)
-            x = data['inputs']['input_index']
-        logits = self.backbone(x)
+            x = data['inputs']
+        outputs = self.backbone(**x)
 
-        losses = self.head.loss(
-            logits=logits,
-            labels=data['inputs']['tg_index'],
-            # input_token_len=data['inputs']['input_token_len'],
-            # pad_token=self.data_preprocessor.pad_token,
-        )
+        if hasattr(self, 'head'):
+            losses = self.head.loss(
+                logits=outputs,
+                labels=x['labels'],
+                # input_token_len=data['inputs']['input_token_len'],
+                # pad_token=self.data_preprocessor.pad_token,
+            )
+        else:
+            losses = dict(
+                ce_loss=outputs.loss,
+            )
 
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'{prefix}_{k}': v for k, v in log_vars.items()}
@@ -49,15 +55,54 @@ class MotionLMGPTPLer(BasePLer):
     def training_step(self, batch, batch_idx):
         return self.training_val_step(batch, batch_idx, prefix='train')
 
+    def on_predict_start(self) -> None:
+        self.vqvae = self.test_cfg['backbone']
+        self.vqvae_preprocessor = self.test_cfg['data_preprocessor']
+        load_ckpt_backbone = self.test_cfg['load_ckpt_backbone']
+        self.vqvae_preprocessor = MODELS.build(self.vqvae_preprocessor)
+        self.vqvae = build_backbone(self.vqvae)
+
+        state_dict = torch.load(load_ckpt_backbone, map_location='cpu')['state_dict']
+        state_dict = {k.replace('backbone.', ''): v for k, v in state_dict.items()}
+        missing_keys, unexpected_keys = self.vqvae.load_state_dict(state_dict, strict=False)
+        if len(missing_keys) > 0:
+            print(f'missing keys: {missing_keys}')
+        if len(unexpected_keys) > 0:
+            print(f'unexpected keys: {unexpected_keys}')
+
+        self.vqvae = self.vqvae.to(self.device)
+        self.vqvae.eval()
+        self.vqvae_preprocessor = self.vqvae_preprocessor.to(self.device)
+        self.vqvae_preprocessor.eval()
+
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
-        for k, v in self.mean_std_info.items():
-            for kk, vv in v.items():
-                self.mean_std_info[k][kk] = vv.to(self.device, dtype=torch.float32)
-        gt_motion = batch['motion']
-        gt_motion = (gt_motion - self.mean_std_info['motion']['mean']) / self.mean_std_info['motion']['std']
-        pred_motion, loss_commit, perplexity = self.backbone(gt_motion)
-        pred_denorm = pred_motion * self.mean_std_info['motion']['std'] + self.mean_std_info['motion']['mean']
-        return pred_denorm
+        '''
+        data = dict(
+            inputs=gt_motion,
+            data_samples=batch
+        )
+        '''
+
+        data = self.vqvae_preprocessor(batch)
+        gt_motion = data['inputs']
+        assert len(gt_motion) == 1, 'only support batch size 1'
+
+        pred_tokens = self.vqvae.encode(gt_motion)
+        pred_vqvae_pose = self.vqvae.forward_decoder(pred_tokens)
+
+        num_prompt = self.test_cfg['num_prompt']
+        sample_length = self.test_cfg['sample_length']
+        pred_tokens_clip = pred_tokens[:, :num_prompt]
+
+        index_motion = self.backbone.sample(pred_tokens_clip, sample_length=sample_length, if_categorial=True)
+        pred_gpt_pose = self.vqvae.forward_decoder(index_motion)
+
+        pred_vqvae_pose = self.vqvae_preprocessor.denormalize(pred_vqvae_pose)
+        pred_gpt_pose = self.vqvae_preprocessor.denormalize(pred_gpt_pose)
+        return dict(
+            pred_vqvae_pose=pred_vqvae_pose,
+            pred_gpt_pose=pred_gpt_pose,
+        )
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0):
         for k, v in self.mean_std_info.items():

@@ -67,18 +67,15 @@ class MotionTransformer(nn.Module):
     def get_block_size(self):
         return self.block_size
 
-    def forward(self, idxs):
-        feat = self.trans_base(idxs)
+    def forward(self, input_ids, *args, **kwargs):
+        feat = self.trans_base(input_ids)
         logits = self.trans_head(feat)
         return logits
 
-    def sample(self, clip_feature, if_categorial=False):
-        for k in range(self.block_size):
-            if k == 0:
-                x = []
-            else:
-                x = xs
-            logits = self.forward(x, clip_feature)
+    def sample(self, prompt_ids, sample_length=32, if_categorial=False):
+        x = prompt_ids
+        for _ in range(prompt_ids.shape[-1], sample_length):
+            logits = self.forward(x)
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
             if if_categorial:
@@ -89,17 +86,11 @@ class MotionTransformer(nn.Module):
                 idx = idx.unsqueeze(-1)
             else:
                 _, idx = torch.topk(probs, k=1, dim=-1)
-                if idx[0] == self.num_vq:
-                    break
+                # if idx[0] == self.num_vq:
+                #     break
             # append to the sequence and continue
-            if k == 0:
-                xs = idx
-            else:
-                xs = torch.cat((xs, idx), dim=1)
-
-            if k == self.block_size - 1:
-                return xs[:, :-1]
-        return xs
+            x = torch.cat((x, idx), dim=1)
+        return x
 
 
 class CausalCrossConditionalSelfAttention(nn.Module):

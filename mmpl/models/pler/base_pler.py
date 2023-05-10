@@ -15,9 +15,20 @@ from mmengine.model import BaseModel
 
 @MODELS.register_module()
 class BasePLer(pl.LightningModule, BaseModel):
-    def __init__(self, hyperparameters, data_preprocessor=None, *args, **kwargs):
+    def __init__(
+            self,
+            hyperparameters,
+            data_preprocessor=None,
+            train_cfg=None,
+            test_cfg=None,
+            *args,
+            **kwargs
+    ):
         super().__init__()
         self.hyperparameters = hyperparameters
+        self.train_cfg = train_cfg
+        self.test_cfg = test_cfg
+
         if data_preprocessor is not None:
             if isinstance(data_preprocessor, nn.Module):
                 self.data_preprocessor = data_preprocessor

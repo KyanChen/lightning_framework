@@ -106,7 +106,41 @@ class MotionGPTDataset(_BaseDataset):
             return self.predict_seq_len
         return self.num_samples
 
+    def get_predict_item(self, idx):
+        id_list = np.loadtxt(self.ann_file, dtype=str)
+        name = random.choice(id_list)
+        while True:
+            try:
+                motion = np.load(osp.join(self.motion_dir, name + '.npy')).astype(np.float32)
+                if motion.shape[0] < 20*4:
+                    name = random.choice(id_list)
+                    continue
+                break
+            except Exception as e:
+                # if get_rank() == 0:
+                print(e)
+                name = random.choice(id_list)
+
+        motion = torch.from_numpy(motion)
+        m_length = motion.shape[0]
+        unit_length = 2 * 2
+        m_length = (m_length // unit_length) * unit_length
+
+        start_idx = random.randint(0, len(motion) - m_length)
+        motion = motion[start_idx:start_idx + m_length]
+
+        res = dict(
+            motion=motion,
+            name=name,
+            frame_idx=0,
+            seq_idx=0
+        )
+        return res
+
     def __getitem__(self, idx):
+        if self.test_mode and self.predict_seq_len is not None:
+            return self.get_predict_item(idx)
+
         seq_idx, frame_idx = self.idx2seq[idx]
         data_info = self.get_data_info(seq_idx)
         motion_token_list = data_info['motion_token']

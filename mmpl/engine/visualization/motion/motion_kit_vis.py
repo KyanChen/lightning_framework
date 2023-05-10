@@ -114,35 +114,43 @@ class MotionKITVisualizer(Callback):
         batch_idx: int,
         dataloader_idx: int = 0,
     ) -> None:
-        pred_motion = outputs
+        pred_dict = {}
+        for k, v in outputs.items():
+            pred_dict[k] = v
+
         gt_motion = batch['motion']
         names = batch['name']
         frame_idxs = batch['frame_idx']
         seq_idxs = batch['seq_idx']
 
-        pred_xyz = recover_from_ric(pred_motion, self.num_joints)
-        gt_xyz = recover_from_ric(gt_motion, self.num_joints)
-        pred_xyz = pred_xyz.cpu().numpy()
-        gt_xyz = gt_xyz.cpu().numpy()
+        pred_xyzs = {}
+        for k, v in pred_dict.items():
+            pred_xyzs[k] = recover_from_ric(v, self.num_joints).cpu().detach().numpy()
+
+        gt_xyz = recover_from_ric(gt_motion, self.num_joints).cpu().detach().numpy()
         for idx in range(gt_xyz.shape[0]):
             name = names[idx]
             frame_idx = frame_idxs[idx].item()
             seq_idx = seq_idxs[idx].item()
 
-            pred_pos = pred_xyz[idx]
             gt_pos = gt_xyz[idx]
-
-            pred_gif = draw_motion_based_global_pos(
-                pred_pos, self.parents,
-                title=f"{name}_{frame_idx}_{seq_idx}_pred",
-                axis_order=[0, 2, 1],
-            )
             gt_gif = draw_motion_based_global_pos(
                 gt_pos, self.parents,
                 title=f"{name}_{frame_idx}_{seq_idx}_gt",
                 axis_order=[0, 2, 1],
             )
-            cvss = [np.hstack([pred_, gt_]) for pred_, gt_ in zip(pred_gif, gt_gif)]
+
+            pred_gifs = []
+            for k, pred_xyz in pred_xyzs.items():
+                pred_pos = pred_xyz[idx]
+
+                pred_gifs.append(draw_motion_based_global_pos(
+                    pred_pos, self.parents,
+                    title=f"{name}_{frame_idx}_{seq_idx}_{k}",
+                    axis_order=[0, 2, 1])
+                )
+
+            cvss = [np.hstack(pred_gt_) for pred_gt_ in zip(*pred_gifs, gt_gif)]
             gif_path = f"{self.save_dir}/{name}_{frame_idx}_{seq_idx}_pred_gt.gif"
             duration = 1.0 / self.fps
             imageio.mimsave(gif_path, cvss, duration=duration)

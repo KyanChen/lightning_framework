@@ -29,13 +29,14 @@ nb_joints = 21
 nb_code = 512
 block_size = 128
 pad_token = nb_code
+hidden_size = 512
 
 model_cfg = dict(
     type='MotionLMGPTPLer',
     data_preprocessor=dict(
         type='BatchFixedSizePadTokenMaskGPT',
         pad_token=pad_token,
-        p_token_keep=0.8,
+        p_token_keep=0.9,
         nb_code=nb_code,
     ),
     hyperparameters=dict(
@@ -43,20 +44,16 @@ model_cfg = dict(
         param_scheduler=param_scheduler,
     ),
     backbone=dict(
-        type='MotionTransformer',
-        num_vq=nb_code,
-        embed_dim=512,  # 263
-        block_size=block_size,
-        num_layers=3,
-        n_head=8,
-        drop_out_rate=0.1,
-        fc_rate=4
-    ),
-    head=dict(
-        type='MotionGPTPseudoHead',
-        losses=dict(
-            cls_loss=dict(type='mmdet.CrossEntropyLoss', ignore_index=pad_token),
-        ),
+        type='HFGPTTransformerLM',
+        model_name='distilgpt2',
+        from_pretrained=False,
+        update_kwargs=dict(
+            vocab_size=512+1,
+            max_position_embeddings=block_size,
+            hidden_size=hidden_size,
+            num_hidden_layers=3,
+            num_attention_heads=8,
+        )
     ),
     test_cfg=dict(
         num_prompt=10,
@@ -86,15 +83,15 @@ model_cfg = dict(
 )
 
 task_name = 'motiongpt'
-exp_name = 'E20230509_0'
+exp_name = 'E20230510_0'
 
-# logger = dict(
-#     type='WandbLogger',
-#     project=task_name,
-#     group='motionlmgpt',
-#     name=exp_name
-# )
-logger = None
+logger = dict(
+    type='WandbLogger',
+    project=task_name,
+    group='motionlmgpt',
+    name=exp_name
+)
+# logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -122,7 +119,7 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="cpu",
+    accelerator="auto",
     # strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',

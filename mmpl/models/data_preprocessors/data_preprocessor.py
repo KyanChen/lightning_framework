@@ -62,33 +62,31 @@ class BatchFixedSizePadTokenMaskGPT(BaseDataPreprocessor):
         # padding the input index to the same length
 
         longest = max([len(item) for item in batch['motion_token']])
+        bs = len(batch['motion_token'])
 
-        input_index_list = []
-        input_token_len_list = []
-        for item in batch['motion_token']:
-            input_token_len = len(item)
-            input_token_len_list.append(input_token_len)
-            input_index = torch.cat([item, torch.ones(longest - len(item), dtype=torch.long, device=self.device) * self.pad_token])
-            input_index_list.append(input_index)
-        tg_index = torch.stack(input_index_list, dim=0).to(self.device)
-        input_token_len = torch.tensor(input_token_len_list, dtype=torch.long).to(self.device)
+        attention_mask = torch.zeros(bs, longest, dtype=torch.long, device=self.device)
+        input_ids = torch.ones(bs, longest, dtype=torch.long, device=self.device) * self.pad_token
+        for i, item in enumerate(batch['motion_token']):
+            input_ids[i, :len(item)] = item
+            attention_mask[i, :len(item)] = 1
 
-        input_index = tg_index
+        tgt_ids = input_ids
+
         if self.p_token_keep == -1:
             proba = np.random.rand(1)[0]
-            mask = torch.bernoulli(proba * torch.ones(input_index.shape,
-                                                      device=input_index.device))
+            mask = torch.bernoulli(proba * torch.ones(input_ids.shape,
+                                                      device=input_ids.device))
         else:
-            mask = torch.bernoulli(self.p_token_keep * torch.ones(input_index.shape, device=input_index.device))
-        mask = mask.round().to(dtype=torch.int64)
-        r_indices = torch.randint_like(input_index, self.nb_code)
-        a_indices = mask * input_index + (1 - mask) * r_indices
+            mask = torch.bernoulli(self.p_token_keep * torch.ones(input_ids.shape, device=input_ids.device))
+        mask = mask.bool()
+        r_indices = torch.randint_like(input_ids, self.nb_code)
+        a_indices = mask * input_ids + mask.logical_not() * r_indices
 
         data = dict()
         data['inputs'] = dict(
-            input_index=a_indices,
-            input_token_len=input_token_len,
-            tg_index=tg_index,
+            input_ids=a_indices,
+            attention_mask=attention_mask,
+            labels=tgt_ids,
 
         )
         data['data_samples'] = batch
