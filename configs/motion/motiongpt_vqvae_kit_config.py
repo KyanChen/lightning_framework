@@ -1,6 +1,6 @@
 optimizer = dict(type='AdamW', lr=0.0002, weight_decay=1e-3)
 
-max_epochs = 200
+max_epochs = 150
 param_scheduler = [
     # warm up learning rate scheduler
     dict(
@@ -66,7 +66,7 @@ model_cfg = dict(
 )
 
 task_name = 'motiongpt'
-exp_name = 'E20230508_0'
+exp_name = 'E20230510_1'
 
 logger = dict(
     type='WandbLogger',
@@ -74,7 +74,7 @@ logger = dict(
     group='motionvqvae',
     name=exp_name
 )
-logger = None
+# logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -118,7 +118,7 @@ trainer_cfg = dict(
     # limit_val_batches=0,
     check_val_every_n_epoch=1,
     benchmark=True,
-    # sync_batchnorm=True,
+    sync_batchnorm=True,
 
     # fast_dev_run=True,
     # limit_train_batches=1,
@@ -146,11 +146,11 @@ trainer_cfg = dict(
 )
 
 # train_batch_size_per_gpu = 32
-train_batch_size_per_gpu = 256
+train_batch_size_per_gpu = 128
 train_num_workers = 8
-test_batch_size_per_gpu = 4
-test_num_workers = 0
-persistent_workers = False
+test_batch_size_per_gpu = 128
+test_num_workers = 8
+persistent_workers = True
 
 # data_root = '/Users/kyanchen/codes/motion/KIT-ML'
 data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
@@ -166,7 +166,7 @@ datamodule_cfg = dict(
         dataset=dict(
             type='VQMotionDataset',
             data_root=data_root,
-            ann_file='train.txt',
+            ann_file='cky_trainval.txt',
             # dataset_name='kit',
             block_size=block_size,
             n_offset=1,
@@ -182,7 +182,7 @@ datamodule_cfg = dict(
         dataset=dict(
             type='VQMotionDataset',
             data_root=data_root,
-            ann_file='test.txt',
+            ann_file='cky_test.txt',
             # dataset_name='kit',
             block_size=block_size,
             n_offset=10,
@@ -198,7 +198,7 @@ datamodule_cfg = dict(
         dataset=dict(
             type='VQMotionDataset',
             data_root=data_root,
-            ann_file='test.txt',
+            ann_file='cky_all.txt',
             cache_mode=True,
             # dataset_name='kit',
             block_size=24,  # 40
@@ -215,7 +215,7 @@ datamodule_cfg = dict(
         dataset=dict(
             type='VQMotionDataset',
             data_root=data_root,
-            ann_file='test.txt',
+            ann_file='cky_test.txt',
             predict_seq_len=32,
             # dataset_name='kit',
             block_size=block_size,
