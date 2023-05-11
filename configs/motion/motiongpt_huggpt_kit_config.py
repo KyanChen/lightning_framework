@@ -27,7 +27,7 @@ param_scheduler_callback = dict(
 
 nb_joints = 21
 nb_code = 512
-block_size = 128
+block_size = 64
 pad_token = nb_code
 hidden_size = 512
 
@@ -36,7 +36,7 @@ model_cfg = dict(
     data_preprocessor=dict(
         type='BatchFixedSizePadTokenMaskGPT',
         pad_token=pad_token,
-        p_token_keep=0.9,
+        p_token_keep=1.,
         nb_code=nb_code,
     ),
     hyperparameters=dict(
@@ -54,9 +54,9 @@ model_cfg = dict(
             num_hidden_layers=3,
             num_attention_heads=8,
 
-            _from_model_config=True,
-            eos_token_id=None,
-            pad_token_id=nb_code,
+            # _from_model_config=True,
+            # eos_token_id=None,
+            # pad_token_id=nb_code,
         )
     ),
     test_cfg=dict(
@@ -93,15 +93,15 @@ model_cfg = dict(
 )
 
 task_name = 'motiongpt'
-exp_name = 'E20230510_0'
+exp_name = 'E20230511_0'
 
-# logger = dict(
-#     type='WandbLogger',
-#     project=task_name,
-#     group='motionlmgpt',
-#     name=exp_name
-# )
-logger = None
+logger = dict(
+    type='WandbLogger',
+    project=task_name,
+    group='motionlmgpt',
+    name=exp_name
+)
+# logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -129,7 +129,7 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="cpu",
+    accelerator="auto",
     # strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
@@ -145,7 +145,7 @@ trainer_cfg = dict(
     # limit_val_batches=0,
     check_val_every_n_epoch=1,
     benchmark=True,
-    # sync_batchnorm=True,
+    sync_batchnorm=True,
 
     # fast_dev_run=True,
     # limit_train_batches=1,
@@ -172,15 +172,15 @@ trainer_cfg = dict(
     # reload_dataloaders_every_n_epochs=0,
 )
 
-# train_batch_size_per_gpu = 32
+
 train_batch_size_per_gpu = 128
 train_num_workers = 8
 test_batch_size_per_gpu = 128
 test_num_workers = 8
 persistent_workers = True
 
-data_root = '/Users/kyanchen/codes/motion/KIT-ML'
-# data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
+# data_root = '/Users/kyanchen/codes/motion/KIT-ML'
+data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
 
 datamodule_cfg = dict(
     type='PLDataModule',
@@ -192,7 +192,7 @@ datamodule_cfg = dict(
         dataset=dict(
             type='MotionGPTDataset',
             data_root=data_root,
-            ann_file='train.txt',
+            ann_file='cky_trainval.txt',
             token_dir=f'cache_data/{task_name}/kit',
             block_size=block_size,
             n_offset=1,
@@ -207,7 +207,7 @@ datamodule_cfg = dict(
         dataset=dict(
             type='MotionGPTDataset',
             data_root=data_root,
-            ann_file='test.txt',
+            ann_file='cky_test.txt',
             token_dir=f'cache_data/{task_name}/kit',
             # dataset_name='kit',
             block_size=block_size,
@@ -225,7 +225,7 @@ datamodule_cfg = dict(
             type='MotionGPTDataset',
             data_root=data_root,
             predict_seq_len=100,
-            ann_file='train.txt',
+            ann_file='cky_trainval.txt',
             token_dir=f'cache_data/{task_name}/kit',
             # dataset_name='kit',
             block_size=block_size,
