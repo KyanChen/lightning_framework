@@ -27,7 +27,7 @@ param_scheduler_callback = dict(
 
 nb_joints = 21
 nb_code = 512
-block_size = 64
+block_size = 128
 pad_token = nb_code
 hidden_size = 512
 
@@ -51,7 +51,7 @@ model_cfg = dict(
             vocab_size=512+1,
             max_position_embeddings=block_size,
             hidden_size=hidden_size,
-            num_hidden_layers=3,
+            num_hidden_layers=5,
             num_attention_heads=8,
 
             # _from_model_config=True,
