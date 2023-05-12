@@ -35,10 +35,11 @@ class ToyNet(lightning.LightningModule):
 
     def on_validation_epoch_end(self) -> None:
         res = self.metric.compute()
-        if self.local_rank == 0:
-            import ipdb; ipdb.set_trace()
-
-        self.strategy.barrier()
+        # if self.local_rank == 0:
+        #     import ipdb; ipdb.set_trace()
+        #
+        # self.strategy.barrier()
+        res.pop('classes')
         self.log_dict(res, prog_bar=True)
 
     def configure_optimizers(self):
