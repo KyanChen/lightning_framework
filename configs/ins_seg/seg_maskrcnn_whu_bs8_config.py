@@ -34,7 +34,6 @@ param_scheduler_callback = dict(
 
 evaluator_ = dict(
         type='MeanAveragePrecision',
-        box_format='xyxy',
         iou_type='segm',
         # iou_type='bbox',
         # dist_sync_on_step=True,

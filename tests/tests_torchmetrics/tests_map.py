@@ -16,9 +16,9 @@ class ToyNet(lightning.LightningModule):
     def validation_step(self, batch, batch_idx):
         preds = []
         targets = []
-        for _ in range(2):
+        for _ in range(200):
             result = dict()
-            num_preds = torch.randint(0, 10, (1,)).item()
+            num_preds = torch.randint(0, 100, (1,)).item()
             result['boxes'] = torch.rand((num_preds, 4), device=self.device)
             result['scores'] = torch.rand((num_preds,), device=self.device)
             result['labels'] = torch.randint(0, 10, (num_preds,),  device=self.device)
