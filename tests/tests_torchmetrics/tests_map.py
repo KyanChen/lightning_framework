@@ -34,7 +34,11 @@ class ToyNet(lightning.LightningModule):
         self.metric.update(preds, targets)
 
     def on_validation_epoch_end(self) -> None:
-        self.log_dict(self.metric.compute(), prog_bar=True)
+        res = self.metric.compute()
+        import ipdb; ipdb.set_trace()
+        self.strategy.barrier()
+
+        self.log_dict(res, prog_bar=True)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
