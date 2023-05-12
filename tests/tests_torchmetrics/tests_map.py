@@ -35,7 +35,8 @@ class ToyNet(lightning.LightningModule):
 
     def on_validation_epoch_end(self) -> None:
         res = self.metric.compute()
-        import ipdb; ipdb.set_trace()
+        if self.local_rank == 0:
+            import ipdb; ipdb.set_trace()
 
         self.strategy.barrier()
         self.log_dict(res, prog_bar=True)
