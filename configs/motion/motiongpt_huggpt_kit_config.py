@@ -62,9 +62,7 @@ model_cfg = dict(
     test_cfg=dict(
         num_prompt=20,
         max_new_tokens=64,
-        # num_return_sequences=1,
-        # num_beams=0,
-        num_return_sequences=2,
+        num_return_sequences=3,
         num_beams=1,
         do_sample=True,
 
@@ -88,7 +86,7 @@ model_cfg = dict(
             norm=None
         ),
         # load_ckpt_backbone='results/motiongpt/E20230508_0/motiongpt/3j1lmdcm/checkpoints/epoch_epoch=74-valloss_val_loss=0.1892.ckpt',
-        load_ckpt_backbone='pretrain/motiongpt/VQVAE_E20230508_0.ckpt',
+        load_ckpt_backbone='pretrain/motiongpt/VQVAE_E20230510_1.cpkt',
     ),
 )
 
@@ -101,7 +99,7 @@ logger = dict(
     group='motionlmgpt',
     name=exp_name
 )
-# logger = None
+logger = None
 
 callbacks = [
     param_scheduler_callback,
@@ -123,13 +121,14 @@ callbacks = [
         save_dir=f'results/{task_name}/{exp_name}/vis',
         cache_dir=f'cache_data/{task_name}/kit',
         fps=12,
+        suffix='mp4',
     )
 ]
 
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="auto",
+    accelerator="cpu",
     # strategy="auto",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
@@ -179,8 +178,8 @@ test_batch_size_per_gpu = 128
 test_num_workers = 8
 persistent_workers = True
 
-# data_root = '/Users/kyanchen/codes/motion/KIT-ML'
-data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
+data_root = '/Users/kyanchen/codes/motion/KIT-ML'
+# data_root = '/mnt/search01/dataset/cky_data/KIT-ML'
 
 datamodule_cfg = dict(
     type='PLDataModule',

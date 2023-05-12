@@ -92,9 +92,10 @@ class MotionLMGPTPLer(BasePLer):
 
         num_prompt = self.test_cfg['num_prompt']
         max_new_tokens = self.test_cfg['max_new_tokens']
-        num_return_sequences = self.test_cfg['num_return_sequences']
-        num_beams = self.test_cfg['num_beams']
-        do_sample = self.test_cfg['do_sample']
+
+        num_return_sequences = self.test_cfg.get('num_return_sequences', 1)
+        num_beams = self.test_cfg.get('num_beams', 0)
+        do_sample = self.test_cfg.get('do_sample', False)
 
         pred_tokens_clip = pred_tokens[:, :num_prompt]
 
@@ -130,10 +131,12 @@ class MotionLMGPTPLer(BasePLer):
 
         pred_vqvae_pose = self.vqvae_preprocessor.denormalize(pred_vqvae_pose)
         pred_gpt_pose = self.vqvae_preprocessor.denormalize(pred_gpt_pose)
-        return dict(
-            pred_vqvae_pose=pred_vqvae_pose,
-            pred_gpt_pose=pred_gpt_pose,
-        )
+
+        res = dict()
+        res['pred_vqvae_pose'] = pred_vqvae_pose
+        for idx, pred_gpt_pose_i in enumerate(pred_gpt_pose):
+            res[f'pred_gpt_pose_{idx+1}'] = pred_gpt_pose_i[None, ...]
+        return res
 
     def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0):
         for k, v in self.mean_std_info.items():

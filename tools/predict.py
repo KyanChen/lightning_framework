@@ -21,7 +21,7 @@ def parse_args():
     # parser.add_argument('--ckpt-path', default='pretrain/motiongpt/E20230418_0_epoch_epoch=96-valloss_val_loss=0.9393.ckpt',
     #                     help='checkpoint path')
     parser.add_argument('--ckpt-path',
-                        default='pretrain/motiongpt/LM_GPT_E20230510_0.pth',
+                        default='pretrain/motiongpt/LM_GPT_E20230511_0.cpkt',
                         help='checkpoint path')
     parser.add_argument('--work-dir', default=None, help='the dir to save logs and mmpl')
     args = parser.parse_args()

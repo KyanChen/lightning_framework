@@ -6,7 +6,7 @@ from mmpl.registry import METRICS
 
 
 @METRICS.register_module(force=True)
-class MeanAveragePrecision(MeanAveragePrecision):
+class PLMeanAveragePrecision(MeanAveragePrecision):
     def __init__(
             self,
             *args,

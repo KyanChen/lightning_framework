@@ -8,6 +8,7 @@ from .isaid_ins_dataset import ISAIDInsSegDataset
 from .nwpu_ins_dataset import NWPUInsSegDataset
 from .vq_dataset import VQMotionDataset
 from .motion_gpt_dataset import MotionGPTDataset
+from .whu_ins_dataset import WHUInsSegDataset
 
 __all__ = [
     'build_dataset', 'PLDataModule', 'MNIST', 'GPTDataset', 'BvhDataset'

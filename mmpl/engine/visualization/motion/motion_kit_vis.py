@@ -23,10 +23,12 @@ class MotionKITVisualizer(Callback):
             self,
             save_dir,
             cache_dir=None,
+            suffix='gif',
             fps=30,
             num_joints=21,
             *args, **kwargs):
         self.save_dir = save_dir
+        self.suffix = suffix
         mmengine.mkdir_or_exist(self.save_dir)
         self.fps = fps
         self.num_joints = num_joints
@@ -149,11 +151,30 @@ class MotionKITVisualizer(Callback):
                     title=f"{name}_{frame_idx}_{seq_idx}_{k}",
                     axis_order=[0, 2, 1])
                 )
+            max_len = max([len(pred_gif) for pred_gif in pred_gifs+[gt_gif]])
+            cvss = []
+            for i_cvs in range(max_len):
+                cvs = []
+                for pred_gif in pred_gifs:
+                    if i_cvs < len(pred_gif):
+                        cvs.append(pred_gif[i_cvs])
+                    else:
+                        cvs.append(pred_gif[-1])
+                if i_cvs < len(gt_gif):
+                    cvs.append(gt_gif[i_cvs])
+                else:
+                    cvs.append(gt_gif[-1])
+                cvss.append(np.hstack(cvs))
 
-            cvss = [np.hstack(pred_gt_) for pred_gt_ in zip(*pred_gifs, gt_gif)]
-            gif_path = f"{self.save_dir}/{name}_{frame_idx}_{seq_idx}_pred_gt.gif"
+            save_file_path = f"{self.save_dir}/{name}_{frame_idx}_{seq_idx}_pred_gt.{self.suffix}"
             duration = 1.0 / self.fps
-            imageio.mimsave(gif_path, cvss, duration=duration)
+            if self.suffix == "gif":
+                imageio.mimsave(save_file_path, cvss, duration=duration)
+            elif self.suffix == "mp4":
+                writer = imageio.get_writer(save_file_path, fps=self.fps)
+                for cvs in cvss:
+                    writer.append_data(cvs)
+                writer.close()
 
     def on_test_batch_end(
         self,

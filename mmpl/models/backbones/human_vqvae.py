@@ -622,7 +622,8 @@ class VQVAE_251(nn.Module):
 
     def forward_decoder(self, x):
         x_d = self.quantizer.dequantize(x)
-        x_d = x_d.view(1, -1, self.code_dim).permute(0, 2, 1).contiguous()
+        bs = x_d.shape[0]
+        x_d = x_d.view(bs, -1, self.code_dim).permute(0, 2, 1).contiguous()
 
         # decoder
         x_decoder = self.decoder(x_d)
