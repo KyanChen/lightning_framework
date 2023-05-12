@@ -19,7 +19,7 @@ class ToyNet(lightning.LightningModule):
         for _ in range(2):
             result = dict()
             num_preds = torch.randint(0, 10, (1,)).item()
-            # result['boxes'] = torch.rand((num_preds, 4), device=self.device)
+            result['boxes'] = torch.rand((num_preds, 4), device=self.device)
             result['scores'] = torch.rand((num_preds,), device=self.device)
             result['labels'] = torch.randint(0, 10, (num_preds,),  device=self.device)
             result['masks'] = torch.randint(0, 2, (num_preds, 10, 10),  device=self.device).bool()
@@ -27,7 +27,7 @@ class ToyNet(lightning.LightningModule):
             # parse gt
             gt = dict()
             num_gt = torch.randint(0, 10, (1,)).item()
-            # gt['boxes'] = torch.rand((num_gt, 4), device=self.device)
+            gt['boxes'] = torch.rand((num_gt, 4), device=self.device)
             gt['labels'] = torch.randint(0, 10, (num_gt,),  device=self.device)
             gt['masks'] = torch.randint(0, 2, (num_gt, 10, 10),  device=self.device).bool()
             targets.append(gt)
