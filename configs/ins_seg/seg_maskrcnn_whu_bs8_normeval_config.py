@@ -1,5 +1,6 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models', 'mmdet.models'], allow_failed_imports=False)
-
+# train 134
+# test 97
 max_epochs = 200
 
 optimizer = dict(
