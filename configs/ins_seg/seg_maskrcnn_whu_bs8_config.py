@@ -1,6 +1,6 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models', 'mmdet.models'], allow_failed_imports=False)
 
-max_epochs = 400
+max_epochs = 200
 
 optimizer = dict(
     type='AdamW',
@@ -50,8 +50,8 @@ evaluator = dict(
 image_size = (512, 512)
 data_preprocessor = dict(
         type='mmdet.DetDataPreprocessor',
-        mean=[0., 0., 0.],
-        std=[255., 255., 255.],
+        mean=[123.675, 116.28, 103.53],
+        std=[58.395, 57.12, 57.375],
         bgr_to_rgb=True,
         pad_mask=True,
         mask_pad_value=0,
