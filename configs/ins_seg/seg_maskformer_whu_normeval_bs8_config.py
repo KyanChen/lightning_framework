@@ -7,7 +7,9 @@ max_epochs = 300
 optimizer = dict(
     type='AdamW',
     lr=0.0002,
-    weight_decay=1e-4
+    weight_decay=1e-4,
+    # eps=1e-8,
+    # betas=(0.9, 0.999)
 )
 
 param_scheduler = [
@@ -181,7 +183,8 @@ model = dict(
         iou_thr=0.8,
         # In MaskFormer's panoptic postprocessing,
         # it will not filter masks whose score is smaller than 0.5 .
-        filter_low_score=False),
+        filter_low_score=False
+    ),
     init_cfg=None)
 
 
