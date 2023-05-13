@@ -201,7 +201,7 @@ model_cfg = dict(
 )
 
 task_name = 'whu_ins'
-exp_name = 'E20230513_1'
+exp_name = 'E20230513_4'
 logger = dict(
     type='WandbLogger',
     project=task_name,

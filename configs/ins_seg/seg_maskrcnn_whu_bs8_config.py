@@ -1,6 +1,6 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models', 'mmdet.models'], allow_failed_imports=False)
 
-max_epochs = 200
+max_epochs = 150
 
 optimizer = dict(
     type='AdamW',
@@ -200,7 +200,7 @@ model_cfg = dict(
 )
 
 task_name = 'whu_ins'
-exp_name = 'E20230513_0'
+exp_name = 'E20230513_3'
 logger = dict(
     type='WandbLogger',
     project=task_name,
