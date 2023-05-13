@@ -2,10 +2,11 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_i
 # train max 71, min 1
 # val max 56, min 1
 
-max_epochs = 800
+max_epochs = 300
+
 optimizer = dict(
     type='AdamW',
-    lr=0.0001,
+    lr=0.0002,
     weight_decay=1e-4
 )
 
@@ -33,21 +34,19 @@ param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
-# evaluator_ = dict(
-#         type='MeanAveragePrecision',
-#         box_format='xyxy',
-#         iou_type='segm',
-#         # iou_type='bbox',
-#         max_detection_thresholds=[1, 10, 100],
-#         # dist_sync_on_step=True,
-#         # compute_on_cpu=True,
-# )
-
 evaluator_ = dict(
-    type='CocoPLMetric',
-    metric=['bbox', 'segm'],
-    proposal_nums=[1, 10, 100],
+        type='MeanAveragePrecision',
+        iou_type='segm',
+        # iou_type='bbox',
+        # dist_sync_on_step=True,
+        # compute_on_cpu=True,
 )
+
+# evaluator_ = dict(
+#     type='CocoPLMetric',
+#     metric=['bbox', 'segm'],
+#     proposal_nums=[1, 10, 100],
+# )
 
 evaluator = dict(
     # train_evaluator=evaluator_,
@@ -55,22 +54,22 @@ evaluator = dict(
 )
 
 
-image_size = (1024, 1024)
+image_size = (512, 512)
 data_preprocessor = dict(
     type='mmdet.DetDataPreprocessor',
     mean=[123.675, 116.28, 103.53],
     std=[58.395, 57.12, 57.375],
     bgr_to_rgb=True,
-    pad_size_divisor=1,
+    pad_size_divisor=32,
     pad_mask=True,
     mask_pad_value=0,
-    pad_seg=True,
-    seg_pad_value=255)
+)
 
-num_things_classes = 10
+num_things_classes = 1
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-num_queries = 60
+num_queries = 100
+
 model = dict(
     type='mmdet.MaskFormer',
     data_preprocessor=data_preprocessor,
@@ -83,7 +82,7 @@ model = dict(
         norm_cfg=dict(type='BN', requires_grad=True),
         norm_eval=False,
         style='pytorch',
-        # init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')
+        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')
     ),
     panoptic_head=dict(
         type='mmdet.MaskFormerHead',
@@ -196,8 +195,8 @@ model_cfg = dict(
     whole_model=model,
 )
 
-task_name = 'nwpu_ins'
-exp_name = 'E20230428_1'
+task_name = 'whu_ins'
+exp_name = 'E20230513_2'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -214,9 +213,9 @@ callbacks = [
         dirpath=f'results/{task_name}/{exp_name}/checkpoints',
         save_last=True,
         mode='max',
-        monitor='valsegm_map_0',
+        monitor='valmap_0',
         save_top_k=2,
-        filename='epoch_{epoch}-map_{valsegm_map_0:.4f}'
+        filename='epoch_{epoch}-map_{valmap_0:.4f}'
     ),
     dict(
         type='LearningRateMonitor',
@@ -239,10 +238,10 @@ trainer_cfg = dict(
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=3,
-    check_val_every_n_epoch=1,
+    log_every_n_steps=20,
+    check_val_every_n_epoch=2,
     benchmark=True,
-    # sync_batchnorm=True,
+    sync_batchnorm=True,
     # fast_dev_run=True,
 
     # limit_train_batches=1,
@@ -291,18 +290,18 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 4
-train_num_workers = 2
-test_batch_size_per_gpu = 4
-test_num_workers = 2
+train_batch_size_per_gpu = 8
+train_num_workers = 4
+test_batch_size_per_gpu = 8
+test_num_workers = 4
 persistent_workers = True
 
-# data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPUVHR-10_dataset/'
-data_parent = '/mnt/search01/dataset/cky_data/NWPU10'
-train_data_prefix = ''
-val_data_prefix = ''
+# data_parent = '/Users/kyanchen/datasets/Building/WHU'
+data_parent = '/mnt/search01/dataset/cky_data/WHU'
+train_data_prefix = 'train/'
+val_data_prefix = 'test/'
 
-dataset_type = 'NWPUInsSegDataset'
+dataset_type = 'WHUInsSegDataset'
 # metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
 
 val_loader = dict(
@@ -313,8 +312,8 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='instances_val2017.json',
-            data_prefix=dict(img_path='positive image set'),
+            ann_file='annotations/WHU_building_test.json',
+            data_prefix=dict(img_path=val_data_prefix + '/image', seg_path=val_data_prefix + '/label'),
             test_mode=True,
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=test_pipeline,
@@ -330,8 +329,8 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='instances_train2017.json',
-            data_prefix=dict(img_path='positive image set'),
+            ann_file='annotations/WHU_building_train.json',
+            data_prefix=dict(img_path=train_data_prefix + '/image', seg_path=train_data_prefix + '/label'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
             backend_args=backend_args)
