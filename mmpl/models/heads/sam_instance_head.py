@@ -23,6 +23,7 @@ class SAMInstanceHead(Mask2FormerHead):
             num_things_classes: int = 1,
             num_stuff_classes: int = 0,
             prompt_neck: ConfigType = ...,
+            with_iou: bool = False,
             loss_cls: ConfigType = dict(
                 type='CrossEntropyLoss',
                 use_sigmoid=False,
@@ -52,6 +53,7 @@ class SAMInstanceHead(Mask2FormerHead):
         self.num_things_classes = num_things_classes
         self.num_stuff_classes = num_stuff_classes
         self.num_classes = self.num_things_classes + self.num_stuff_classes
+        self.with_iou = with_iou
 
         # self.num_transformer_feat_level = num_transformer_feat_level
         # self.num_heads = transformer_decoder.layer_cfg.cross_attn_cfg.num_heads
@@ -184,7 +186,9 @@ class SAMInstanceHead(Mask2FormerHead):
         mask_pred = rearrange(low_res_masks.squeeze(1), '(b n) h w -> b n h w', b=batch_size)
 
         # optional
-        # cls_pred = cls_pred + iou_predictions
+        if self.with_iou:
+            iou_predictions = iou_predictions.view(batch_size, self.num_queries, 1)
+            cls_pred = cls_pred * iou_predictions
 
         cls_pred_list = []
         mask_pred_list = []
