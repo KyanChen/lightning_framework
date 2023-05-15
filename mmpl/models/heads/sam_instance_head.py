@@ -187,7 +187,7 @@ class SAMInstanceHead(Mask2FormerHead):
 
         # optional
         if self.with_iou:
-            iou_predictions = iou_predictions.view(batch_size, self.num_queries, 1)
+            iou_predictions = iou_predictions.view(batch_size, self.num_queries, -1)
             cls_pred = cls_pred * iou_predictions
 
         cls_pred_list = []
