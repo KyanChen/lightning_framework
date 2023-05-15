@@ -1,3 +1,4 @@
+import copy
 import math
 from typing import Type, Tuple
 
@@ -6,6 +7,7 @@ import torch
 import torch.nn as nn
 from einops import rearrange
 from mmcv.cnn import ConvModule
+from mmcv.cnn.bricks.transformer import build_transformer_layer
 from torch import Tensor
 
 from mmdet.models import SinePositionalEncoding
@@ -560,3 +562,219 @@ class MLP(nn.Module):
         if self.sigmoid_output:
             x = F.sigmoid(x)
         return x
+
+
+@MODELS.register_module()
+class SAMTransformerEDPromptGenNeck(nn.Module):
+    def __init__(
+            self,
+            prompt_shape=(100, 5),
+            in_channels=[1280]*16,
+            num_layers=3,
+            out_channels=256,
+            positional_encoding=dict(num_feats=128, normalize=True),
+            kernel_size=3,
+            stride=1,
+            norm_cfg=None,
+            act_cfg=dict(type='ReLU', inplace=True),
+    ):
+        super().__init__()
+        self.in_channels = in_channels
+        self.kernel_size = kernel_size
+        self.norm_cfg = norm_cfg
+        self.act_cfg = act_cfg
+        self.out_channels = out_channels
+        self.stride = stride
+
+        self.prompt_shape = prompt_shape
+        self.num_queries = prompt_shape[0]
+        self.per_query_point = prompt_shape[1]
+
+        if isinstance(in_channels, list):
+            self.pre_layers = nn.ModuleList()
+            inner_channel = 32
+            for idx, channel in enumerate(in_channels):
+                self.pre_layers.append(
+                    nn.Sequential(
+                        ConvModule(
+                            channel,
+                            inner_channel,
+                            kernel_size=1,
+                            norm_cfg=self.norm_cfg,
+                            act_cfg=self.act_cfg
+                        ),
+                        ConvModule(
+                            inner_channel,
+                            inner_channel*2,
+                            kernel_size=kernel_size,
+                            padding=kernel_size // 2,
+                            stride=self.stride,
+                            norm_cfg=self.norm_cfg,
+                            act_cfg=self.act_cfg
+                        ),
+                        ConvModule(
+                            inner_channel*2,
+                            inner_channel,
+                            kernel_size=kernel_size,
+                            padding=kernel_size // 2,
+                            norm_cfg=self.norm_cfg,
+                            act_cfg=self.act_cfg
+                        ),
+                    )
+                )
+            self.pre_layers.append(
+                nn.Sequential(
+                    ConvModule(
+                        inner_channel * len(in_channels),
+                        out_channels,
+                        kernel_size=1,
+                        norm_cfg=self.norm_cfg,
+                        act_cfg=self.act_cfg
+                    ),
+                    ConvModule(
+                        out_channels,
+                        out_channels,
+                        kernel_size=kernel_size,
+                        padding=kernel_size // 2,
+                        norm_cfg=self.norm_cfg,
+                        act_cfg=self.act_cfg
+                    ),
+                )
+            )
+        else:
+            raise NotImplementedError
+
+        self.generator_pe = SinePositionalEncoding(**positional_encoding)
+
+        self.en_layers = nn.ModuleList()
+        self.de_layers = nn.ModuleList()
+        self.build_transformer(num_layers=num_layers)
+
+        self.embed_dims = self.en_layers[0].embed_dims
+        self.pre_norm = self.en_layers[0].pre_norm
+
+        self.query_feat = nn.Embedding(self.num_queries, out_channels)
+        self.query_embed = nn.Embedding(self.num_queries, out_channels)
+
+        # self.output_upscaling = nn.Sequential(
+        #     nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+        #     nn.BatchNorm2d(out_channels),
+        #     nn.GELU(),
+        #     nn.UpsamplingBilinear2d(scale_factor=2),
+        #     nn.Conv2d(out_channels, out_channels // 4, kernel_size=3, padding=1),
+        #     nn.BatchNorm2d(out_channels // 4),
+        #     nn.GELU(),
+        #     nn.UpsamplingBilinear2d(scale_factor=2),
+        #     nn.Conv2d(out_channels // 4, out_channels // 8, kernel_size=3, padding=1),
+        #     nn.BatchNorm2d(out_channels // 8),
+        #     nn.GELU(),
+        #     nn.UpsamplingBilinear2d(scale_factor=2),
+        #     nn.Conv2d(out_channels // 8, out_channels // 8, kernel_size=3, padding=1),
+        # )
+        # self.output_hypernetworks_mlps = MLP(out_channels, out_channels, out_channels // 8, 3)
+
+        self.init_weights()
+
+    def build_transformer(self, num_layers=3, embed_dims=256, num_heads=8, mlp_ratio=4):
+        transformer_encoder_layer = dict(
+            type='BaseTransformerLayer',
+            attn_cfgs=[
+                dict(
+                    type='MultiheadAttention',
+                    embed_dims=embed_dims,
+                    num_heads=num_heads,
+                    attn_drop=0.1,
+                    proj_drop=0.1,
+                    dropout_layer=dict(type='Dropout', drop_prob=0.1)
+                ),
+            ],
+            ffn_cfgs=dict(
+                type='FFN',
+                embed_dims=embed_dims,
+                feedforward_channels=embed_dims * mlp_ratio,
+                num_fcs=2,
+                act_cfg=dict(type='GELU'),
+                ffn_drop=0.1,
+                add_identity=True),
+            operation_order=('norm', 'self_attn', 'norm', 'ffn'),
+            norm_cfg=dict(type='LN'),
+            batch_first=True
+        )
+        transformer_decoder_layer = dict(
+            type='BaseTransformerLayer',
+            attn_cfgs=dict(
+                    type='MultiheadAttention',
+                    embed_dims=embed_dims,
+                    num_heads=num_heads,
+                    attn_drop=0.1,
+                    proj_drop=0.1,
+                    dropout_layer=dict(type='Dropout', drop_prob=0.1)
+                ),
+            ffn_cfgs=dict(
+                type='FFN',
+                embed_dims=embed_dims,
+                feedforward_channels=embed_dims * mlp_ratio,
+                num_fcs=2,
+                act_cfg=dict(type='GELU'),
+                ffn_drop=0.1,
+                add_identity=True),
+            operation_order=('norm', 'self_attn', 'norm', 'cross_attn', 'norm', 'ffn'),
+            norm_cfg=dict(type='LN'),
+            batch_first=True
+        )
+
+        transformer_en_layers = [
+            copy.deepcopy(transformer_encoder_layer) for _ in range(num_layers)
+        ]
+        transformer_de_layers = [
+            copy.deepcopy(transformer_decoder_layer) for _ in range(num_layers)
+        ]
+        for i in range(num_layers):
+            self.en_layers.append(build_transformer_layer(transformer_en_layers[i]))
+        for i in range(num_layers):
+            self.de_layers.append(build_transformer_layer(transformer_de_layers[i]))
+
+    def init_weights(self):
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
+
+    def forward(self, inputs):
+        _, inner_states = inputs
+        if hasattr(self, 'pre_layers'):
+            inner_states = inner_states[-len(self.in_channels):]
+            inner_states = [einops.rearrange(x, 'b h w c -> b c h w') for x in inner_states]
+            inner_states = [layer(x) for layer, x in zip(self.pre_layers[:-1], inner_states)]
+            img_feats = self.pre_layers[-1](torch.cat(inner_states, dim=1))
+        bs, c, h, w = img_feats.shape
+
+        mask_pe = torch.zeros((bs, h, w), device=img_feats.device, dtype=torch.bool)
+        img_feats_pe = self.generator_pe(mask_pe)
+
+        query_feat = self.query_feat.weight.unsqueeze(0).repeat(
+            (bs, 1, 1))
+        query_embed = self.query_embed.weight.unsqueeze(0).repeat(
+            (bs, 1, 1))
+
+        encoder_inputs = rearrange(img_feats, 'b c h w -> b (h w) c')
+        img_feats_pe = img_feats_pe.flatten(2).permute(0, 2, 1)
+
+        # shape (batch_size, num_total_queries, c)
+        memory = encoder_inputs
+        for layer in self.en_layers:
+            memory = layer(
+                query=memory,
+                query_pos=img_feats_pe
+            )
+        # (batch_size, num_total_queries, c)
+
+        for layer in self.de_layers:
+            query_feat = layer(
+                query=query_feat,
+                key=memory,
+                value=memory,
+                query_pos=query_embed,
+                key_pos=img_feats_pe
+            )
+
+        return query_feat

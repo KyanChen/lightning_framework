@@ -1,26 +1,12 @@
-import os
-from typing import Any
-
-import einops
-import mmengine
-import numpy as np
 import torch
-import torch.nn as nn
-from einops import rearrange
-from lightning.pytorch.utilities import grad_norm
 from mmengine.structures import InstanceData
+from typing import List
 
 from mmpl.registry import MODELS
 from mmseg.utils import SampleList
-from ..builder import build_backbone, build_loss, build_neck, build_head
 from .base_pler import BasePLer
-from mmpl.structures import ClsDataSample
-from .base import BaseClassifier
-import lightning.pytorch as pl
 import torch.nn.functional as F
-
-from module.segment_anything.build_sam import sam_model_registry
-from module.segment_anything.utils.amg import build_all_layer_point_grids
+from modules.sam import sam_model_registry
 
 
 @MODELS.register_module()
@@ -28,7 +14,8 @@ class SegSAMPLer(BasePLer):
     def __init__(self,
                  backbone,
                  neck=None,
-                 head=None,
+                 panoptic_head=None,
+                 panoptic_fusion_head=None,
                  need_train_names=None,
                  train_cfg=None,
                  test_cfg=None,
@@ -37,35 +24,31 @@ class SegSAMPLer(BasePLer):
         self.save_hyperparameters()
         self.need_train_names = need_train_names
 
-        if backbone is not None:
-            backbone_type = backbone.pop('type')
-            self.backbone = sam_model_registry[backbone_type](**backbone)
+        backbone_type = backbone.pop('type')
+        self.backbone = sam_model_registry[backbone_type](**backbone)
+
         if neck is not None:
-            self.prompt_neck = MODELS.build(neck)
-        if head is not None:
-            self.seg_head = MODELS.build(head)
+            self.neck = MODELS.build(neck)
+
+        panoptic_head_ = panoptic_head.deepcopy()
+        panoptic_head_.update(train_cfg=train_cfg)
+        panoptic_head_.update(test_cfg=test_cfg)
+        self.panoptic_head = MODELS.build(panoptic_head_)
+
+        panoptic_fusion_head_ = panoptic_fusion_head.deepcopy()
+        panoptic_fusion_head_.update(test_cfg=test_cfg)
+        self.panoptic_fusion_head = MODELS.build(panoptic_fusion_head_)
+
+        self.num_things_classes = self.panoptic_head.num_things_classes
+        self.num_stuff_classes = self.panoptic_head.num_stuff_classes
+        self.num_classes = self.panoptic_head.num_classes
+
+        self.train_cfg = train_cfg
+        self.test_cfg = test_cfg
 
     def setup(self, stage: str) -> None:
         if self.need_train_names is not None:
             self._set_grad(self.need_train_names, noneed_train_names=[])
-
-    def configure_sharded_model(self) -> None:
-        if self.trainer.strategy.__class__.__name__ == 'FSDPStrategy':
-            from torch.distributed.fsdp.wrap import wrap
-            self.seg_head = wrap(self.seg_head)
-        else:
-            super().configure_sharded_model()
-
-    def configure_optimizers(self):
-        if self.trainer.strategy.__class__.__name__ == 'DeepSpeedStrategy':
-            import deepspeed
-            optimizer = deepspeed.ops.adam.FusedAdam(self.seg_head.parameters(), lr=1e-4)
-            # optimizer = deepspeed.ops.adam.DeepSpeedCPUAdam(self.sam_prompt_generator.parameters(), lr=1e-4)
-            # optimizer = torch.optim.Adam(self.sam_prompt_generator.parameters(), lr=1e-4)
-            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
-            return [optimizer], [lr_scheduler]
-        else:
-            return super().configure_optimizers()
 
     def init_weights(self):
         import ipdb; ipdb.set_trace()
@@ -79,53 +62,55 @@ class SegSAMPLer(BasePLer):
             return self
 
     @torch.no_grad()
-    def extract_feat(self, batch):
-        x = torch.stack(batch['inputs'], dim=0)
-        x = x[:, [2, 1, 0], :, :]  # BGR -> RGB
-        x = (x - self.backbone.image_encoder.pixel_mean) / self.backbone.image_encoder.pixel_std
-        feat = self.backbone.image_encoder(x)
-        return tuple(feat)
-
-    def _seg_data_to_instance_data(self, batch_data_samples: SampleList):
-        batch_img_metas = []
-        batch_gt_instances = []
-
-        for data_sample in batch_data_samples:
-            batch_img_metas.append(data_sample.metainfo)
-            gt_masks = data_sample.instances_data.long()
-            gt_labels = data_sample.instances_label.long()
-
-            instance_data = InstanceData(labels=gt_labels, masks=gt_masks)
-            batch_gt_instances.append(instance_data)
-        return batch_gt_instances, batch_img_metas
+    def extract_feat(self, batch_inputs):
+        feat, inter_features = self.backbone.image_encoder(batch_inputs)
+        return feat, inter_features
 
     def validation_step(self, batch, batch_idx):
-        seg_label = torch.stack([x.gt_sem_seg.data for x in batch['data_samples']], dim=0)
-        x = self.extract_feat(batch)
-        if hasattr(self, 'prompt_neck'):
-            cls_logits, l1_masks, l2_masks, iou_preds = self.prompt_neck(
-                x, self.backbone.prompt_encoder, self.backbone.mask_decoder)
-            x = cls_logits, l1_masks, l2_masks, iou_preds
-        seg_logits = self.seg_head.predict(*x)
-        seg_logits = F.interpolate(seg_logits, size=seg_label.shape[-2:], mode='bilinear', align_corners=False)
-        seg_label = seg_label.squeeze(1)
-        seg_logits = seg_logits.squeeze(1) > 0.5
-        self.val_evaluator.update(seg_logits, seg_label)
+        data = self.data_preprocessor(batch, False)
+        batch_inputs = data['inputs']
+        batch_data_samples = data['data_samples']
+
+        feats = self.extract_feat(batch_inputs)
+        mask_cls_results, mask_pred_results = self.panoptic_head.predict(
+            feats, batch_data_samples, self.backbone)
+
+        results_list = self.panoptic_fusion_head.predict(
+            mask_cls_results,
+            mask_pred_results,
+            batch_data_samples,
+            rescale=True)
+        results = self.add_pred_to_datasample(batch_data_samples, results_list)
+
+        preds = []
+        targets = []
+        for data_sample in results:
+            result = dict()
+            pred = data_sample.pred_instances
+            result['boxes'] = pred['bboxes']
+            result['scores'] = pred['scores']
+            result['labels'] = pred['labels']
+            if 'masks' in pred:
+                result['masks'] = pred['masks']
+            preds.append(result)
+            # parse gt
+            gt = dict()
+            gt_data = data_sample.get('gt_instances', None)
+            gt['boxes'] = gt_data['bboxes']
+            gt['labels'] = gt_data['labels']
+            if 'masks' in pred:
+                gt['masks'] = gt_data['masks'].to_tensor(dtype=torch.bool, device=result['masks'].device)
+            targets.append(gt)
+
+        self.val_evaluator.update(preds, targets)
 
     def training_step(self, batch, batch_idx):
-        x = self.extract_feat(batch)
-        if hasattr(self, 'prompt_neck'):
-            cls_logits, l1_masks, l2_masks, iou_preds = self.prompt_neck(x, self.backbone.prompt_encoder, self.backbone.mask_decoder)
-            batch_gt_instances, batch_img_metas = self._seg_data_to_instance_data(batch['data_samples'])
-            losses = self.seg_head.loss(
-                cls_scores=cls_logits,
-                mask_preds=l1_masks,
-                batch_gt_instances=batch_gt_instances,
-                batch_img_metas=batch_img_metas,
-                # aux_mask=l2_masks,
-            )
-        else:
-            losses = self.seg_head.loss(*x, batch['data_samples'])
+        data = self.data_preprocessor(batch, True)
+        batch_inputs = data['inputs']
+        batch_data_samples = data['data_samples']
+        x = self.extract_feat(batch_inputs)
+        losses = self.panoptic_head.loss(x, batch_data_samples, self.backbone)
+
         parsed_losses, log_vars = self.parse_losses(losses)
         log_vars = {f'train_{k}': v for k, v in log_vars.items()}
         log_vars['loss'] = parsed_losses
@@ -133,10 +118,49 @@ class SegSAMPLer(BasePLer):
         return log_vars
 
     def on_before_optimizer_step(self, optimizer) -> None:
-        if hasattr(self, 'prompt_neck'):
-            self.log_grad(module=self.prompt_neck)
-        else:
-            self.log_grad(module=self.seg_head)
+        self.log_grad(module=self.panoptic_head)
+
+
+    def add_pred_to_datasample(self, data_samples: SampleList,
+                               results_list: List[dict]) -> SampleList:
+        """Add predictions to `DetDataSample`.
+
+        Args:
+            data_samples (list[:obj:`DetDataSample`], optional): A batch of
+                data samples that contain annotations and predictions.
+            results_list (List[dict]): Instance segmentation, segmantic
+                segmentation and panoptic segmentation results.
+
+        Returns:
+            list[:obj:`DetDataSample`]: Detection results of the
+            input images. Each DetDataSample usually contain
+            'pred_instances' and `pred_panoptic_seg`. And the
+            ``pred_instances`` usually contains following keys.
+
+                - scores (Tensor): Classification scores, has a shape
+                    (num_instance, )
+                - labels (Tensor): Labels of bboxes, has a shape
+                    (num_instances, ).
+                - bboxes (Tensor): Has a shape (num_instances, 4),
+                    the last dimension 4 arrange as (x1, y1, x2, y2).
+                - masks (Tensor): Has a shape (num_instances, H, W).
+
+            And the ``pred_panoptic_seg`` contains the following key
+
+                - sem_seg (Tensor): panoptic segmentation mask, has a
+                    shape (1, h, w).
+        """
+        for data_sample, pred_results in zip(data_samples, results_list):
+            if 'pan_results' in pred_results:
+                data_sample.pred_panoptic_seg = pred_results['pan_results']
+
+            if 'ins_results' in pred_results:
+                data_sample.pred_instances = pred_results['ins_results']
+
+            assert 'sem_results' not in pred_results, 'segmantic ' \
+                'segmentation results are not supported yet.'
+
+        return data_samples
 
 
 

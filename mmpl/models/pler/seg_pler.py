@@ -19,9 +19,6 @@ from .base import BaseClassifier
 import lightning.pytorch as pl
 import torch.nn.functional as F
 
-from module.segment_anything.build_sam import sam_model_registry
-from module.segment_anything.utils.amg import build_all_layer_point_grids
-
 
 @MODELS.register_module()
 class SegPLer(BasePLer):
