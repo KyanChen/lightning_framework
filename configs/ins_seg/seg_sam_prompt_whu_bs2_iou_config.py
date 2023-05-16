@@ -166,7 +166,7 @@ model_cfg = dict(
 
 
 task_name = 'whu_ins'
-exp_name = 'E20230515_0'
+exp_name = 'E20230516_0'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -209,7 +209,7 @@ trainer_cfg = dict(
     logger=logger,
     callbacks=callbacks,
     log_every_n_steps=20,
-    check_val_every_n_epoch=2,
+    check_val_every_n_epoch=10,
     benchmark=True,
     # sync_batchnorm=True,
     # fast_dev_run=True,
