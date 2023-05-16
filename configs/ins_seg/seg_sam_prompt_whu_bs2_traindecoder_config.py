@@ -174,7 +174,7 @@ logger = dict(
     group='sam',
     name=exp_name
 )
-# logger = None
+logger = None
 
 
 callbacks = [
