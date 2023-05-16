@@ -174,7 +174,7 @@ logger = dict(
     group='sam',
     name=exp_name
 )
-logger = None
+# logger = None
 
 
 callbacks = [
@@ -203,14 +203,14 @@ trainer_cfg = dict(
     strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=[6, 7],
+    devices=8,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
     log_every_n_steps=20,
-    check_val_every_n_epoch=2,
+    check_val_every_n_epoch=10,
     benchmark=True,
     # sync_batchnorm=True,
     # fast_dev_run=True,
