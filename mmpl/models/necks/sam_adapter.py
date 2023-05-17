@@ -72,7 +72,6 @@ class SAMAdaptor(nn.Module):
                 ConvModule(
                     in_channels=embed_dim,
                     out_channels=inner_dim,
-                    bias=True,
                     kernel_size=1,
                     norm_cfg=norm_cfg,
                     act_cfg=act_cfg
@@ -80,7 +79,6 @@ class SAMAdaptor(nn.Module):
                 ConvModule(
                     in_channels=inner_dim,
                     out_channels=inner_dim,
-                    bias=True,
                     kernel_size=3,
                     padding=1,
                     norm_cfg=norm_cfg,
@@ -89,7 +87,6 @@ class SAMAdaptor(nn.Module):
                 ConvModule(
                     in_channels=inner_dim,
                     out_channels=embed_dim,
-                    bias=True,
                     kernel_size=1,
                     norm_cfg=norm_cfg,
                     act_cfg=act_cfg
@@ -102,7 +99,6 @@ class SAMAdaptor(nn.Module):
             ConvModule(
                 in_channels=embed_dim,
                 out_channels=out_channels,
-                bias=True,
                 kernel_size=1,
                 norm_cfg=norm_cfg,
                 act_cfg=act_cfg
@@ -110,7 +106,6 @@ class SAMAdaptor(nn.Module):
             ConvModule(
                 in_channels=out_channels,
                 out_channels=out_channels,
-                bias=True,
                 kernel_size=3,
                 padding=1,
                 norm_cfg=norm_cfg,
@@ -207,7 +202,6 @@ class StemLayer(nn.Module):
                 out_channels=inner_dim,
                 kernel_size=7,
                 stride=4,
-                bias=True,
                 padding=3,
                 norm_cfg=norm_cfg,
                 act_cfg=act_cfg
@@ -218,14 +212,12 @@ class StemLayer(nn.Module):
                 kernel_size=3,
                 stride=2,
                 padding=1,
-                bias=True,
                 norm_cfg=norm_cfg,
                 act_cfg=act_cfg
             ),
             ConvModule(
                 in_channels=inner_dim,
                 out_channels=inner_dim,
-                bias=True,
                 kernel_size=3,
                 stride=2,
                 padding=1,
@@ -235,7 +227,6 @@ class StemLayer(nn.Module):
             ConvModule(
                 in_channels=inner_dim,
                 out_channels=embed_dim,
-                bias=True,
                 kernel_size=1,
                 norm_cfg=norm_cfg,
                 act_cfg=act_cfg
