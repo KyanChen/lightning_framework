@@ -103,6 +103,7 @@ class SemSegSAMPLer(BasePLer):
         self.val_evaluator.update(preds, targets)
 
     def training_step(self, batch, batch_idx):
+        import ipdb; ipdb.set_trace()
         data = self.data_preprocessor(batch, True)
         batch_inputs = data['inputs']
         batch_data_samples = data['data_samples']
