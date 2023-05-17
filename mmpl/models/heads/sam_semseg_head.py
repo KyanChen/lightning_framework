@@ -127,6 +127,9 @@ class SamSemSegHead(BaseModule):
     def forward(self, inputs):
         """Forward function."""
         x0, x1 = inputs
+        x0 = self.down_conv[0](x0)
+        x1 = self.down_conv[1](x1)
+
         gate_x0 = torch.sigmoid(x0)  # B N H W
         x1 = torch.einsum('bnhw,bchw->bnchw', gate_x0, x1)
         x1 = torch.mean(x1, dim=(-2, -1))
