@@ -94,26 +94,26 @@ class SamSemSegHead(BaseModule):
                 norm_cfg=norm_cfg,
                 act_cfg=act_cfg,
             ),
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            ConvModule(
-                in_channels=in_channels,
-                out_channels=in_channels,
-                bias=True,
-                kernel_size=3,
-                padding=1,
-                norm_cfg=norm_cfg,
-                act_cfg=act_cfg,
-            ),
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            ConvModule(
-                in_channels=in_channels,
-                out_channels=in_channels,
-                bias=True,
-                kernel_size=3,
-                padding=1,
-                norm_cfg=norm_cfg,
-                act_cfg=act_cfg,
-            )
+            # nn.UpsamplingBilinear2d(scale_factor=2),
+            # ConvModule(
+            #     in_channels=in_channels,
+            #     out_channels=in_channels,
+            #     bias=True,
+            #     kernel_size=3,
+            #     padding=1,
+            #     norm_cfg=norm_cfg,
+            #     act_cfg=act_cfg,
+            # ),
+            # nn.UpsamplingBilinear2d(scale_factor=2),
+            # ConvModule(
+            #     in_channels=in_channels,
+            #     out_channels=in_channels,
+            #     bias=True,
+            #     kernel_size=3,
+            #     padding=1,
+            #     norm_cfg=norm_cfg,
+            #     act_cfg=act_cfg,
+            # )
         )
 
 
@@ -183,23 +183,12 @@ class SamSemSegHead(BaseModule):
     def loss_by_feat(self, seg_logits: Tensor,
                      batch_data_samples: SampleList) -> dict:
         seg_label = self._stack_batch_gt(batch_data_samples)
-        size = (512, 512)
         loss = dict()
         seg_logits = resize(
             input=seg_logits,
             size=seg_label.shape[2:],
             mode='bilinear',
             align_corners=self.align_corners)
-
-        seg_logits = resize(
-            input=seg_logits,
-            size=size,
-            mode='bilinear',
-            align_corners=self.align_corners)
-        seg_label = resize(
-            input=seg_label.float(),
-            size=size,
-            mode='nearest').long()
 
         if self.sampler is not None:
             seg_weight = self.sampler.sample(seg_logits, seg_label)
