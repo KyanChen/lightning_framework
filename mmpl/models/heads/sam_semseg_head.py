@@ -197,7 +197,7 @@ class SamSemSegHead(BaseModule):
             mode='bilinear',
             align_corners=self.align_corners)
         seg_label = resize(
-            input=seg_label.fload(),
+            input=seg_label.float(),
             size=size,
             mode='nearest').long()
 
