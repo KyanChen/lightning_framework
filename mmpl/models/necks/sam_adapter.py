@@ -56,7 +56,6 @@ class SAMAdaptor(nn.Module):
                 ConvModule(
                     in_channels=embed_dim,
                     out_channels=1,
-                    bias=False,
                     kernel_size=3,
                     padding=1,
                     norm_cfg=None,
