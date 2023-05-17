@@ -149,7 +149,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=[6, 7],
+    devices=[6],
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -158,7 +158,7 @@ trainer_cfg = dict(
     log_every_n_steps=20,
     check_val_every_n_epoch=1,
     benchmark=True,
-    sync_batchnorm=True,
+    # sync_batchnorm=True,
     # fast_dev_run=True,
 
     # limit_train_batches=1,
