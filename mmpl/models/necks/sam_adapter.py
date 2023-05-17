@@ -44,12 +44,24 @@ class SAMAdaptor(nn.Module):
 
         self.gate_layers = nn.ModuleList()
         for i in range(2*(depth+1)):
-            layer = nn.MultiheadAttention(
-                embed_dim,
-                num_heads=8,
-                dropout=0.1,
-                bias=True,
-                batch_first=True
+            # layer = nn.MultiheadAttention(
+            #     embed_dim,
+            #     num_heads=8,
+            #     dropout=0.1,
+            #     bias=True,
+            #     batch_first=True
+            # )
+            layer = nn.Sequential(
+                ConvModule(
+                    in_channels=embed_dim,
+                    out_channels=1,
+                    bias=False,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=None,
+                    act_cfg=None
+                ),
+                nn.Sigmoid()
             )
             self.gate_layers.append(layer)
 
@@ -120,20 +132,26 @@ class SAMAdaptor(nn.Module):
 
         x1 = self.stem_layer(inputs)  # B C H W
 
-        x0_rearrange = rearrange(x0, 'b h w c -> b (h w) c', h=H, w=W)
-        x1_rearrange = rearrange(x1, 'b c h w -> b (h w) c', h=H, w=W)
-        res_x0 = self.gate_layers[0](
-            query=x0_rearrange,
-            key=x0_rearrange,
-            value=x1_rearrange)[0]
-        res_x0 = rearrange(res_x0, 'b (h w) c -> b h w c', h=H, w=W)
+        # x0_rearrange = rearrange(x0, 'b h w c -> b (h w) c', h=H, w=W)
+        # x1_rearrange = rearrange(x1, 'b c h w -> b (h w) c', h=H, w=W)
+        # res_x0 = self.gate_layers[0](
+        #     query=x0_rearrange,
+        #     key=x0_rearrange,
+        #     value=x1_rearrange)[0]
+        # res_x0 = rearrange(res_x0, 'b (h w) c -> b h w c', h=H, w=W)
+        # x0 = x0 + res_x0
+        x0_rearrange = rearrange(x0, 'b h w c -> b c h w')
+        res_x0 = self.gate_layers[0](x0_rearrange)*x1
+        res_x0 = rearrange(res_x0, 'b c h w -> b h w c')
         x0 = x0 + res_x0
 
-        res_x1 = self.gate_layers[1](
-            query=x1_rearrange,
-            key=x1_rearrange,
-            value=x0_rearrange)[0]
-        res_x1 = rearrange(res_x1, 'b (h w) c -> b c h w', h=H, w=W)
+        # res_x1 = self.gate_layers[1](
+        #     query=x1_rearrange,
+        #     key=x1_rearrange,
+        #     value=x0_rearrange)[0]
+        # res_x1 = rearrange(res_x1, 'b (h w) c -> b c h w', h=H, w=W)
+        # x1 = x1 + res_x1
+        res_x1 = self.gate_layers[1](x1)*x0_rearrange
         x1 = x1 + res_x1
 
         for idx, blk in enumerate(sambackbone.blocks):
@@ -141,20 +159,28 @@ class SAMAdaptor(nn.Module):
 
             x1 = self.adap_layers[idx](x1) + x1  # B C H W
 
-            x0_rearrange = rearrange(x0, 'b h w c -> b (h w) c', h=H, w=W)
-            x1_rearrange = rearrange(x1, 'b c h w -> b (h w) c', h=H, w=W)
-            res_x0 = self.gate_layers[2*idx+2](
-                query=x0_rearrange,
-                key=x0_rearrange,
-                value=x1_rearrange)[0]
-            res_x0 = rearrange(res_x0, 'b (h w) c -> b h w c', h=H, w=W)
+            # x0_rearrange = rearrange(x0, 'b h w c -> b (h w) c', h=H, w=W)
+            # x1_rearrange = rearrange(x1, 'b c h w -> b (h w) c', h=H, w=W)
+            # res_x0 = self.gate_layers[2*idx+2](
+            #     query=x0_rearrange,
+            #     key=x0_rearrange,
+            #     value=x1_rearrange)[0]
+            # res_x0 = rearrange(res_x0, 'b (h w) c -> b h w c', h=H, w=W)
+            # x0 = x0 + res_x0
+            #
+            # res_x1 = self.gate_layers[2*idx+3](
+            #     query=x1_rearrange,
+            #     key=x1_rearrange,
+            #     value=x0_rearrange)[0]
+            # res_x1 = rearrange(res_x1, 'b (h w) c -> b c h w', h=H, w=W)
+            # x1 = x1 + res_x1
+
+            x0_rearrange = rearrange(x0, 'b h w c -> b c h w')
+            res_x0 = self.gate_layers[2*idx+2](x0_rearrange)*x1
+            res_x0 = rearrange(res_x0, 'b c h w -> b h w c')
             x0 = x0 + res_x0
 
-            res_x1 = self.gate_layers[2*idx+3](
-                query=x1_rearrange,
-                key=x1_rearrange,
-                value=x0_rearrange)[0]
-            res_x1 = rearrange(res_x1, 'b (h w) c -> b c h w', h=H, w=W)
+            res_x1 = self.gate_layers[2*idx+3](x1)*x0_rearrange
             x1 = x1 + res_x1
 
         x0 = sambackbone.neck(x0.permute(0, 3, 1, 2))
