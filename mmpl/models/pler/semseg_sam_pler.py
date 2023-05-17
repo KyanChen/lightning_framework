@@ -17,7 +17,7 @@ from modules.sam import sam_model_registry
 class SemSegSAMPLer(BasePLer):
     def __init__(self,
                  backbone,
-                 neck=None,
+                 adaphead=None,
                  decode_head=None,
                  need_train_names=None,
                  align_corners=False,
@@ -35,8 +35,8 @@ class SemSegSAMPLer(BasePLer):
         for submodel in delete_submodel:
             delattr(self.backbone, submodel)
 
-        if neck is not None:
-            self.neck = MODELS.build(neck)
+        if adaphead is not None:
+            self.adaphead = MODELS.build(adaphead)
 
         decode_head_ = decode_head.deepcopy()
         decode_head_.update(train_cfg=train_cfg)
@@ -64,7 +64,7 @@ class SemSegSAMPLer(BasePLer):
             return self
 
     def extract_feat(self, batch_inputs):
-        x0, x1 = self.neck(batch_inputs, self.backbone.image_encoder)
+        x0, x1 = self.adaphead(batch_inputs, self.backbone.image_encoder)
         return x0, x1
 
     def validation_step(self, batch, batch_idx):
@@ -116,7 +116,7 @@ class SemSegSAMPLer(BasePLer):
         return log_vars
 
     def on_before_optimizer_step(self, optimizer) -> None:
-        self.log_grad(module=self.neck)
+        self.log_grad(module=self.adaphead)
 
     def postprocess_result(self,
                            seg_logits: Tensor,

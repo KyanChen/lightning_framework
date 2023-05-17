@@ -1,13 +1,13 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_imports=False)
 
 sub_model_train = [
-    'neck',
+    'adaphead',
     'decode_head',
     'data_preprocessor'
 ]
 
 sub_model_optim = {
-    'neck': {'lr_mult': 1},
+    'adaphead': {'lr_mult': 1},
     'decode_head': {'lr_mult': 1},
 }
 
@@ -88,7 +88,7 @@ model_cfg = dict(
         delete_submodel=['prompt_encoder', 'mask_decoder'],
         checkpoint='pretrain/sam/sam_vit_b_01ec64.pth',
     ),
-    neck=dict(
+    adaphead=dict(
         type='SAMAdaptor',
         in_channels=3,
         inner_dim=128,
