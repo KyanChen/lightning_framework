@@ -19,6 +19,7 @@ from mmseg.utils import SampleList, ConfigType
 class SamSemSegHead(BaseModule):
     def __init__(self,
                  in_channels=2,
+                 inner_channels=None,
                  num_classes=1,
                  ignore_index=255,
                  threshold=None,
@@ -76,6 +77,15 @@ class SamSemSegHead(BaseModule):
             self.sampler = build_pixel_sampler(sampler, context=self)
         else:
             self.sampler = None
+
+        if inner_channels is None:
+            self.down_conv = nn.ModuleList([nn.Identity(), nn.Identity()])
+        else:
+            self.down_conv = nn.ModuleList([
+                nn.Conv2d(in_channels, inner_channels, 1),
+                nn.Conv2d(in_channels, inner_channels, 1)
+            ])
+            in_channels = inner_channels
 
         self.cls_seg = nn.Sequential(
             nn.Linear(in_channels, in_channels // 2),
