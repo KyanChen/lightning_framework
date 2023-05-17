@@ -104,4 +104,5 @@ def _build_sam(
         with open(checkpoint, "rb") as f:
             state_dict = torch.load(f)
         sam.load_state_dict(state_dict)
+        print(f"Loaded SAM model from {checkpoint}")
     return sam

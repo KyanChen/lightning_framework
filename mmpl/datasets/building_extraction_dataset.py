@@ -46,34 +46,34 @@ class BuildingExtractionDataset(BaseSegDataset):
         seg_map = results['data_samples'].gt_sem_seg.data
         # 如果是pillow，已经是1通道的了
         assert set(torch.unique(seg_map).numpy().astype(int)).issubset({0, 1})  # only can be 0 and 1
-        results['data_samples'].gt_sem_seg.data = seg_map
+        results['data_samples'].gt_sem_seg.data = seg_map == 0
 
-        all_instances = []
-        seg_map = seg_map.squeeze(0).numpy().astype(np.uint8)
-        num_labels, instances, stats, centroids = cv2.connectedComponentsWithStats(seg_map, connectivity=8)
-        for idx_label in range(1, num_labels):
-            all_instances.append(instances == idx_label)
-        if len(all_instances) > 0:
-            all_instances = np.stack(all_instances, axis=0)
-            all_instances = torch.from_numpy(all_instances)
-        else:
-            all_instances = torch.zeros((0, *seg_map.shape[-2:]))
+        # all_instances = []
+        # seg_map = seg_map.squeeze(0).numpy().astype(np.uint8)
+        # num_labels, instances, stats, centroids = cv2.connectedComponentsWithStats(seg_map, connectivity=8)
+        # for idx_label in range(1, num_labels):
+        #     all_instances.append(instances == idx_label)
+        # if len(all_instances) > 0:
+        #     all_instances = np.stack(all_instances, axis=0)
+        #     all_instances = torch.from_numpy(all_instances)
+        # else:
+        #     all_instances = torch.zeros((0, *seg_map.shape[-2:]))
+        #
+        # label = torch.zeros(all_instances.shape[0], dtype=torch.long)
+        # results['data_samples'].set_data(dict(instances_data=all_instances, instances_label=label))
 
-        label = torch.zeros(all_instances.shape[0], dtype=torch.long)
-        results['data_samples'].set_data(dict(instances_data=all_instances, instances_label=label))
-
-        if self.load_clip_cache_from is not None:
-            img_path = results['data_samples'].img_path
-            cache_data = mmengine.load(f"{self.load_clip_cache_from}/{self.phrase}_{os.path.splitext(os.path.basename(img_path))[0]}.pkl")
-            results['data_samples'].set_data(dict(clip_dense_embs=cache_data['img_dense_embs'][0].detach(), logits_per_image=cache_data['logits_per_image'][0].detach()))
-
-        if self.load_sam_cache_from is not None:
-            img_path = results['data_samples'].img_path
-            cache_data = torch.load(f"{self.load_sam_cache_from}/{self.phrase}_{os.path.splitext(os.path.basename(img_path))[0]}.pt")
-            inner_states = cache_data['inner_states']
-            if isinstance(inner_states, list):
-                inner_states = [x[0].detach() for x in inner_states]
-            results['data_samples'].set_data(dict(image_embeddings=cache_data['image_embeddings'][0].detach(), inner_states=inner_states))
+        # if self.load_clip_cache_from is not None:
+        #     img_path = results['data_samples'].img_path
+        #     cache_data = mmengine.load(f"{self.load_clip_cache_from}/{self.phrase}_{os.path.splitext(os.path.basename(img_path))[0]}.pkl")
+        #     results['data_samples'].set_data(dict(clip_dense_embs=cache_data['img_dense_embs'][0].detach(), logits_per_image=cache_data['logits_per_image'][0].detach()))
+        #
+        # if self.load_sam_cache_from is not None:
+        #     img_path = results['data_samples'].img_path
+        #     cache_data = torch.load(f"{self.load_sam_cache_from}/{self.phrase}_{os.path.splitext(os.path.basename(img_path))[0]}.pt")
+        #     inner_states = cache_data['inner_states']
+        #     if isinstance(inner_states, list):
+        #         inner_states = [x[0].detach() for x in inner_states]
+        #     results['data_samples'].set_data(dict(image_embeddings=cache_data['image_embeddings'][0].detach(), inner_states=inner_states))
 
         return results
 

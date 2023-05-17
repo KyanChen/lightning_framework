@@ -23,7 +23,7 @@ def parse_args():
     # parser.add_argument('--config', default='configs/det/yolov8_dynamic_sirens.py', help='train config file path')
     # parser.add_argument('--config', default='configs/seg/seg_just_backbone_with_clip_config.py', help='train config file path')
     # parser.add_argument('--config', default='configs/seg/seg_just_sam_backbone_config.py', help='train config file path')
-    parser.add_argument('--config', default='configs/ins_seg/seg_sam_prompt_whu_bs8_config.py',
+    parser.add_argument('--config', default='configs/sem_seg/seg_sam_adapter_whu_bs2_config.py',
                         help='train config file path')
     # parser.add_argument('--config', default='configs/seg_config.py', help='train config file path')
     # parser.add_argument('--config', default='../configs/seg_mask2former_config.py', help='train config file path')

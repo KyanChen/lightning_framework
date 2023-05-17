@@ -225,9 +225,7 @@ persistent_workers = True
 
 # data_parent = '/data1/kyanchen/datasets/'
 # data_parent = '/Users/kyanchen/datasets/Building/'
-data_parent = '/mnt/search01/dataset/cky_data/'
-# data_parent = '../sample/'
-data_root = data_parent+'WHU/'
+data_root = '/mnt/search01/dataset/cky_data/WHU/'
 train_data_prefix = 'train/'
 val_data_prefix = 'test/'
 
