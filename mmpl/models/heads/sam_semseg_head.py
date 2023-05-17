@@ -88,32 +88,29 @@ class SamSemSegHead(BaseModule):
             ConvModule(
                 in_channels=in_channels,
                 out_channels=in_channels,
-                bias=True,
                 kernel_size=3,
                 padding=1,
                 norm_cfg=norm_cfg,
                 act_cfg=act_cfg,
             ),
-            # nn.UpsamplingBilinear2d(scale_factor=2),
-            # ConvModule(
-            #     in_channels=in_channels,
-            #     out_channels=in_channels,
-            #     bias=True,
-            #     kernel_size=3,
-            #     padding=1,
-            #     norm_cfg=norm_cfg,
-            #     act_cfg=act_cfg,
-            # ),
-            # nn.UpsamplingBilinear2d(scale_factor=2),
-            # ConvModule(
-            #     in_channels=in_channels,
-            #     out_channels=in_channels,
-            #     bias=True,
-            #     kernel_size=3,
-            #     padding=1,
-            #     norm_cfg=norm_cfg,
-            #     act_cfg=act_cfg,
-            # )
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            ConvModule(
+                in_channels=in_channels,
+                out_channels=in_channels,
+                kernel_size=3,
+                padding=1,
+                norm_cfg=norm_cfg,
+                act_cfg=act_cfg,
+            ),
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            ConvModule(
+                in_channels=in_channels,
+                out_channels=in_channels,
+                kernel_size=3,
+                padding=1,
+                norm_cfg=norm_cfg,
+                act_cfg=act_cfg,
+            )
         )
 
 
