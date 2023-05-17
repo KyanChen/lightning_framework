@@ -199,8 +199,7 @@ class SamSemSegHead(BaseModule):
         seg_label = resize(
             input=seg_label,
             size=size,
-            mode='nearest',
-            align_corners=self.align_corners)
+            mode='nearest')
 
         if self.sampler is not None:
             seg_weight = self.sampler.sample(seg_logits, seg_label)
