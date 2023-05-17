@@ -183,12 +183,25 @@ class SamSemSegHead(BaseModule):
     def loss_by_feat(self, seg_logits: Tensor,
                      batch_data_samples: SampleList) -> dict:
         seg_label = self._stack_batch_gt(batch_data_samples)
+        size = (512, 512)
         loss = dict()
         seg_logits = resize(
             input=seg_logits,
             size=seg_label.shape[2:],
             mode='bilinear',
             align_corners=self.align_corners)
+
+        seg_logits = resize(
+            input=seg_logits,
+            size=size,
+            mode='bilinear',
+            align_corners=self.align_corners)
+        seg_label = resize(
+            input=seg_label,
+            size=size,
+            mode='nearest',
+            align_corners=self.align_corners)
+
         if self.sampler is not None:
             seg_weight = self.sampler.sample(seg_logits, seg_label)
         else:
