@@ -41,6 +41,7 @@ class SAMAdaptor(nn.Module):
             norm_cfg=norm_cfg,
             act_cfg=act_cfg
         )
+        self.depth = depth
 
         self.gate_layers = nn.ModuleList()
         for i in range(2*(depth+1)):
@@ -154,6 +155,7 @@ class SAMAdaptor(nn.Module):
         res_x1 = self.gate_layers[1](x1)*x0_rearrange
         x1 = x1 + res_x1
 
+        assert len(sambackbone.blocks) == self.depth
         for idx, blk in enumerate(sambackbone.blocks):
             x0 = blk(x0)  # B H W C
 
