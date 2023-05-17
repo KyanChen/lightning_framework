@@ -106,7 +106,7 @@ model_cfg = dict(
         num_classes=num_classes,
         ignore_index=255,
         threshold=0.5,
-        sampler=dict(type='OHEMPixelSampler', thresh=0.7, min_kept=10000),
+        sampler=dict(type='mmseg.OHEMPixelSampler', thresh=0.7, min_kept=10000),
         loss_decode=dict(
             type='mmseg.CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0)
     ),
