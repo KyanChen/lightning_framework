@@ -121,7 +121,7 @@ logger = dict(
     group='sam_adapter',
     name=exp_name
 )
-# logger = None
+logger = None
 
 
 callbacks = [
