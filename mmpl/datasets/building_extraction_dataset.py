@@ -46,7 +46,7 @@ class BuildingExtractionDataset(BaseSegDataset):
         seg_map = results['data_samples'].gt_sem_seg.data
         # 如果是pillow，已经是1通道的了
         assert set(torch.unique(seg_map).numpy().astype(int)).issubset({0, 1})  # only can be 0 and 1
-        results['data_samples'].gt_sem_seg.data = seg_map == 0
+        results['data_samples'].gt_sem_seg.data = (seg_map == 0).long()
 
         # all_instances = []
         # seg_map = seg_map.squeeze(0).numpy().astype(np.uint8)

@@ -107,7 +107,6 @@ class SemSegSAMPLer(BasePLer):
         batch_inputs = data['inputs']
         batch_data_samples = data['data_samples']
         x = self.extract_feat(batch_inputs)
-        import ipdb; ipdb.set_trace()
         losses = self.decode_head.loss(x, batch_data_samples)
 
         parsed_losses, log_vars = self.parse_losses(losses)
