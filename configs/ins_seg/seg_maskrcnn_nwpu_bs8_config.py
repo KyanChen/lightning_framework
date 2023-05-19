@@ -1,11 +1,11 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models', 'mmdet.models'], allow_failed_imports=False)
 # train max 71, min 1
 # val max 56, min 1
-max_epochs = 800
+max_epochs = 150
 
 optimizer = dict(
     type='AdamW',
-    lr=0.0001,
+    lr=0.0002,
     weight_decay=1e-4
 )
 
@@ -20,13 +20,20 @@ param_scheduler = [
         # update by iter
         convert_to_iter_based=True),
     # main learning rate scheduler
+    # dict(
+    #     type='CosineAnnealingLR',
+    #     T_max=max_epochs,
+    #     by_epoch=True,
+    #     begin=1,
+    #     end=max_epochs,
+    # )
     dict(
-        type='CosineAnnealingLR',
-        T_max=max_epochs,
-        by_epoch=True,
+        type='MultiStepLR',
         begin=1,
         end=max_epochs,
-    )
+        by_epoch=True,
+        milestones=[max_epochs//2, max_epochs*3//4],
+        gamma=0.2)
 ]
 
 param_scheduler_callback = dict(
@@ -35,12 +42,7 @@ param_scheduler_callback = dict(
 
 evaluator_ = dict(
         type='MeanAveragePrecision',
-        box_format='xyxy',
-        # iou_type='segm',
-        iou_type='bbox',
-        max_detection_thresholds=[1, 10, 100],
-        # dist_sync_on_step=True,
-        # compute_on_cpu=True,
+        iou_type='segm',
 )
 
 # evaluator_ = dict(
@@ -69,22 +71,21 @@ data_preprocessor = dict(
 num_things_classes = 10
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-num_queries = 60
 
 # model settings
 model = dict(
     type='mmdet.MaskRCNN',
     data_preprocessor=data_preprocessor,
     backbone=dict(
-        type='mmdet.ResNet',
+        type='ResNet',
         depth=50,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
-        frozen_stages=-1,
+        frozen_stages=1,
         norm_cfg=dict(type='BN', requires_grad=True),
-        norm_eval=False,
+        norm_eval=True,
         style='pytorch',
-        # init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')
+        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')
     ),
     neck=dict(
         type='mmdet.FPN',
@@ -208,14 +209,14 @@ model_cfg = dict(
 )
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230429_0'
+exp_name = 'E20230519_0'
 logger = dict(
     type='WandbLogger',
     project=task_name,
     group='maskrcnn',
     name=exp_name
 )
-# logger = None
+logger = None
 
 
 callbacks = [
@@ -248,14 +249,14 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=[6],
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
     log_every_n_steps=3,
-    check_val_every_n_epoch=1,
+    check_val_every_n_epoch=5,
     benchmark=True,
     # sync_batchnorm=True,
     # fast_dev_run=True,
@@ -306,10 +307,10 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 6
-train_num_workers = 2
-test_batch_size_per_gpu = 6
-test_num_workers = 2
+train_batch_size_per_gpu = 8
+train_num_workers = 4
+test_batch_size_per_gpu = 8
+test_num_workers = 4
 persistent_workers = True
 
 # data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPUVHR-10_dataset/'
@@ -318,7 +319,6 @@ train_data_prefix = ''
 val_data_prefix = ''
 
 dataset_type = 'NWPUInsSegDataset'
-# metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
 
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,
@@ -328,7 +328,7 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='instances_val2017.json',
+            ann_file='NWPU_instances_train.json',
             data_prefix=dict(img_path='positive image set'),
             test_mode=True,
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
@@ -345,7 +345,7 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='instances_train2017.json',
+            ann_file='NWPU_instances_val.json',
             data_prefix=dict(img_path='positive image set'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
@@ -355,18 +355,3 @@ datamodule_cfg = dict(
     # test_loader=val_loader
     # predict_loader=val_loader
 )
-
-
-# val_evaluator = [
-#     dict(
-#         type='CocoMetric',
-#         ann_file=data_root +
-#         'annotations/instancesonly_filtered_gtFine_val.json',
-#         metric=['bbox', 'segm'],
-#         backend_args=backend_args),
-#     dict(
-#         type='CityScapesMetric',
-#         seg_prefix=data_root + 'gtFine/val',
-#         outfile_prefix='./work_dirs/cityscapes_metric/instance',
-#         backend_args=backend_args)
-# ]
