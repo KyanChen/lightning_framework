@@ -1,11 +1,11 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models', 'mmdet.models'], allow_failed_imports=False)
 # train max 71, min 1
 # val max 56, min 1
-max_epochs = 500
+max_epochs = 800
 
 optimizer = dict(
     type='AdamW',
-    lr=0.0002,
+    lr=0.0001,
     weight_decay=1e-4
 )
 
@@ -13,27 +13,27 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=2e-4,
+        start_factor=1e-4,
         by_epoch=True,
         begin=0,
         end=1,
         # update by iter
         convert_to_iter_based=True),
     # main learning rate scheduler
-    # dict(
-    #     type='CosineAnnealingLR',
-    #     T_max=max_epochs,
-    #     by_epoch=True,
-    #     begin=1,
-    #     end=max_epochs,
-    # )
     dict(
-        type='MultiStepLR',
+        type='CosineAnnealingLR',
+        T_max=max_epochs,
+        by_epoch=True,
         begin=1,
         end=max_epochs,
-        by_epoch=True,
-        milestones=[max_epochs//2, max_epochs*3//4],
-        gamma=0.2)
+    )
+    # dict(
+    #     type='MultiStepLR',
+    #     begin=1,
+    #     end=max_epochs,
+    #     by_epoch=True,
+    #     milestones=[max_epochs//2, max_epochs*3//4],
+    #     gamma=0.2)
 ]
 
 param_scheduler_callback = dict(
@@ -206,7 +206,7 @@ model_cfg = dict(
 )
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230519_1'
+exp_name = 'E20230519_3'
 logger = dict(
     type='WandbLogger',
     project=task_name,
