@@ -604,6 +604,18 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
                     act_cfg=self.act_cfg
                 )
             )
+        self.fusion_layers = nn.ModuleList()
+        for idx in self.selected_channels:
+            self.fusion_layers.append(
+                ConvModule(
+                    inner_channels,
+                    inner_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
+                )
+            )
 
         if isinstance(in_channels, list):
             self.pre_layers = nn.ModuleList()
@@ -757,7 +769,7 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
     def forward(self, inputs):
         _, inner_states = inputs
         inner_states = [einops.rearrange(inner_states[idx], 'b h w c -> b c h w') for idx in self.selected_channels]
-
+        inner_states = [layer(x) for layer, x in zip(self.down_sample_layers, inner_states)]
 
         if hasattr(self, 'pre_layers'):
             inner_states = inner_states[-len(self.in_channels):]
