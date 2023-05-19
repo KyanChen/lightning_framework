@@ -1,11 +1,11 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models', 'mmdet.models'], allow_failed_imports=False)
 # train max 71, min 1
 # val max 56, min 1
-max_epochs = 600
+max_epochs = 500
 
 optimizer = dict(
     type='AdamW',
-    lr=0.0001,
+    lr=0.0005,
     weight_decay=1e-4
 )
 
@@ -13,7 +13,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=1e-4,
+        start_factor=5e-4,
         by_epoch=True,
         begin=0,
         end=1,
@@ -209,7 +209,7 @@ model_cfg = dict(
 )
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230519_2'
+exp_name = 'E20230520_0'
 logger = dict(
     type='WandbLogger',
     project=task_name,
