@@ -13,7 +13,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=1e-4,
+        start_factor=2e-4,
         by_epoch=True,
         begin=0,
         end=1,
