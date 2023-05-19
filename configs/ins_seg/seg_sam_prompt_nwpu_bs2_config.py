@@ -174,14 +174,14 @@ model_cfg = dict(
 
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230519_6'
+exp_name = 'E20230519_5'
 logger = dict(
     type='WandbLogger',
     project=task_name,
     group='sam',
     name=exp_name
 )
-logger = None
+# logger = None
 
 
 callbacks = [
@@ -210,7 +210,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=[6],
+    devices=8,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -268,9 +268,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 3
+train_batch_size_per_gpu = 2
 train_num_workers = 2
-test_batch_size_per_gpu = 3
+test_batch_size_per_gpu = 2
 test_num_workers = 2
 persistent_workers = True
 
