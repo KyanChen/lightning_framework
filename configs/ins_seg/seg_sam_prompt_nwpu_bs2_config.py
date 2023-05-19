@@ -13,12 +13,12 @@ sub_model_optim = {
     'panoptic_fusion_head': {'lr_mult': 1},
 }
 
-max_epochs = 500
+max_epochs = 800
 
 optimizer = dict(
     type='AdamW',
     sub_model=sub_model_optim,
-    lr=0.0002,
+    lr=0.0001,
     weight_decay=1e-3
 )
 
@@ -26,27 +26,27 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=2e-4,
+        start_factor=1e-4,
         by_epoch=True,
         begin=0,
         end=1,
         # update by iter
         convert_to_iter_based=True),
     # main learning rate scheduler
-    # dict(
-    #     type='CosineAnnealingLR',
-    #     T_max=max_epochs,
-    #     by_epoch=True,
-    #     begin=1,
-    #     end=max_epochs,
-    # ),
     dict(
-        type='MultiStepLR',
+        type='CosineAnnealingLR',
+        T_max=max_epochs,
+        by_epoch=True,
         begin=1,
         end=max_epochs,
-        by_epoch=True,
-        milestones=[max_epochs//2, max_epochs*3//4],
-        gamma=0.2)
+    ),
+    # dict(
+    #     type='MultiStepLR',
+    #     begin=1,
+    #     end=max_epochs,
+    #     by_epoch=True,
+    #     milestones=[max_epochs//2, max_epochs*3//4],
+    #     gamma=0.2)
 ]
 
 param_scheduler_callback = dict(
@@ -114,6 +114,7 @@ model_cfg = dict(
             type='SAMTransformerEDPromptGenNeck',
             prompt_shape=prompt_shape,
             in_channels=[1280] * 32,
+            inner_channels=128,
             selected_channels=range(4, 32, 2),
             # in_channels=[768] * 8,
             num_layers=3,
@@ -172,8 +173,8 @@ model_cfg = dict(
 )
 
 
-task_name = 'whu_ins'
-exp_name = 'E20230515_0'
+task_name = 'nwpu_ins'
+exp_name = 'E20230519_0'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -274,11 +275,11 @@ test_num_workers = 2
 persistent_workers = True
 
 # data_parent = '/Users/kyanchen/datasets/Building/WHU'
-data_parent = '/mnt/search01/dataset/cky_data/WHU'
-train_data_prefix = 'train/'
-val_data_prefix = 'test/'
+data_parent = '/mnt/search01/dataset/cky_data/NWPU10'
+train_data_prefix = ''
+val_data_prefix = ''
 
-dataset_type = 'WHUInsSegDataset'
+dataset_type = 'NWPUInsSegDataset'
 
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,
@@ -288,8 +289,8 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='annotations/WHU_building_test.json',
-            data_prefix=dict(img_path=val_data_prefix + '/image', seg_path=val_data_prefix + '/label'),
+            ann_file='NWPU_instances_train.json',
+            data_prefix=dict(img_path='positive image set'),
             test_mode=True,
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=test_pipeline,
@@ -305,8 +306,8 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='annotations/WHU_building_train.json',
-            data_prefix=dict(img_path=train_data_prefix + '/image', seg_path=train_data_prefix + '/label'),
+            ann_file='NWPU_instances_train.json',
+            data_prefix=dict(img_path='positive image set'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
             backend_args=backend_args)
@@ -315,18 +316,3 @@ datamodule_cfg = dict(
     # test_loader=val_loader
     # predict_loader=val_loader
 )
-
-
-# val_evaluator = [
-#     dict(
-#         type='CocoMetric',
-#         ann_file=data_root +
-#         'annotations/instancesonly_filtered_gtFine_val.json',
-#         metric=['bbox', 'segm'],
-#         backend_args=backend_args),
-#     dict(
-#         type='CityScapesMetric',
-#         seg_prefix=data_root + 'gtFine/val',
-#         outfile_prefix='./work_dirs/cityscapes_metric/instance',
-#         backend_args=backend_args)
-# ]
