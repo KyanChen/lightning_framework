@@ -174,14 +174,14 @@ model_cfg = dict(
 
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230519_5'
+exp_name = 'E20230519_6'
 logger = dict(
     type='WandbLogger',
     project=task_name,
     group='sam',
     name=exp_name
 )
-# logger = None
+logger = None
 
 
 callbacks = [
