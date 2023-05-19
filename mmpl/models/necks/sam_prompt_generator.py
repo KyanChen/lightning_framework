@@ -570,12 +570,14 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
             self,
             prompt_shape=(100, 5),
             in_channels=[1280]*16,
+            inner_channels=128,
+            selected_channels: list=None,
             num_layers=3,
             out_channels=256,
             positional_encoding=dict(num_feats=128, normalize=True),
             kernel_size=3,
             stride=1,
-            norm_cfg=None,
+            norm_cfg=dict(type='BN', requires_grad=True),
             act_cfg=dict(type='ReLU', inplace=True),
     ):
         super().__init__()
@@ -585,10 +587,23 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
         self.act_cfg = act_cfg
         self.out_channels = out_channels
         self.stride = stride
+        self.selected_channels = selected_channels
 
         self.prompt_shape = prompt_shape
         self.num_queries = prompt_shape[0]
         self.per_query_point = prompt_shape[1]
+
+        self.down_sample_layers = nn.ModuleList()
+        for idx in self.selected_channels:
+            self.down_sample_layers.append(
+                ConvModule(
+                    in_channels[idx],
+                    inner_channels,
+                    kernel_size=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
+                )
+            )
 
         if isinstance(in_channels, list):
             self.pre_layers = nn.ModuleList()
@@ -741,6 +756,9 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
 
     def forward(self, inputs):
         _, inner_states = inputs
+        inner_states = [einops.rearrange(inner_states[idx], 'b h w c -> b c h w') for idx in self.selected_channels]
+
+
         if hasattr(self, 'pre_layers'):
             inner_states = inner_states[-len(self.in_channels):]
             inner_states = [einops.rearrange(x, 'b h w c -> b c h w') for x in inner_states]
