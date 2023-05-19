@@ -213,7 +213,7 @@ logger = dict(
     group='mask2former',
     name=exp_name
 )
-logger = None
+# logger = None
 
 
 callbacks = [
