@@ -71,7 +71,7 @@ data_preprocessor = dict(
 num_things_classes = 10
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-num_queries = 100
+num_queries = 80
 
 # model settings
 model = dict(
@@ -83,7 +83,7 @@ model = dict(
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=-1,
-        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_cfg=dict(type='BN', requires_grad=False),
         norm_eval=True,
         style='pytorch',
         init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')),
@@ -206,7 +206,7 @@ model_cfg = dict(
 )
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230519_4'
+exp_name = 'E20230519_3'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -304,9 +304,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 6
+train_batch_size_per_gpu = 4
 train_num_workers = 4
-test_batch_size_per_gpu = 6
+test_batch_size_per_gpu = 4
 test_num_workers = 4
 persistent_workers = True
 
