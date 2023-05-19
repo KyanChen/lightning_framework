@@ -20,20 +20,20 @@ param_scheduler = [
         # update by iter
         convert_to_iter_based=True),
     # main learning rate scheduler
-    # dict(
-    #     type='CosineAnnealingLR',
-    #     T_max=max_epochs,
-    #     by_epoch=True,
-    #     begin=1,
-    #     end=max_epochs,
-    # )
     dict(
-        type='MultiStepLR',
+        type='CosineAnnealingLR',
+        T_max=max_epochs,
+        by_epoch=True,
         begin=1,
         end=max_epochs,
-        by_epoch=True,
-        milestones=[max_epochs//2, max_epochs*3//4],
-        gamma=0.2)
+    )
+    # dict(
+    #     type='MultiStepLR',
+    #     begin=1,
+    #     end=max_epochs,
+    #     by_epoch=True,
+    #     milestones=[max_epochs//2, max_epochs*3//4],
+    #     gamma=0.2)
 ]
 
 param_scheduler_callback = dict(
