@@ -596,12 +596,23 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
         self.down_sample_layers = nn.ModuleList()
         for idx in self.selected_channels:
             self.down_sample_layers.append(
-                ConvModule(
-                    in_channels[idx],
-                    inner_channels,
-                    kernel_size=1,
-                    norm_cfg=self.norm_cfg,
-                    act_cfg=self.act_cfg
+                nn.Sequential(
+                    ConvModule(
+                        in_channels[idx],
+                        inner_channels,
+                        kernel_size=1,
+                        norm_cfg=self.norm_cfg,
+                        act_cfg=self.act_cfg
+                    ),
+                    ConvModule(
+                        inner_channels,
+                        inner_channels,
+                        kernel_size=3,
+                        padding=1,
+                        stride=2,
+                        norm_cfg=self.norm_cfg,
+                        act_cfg=self.act_cfg
+                    ),
                 )
             )
         self.fusion_layers = nn.ModuleList()
@@ -616,60 +627,36 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
                     act_cfg=self.act_cfg
                 )
             )
-
-        if isinstance(in_channels, list):
-            self.pre_layers = nn.ModuleList()
-            inner_channel = 32
-            for idx, channel in enumerate(in_channels):
-                self.pre_layers.append(
-                    nn.Sequential(
-                        ConvModule(
-                            channel,
-                            inner_channel,
-                            kernel_size=1,
-                            norm_cfg=self.norm_cfg,
-                            act_cfg=self.act_cfg
-                        ),
-                        ConvModule(
-                            inner_channel,
-                            inner_channel*2,
-                            kernel_size=kernel_size,
-                            padding=kernel_size // 2,
-                            stride=self.stride,
-                            norm_cfg=self.norm_cfg,
-                            act_cfg=self.act_cfg
-                        ),
-                        ConvModule(
-                            inner_channel*2,
-                            inner_channel,
-                            kernel_size=kernel_size,
-                            padding=kernel_size // 2,
-                            norm_cfg=self.norm_cfg,
-                            act_cfg=self.act_cfg
-                        ),
-                    )
-                )
-            self.pre_layers.append(
-                nn.Sequential(
-                    ConvModule(
-                        inner_channel * len(in_channels),
-                        out_channels,
-                        kernel_size=1,
-                        norm_cfg=self.norm_cfg,
-                        act_cfg=self.act_cfg
-                    ),
-                    ConvModule(
-                        out_channels,
-                        out_channels,
-                        kernel_size=kernel_size,
-                        padding=kernel_size // 2,
-                        norm_cfg=self.norm_cfg,
-                        act_cfg=self.act_cfg
-                    ),
+        self.up_layers = nn.ModuleList()
+        self.up_layers.append(
+            nn.Sequential(
+                ConvModule(
+                    inner_channels,
+                    inner_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
+                ),
+                ConvModule(
+                    inner_channels,
+                    inner_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
                 )
             )
-        else:
-            raise NotImplementedError
+        )
+        self.up_layers.append(
+            ConvModule(
+                inner_channels,
+                out_channels,
+                kernel_size=1,
+                norm_cfg=self.norm_cfg,
+                act_cfg=None
+            )
+        )
 
         self.generator_pe = SinePositionalEncoding(**positional_encoding)
 
@@ -771,11 +758,14 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
         inner_states = [einops.rearrange(inner_states[idx], 'b h w c -> b c h w') for idx in self.selected_channels]
         inner_states = [layer(x) for layer, x in zip(self.down_sample_layers, inner_states)]
 
-        if hasattr(self, 'pre_layers'):
-            inner_states = inner_states[-len(self.in_channels):]
-            inner_states = [einops.rearrange(x, 'b h w c -> b c h w') for x in inner_states]
-            inner_states = [layer(x) for layer, x in zip(self.pre_layers[:-1], inner_states)]
-            img_feats = self.pre_layers[-1](torch.cat(inner_states, dim=1))
+        x = None
+        for inner_state, layer in zip(inner_states, self.fusion_layers):
+            if x is not None:
+                inner_state = x + inner_state
+            x = inner_state + layer(inner_state)
+        x = self.up_layers[0](x) + x
+        img_feats = self.up_layers[1](x)
+
         bs, c, h, w = img_feats.shape
 
         mask_pe = torch.zeros((bs, h, w), device=img_feats.device, dtype=torch.bool)
