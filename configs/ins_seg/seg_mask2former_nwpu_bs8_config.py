@@ -103,7 +103,8 @@ model = dict(
             norm_cfg=dict(type='GN', num_groups=32),
             act_cfg=dict(type='ReLU'),
             encoder=dict(  # DeformableDetrTransformerEncoder
-                num_layers=6,
+                # num_layers=6,
+                num_layers=2,
                 layer_cfg=dict(  # DeformableDetrTransformerEncoderLayer
                     self_attn_cfg=dict(  # MultiScaleDeformableAttention
                         embed_dims=256,
@@ -123,7 +124,8 @@ model = dict(
         positional_encoding=dict(num_feats=128, normalize=True),
         transformer_decoder=dict(  # Mask2FormerTransformerDecoder
             return_intermediate=True,
-            num_layers=9,
+            # num_layers=9,
+            num_layers=3,
             layer_cfg=dict(  # Mask2FormerTransformerDecoderLayer
                 self_attn_cfg=dict(  # MultiheadAttention
                     embed_dims=256,
@@ -206,7 +208,7 @@ model_cfg = dict(
 )
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230519_4'
+exp_name = 'E20230520_2'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -304,9 +306,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 4
+train_batch_size_per_gpu = 8
 train_num_workers = 4
-test_batch_size_per_gpu = 4
+test_batch_size_per_gpu = 8
 test_num_workers = 4
 persistent_workers = True
 
