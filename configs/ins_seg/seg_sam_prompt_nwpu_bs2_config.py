@@ -114,7 +114,7 @@ model_cfg = dict(
             type='SAMTransformerEDPromptGenNeck',
             prompt_shape=prompt_shape,
             in_channels=[1280] * 32,
-            inner_channels=128,
+            inner_channels=64,
             selected_channels=range(4, 32, 2),
             # in_channels=[768] * 8,
             num_layers=3,
@@ -174,7 +174,7 @@ model_cfg = dict(
 
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230519_0'
+exp_name = 'E20230519_5'
 logger = dict(
     type='WandbLogger',
     project=task_name,
