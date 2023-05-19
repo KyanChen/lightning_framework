@@ -304,9 +304,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 8
+train_batch_size_per_gpu = 6
 train_num_workers = 4
-test_batch_size_per_gpu = 8
+test_batch_size_per_gpu = 6
 test_num_workers = 4
 persistent_workers = True
 
