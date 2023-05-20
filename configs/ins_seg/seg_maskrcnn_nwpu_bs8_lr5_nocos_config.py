@@ -209,7 +209,7 @@ model_cfg = dict(
 )
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230520_0'
+exp_name = 'E20230520_1'
 logger = dict(
     type='WandbLogger',
     project=task_name,
