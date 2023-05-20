@@ -1,7 +1,7 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models', 'mmdet.models'], allow_failed_imports=False)
 # train max 71, min 1
 # val max 56, min 1
-max_epochs = 1000
+max_epochs = 800
 
 optimizer = dict(
     type='AdamW',
@@ -208,7 +208,7 @@ model_cfg = dict(
 )
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230520_2'
+exp_name = 'E20230520_5'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -327,7 +327,7 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='NWPU_instances_train.json',
+            ann_file='NWPU_instances_val.json',
             data_prefix=dict(img_path='positive image set'),
             test_mode=True,
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
@@ -344,7 +344,7 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='NWPU_instances_val.json',
+            ann_file='NWPU_instances_train.json',
             data_prefix=dict(img_path='positive image set'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
