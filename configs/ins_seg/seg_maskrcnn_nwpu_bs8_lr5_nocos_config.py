@@ -18,7 +18,7 @@ param_scheduler = [
         begin=0,
         end=1,
         # update by iter
-        convert_to_iter_based=True)
+        convert_to_iter_based=True),
     # main learning rate scheduler
     # dict(
     #     type='CosineAnnealingLR',
@@ -27,13 +27,13 @@ param_scheduler = [
     #     begin=1,
     #     end=max_epochs,
     # )
-    dict(
-        type='MultiStepLR',
-        begin=1,
-        end=max_epochs,
-        by_epoch=True,
-        milestones=[max_epochs],
-        gamma=0.2)
+    # dict(
+    #     type='MultiStepLR',
+    #     begin=1,
+    #     end=max_epochs,
+    #     by_epoch=True,
+    #     milestones=[max_epochs],
+    #     gamma=0.2)
 ]
 
 param_scheduler_callback = dict(

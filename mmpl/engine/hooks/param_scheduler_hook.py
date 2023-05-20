@@ -112,7 +112,8 @@ class ParamSchedulerHook(Callback):
                 if (scheduler.by_epoch
                         and getattr(scheduler, 'need_val_args', False)):
                     scheduler.step(metrics)
-
+        if isinstance(param_schedulers, _ParamScheduler):
+            param_schedulers = [param_schedulers]
         if isinstance(param_schedulers, list):
             step(param_schedulers)
         elif isinstance(param_schedulers, dict):
