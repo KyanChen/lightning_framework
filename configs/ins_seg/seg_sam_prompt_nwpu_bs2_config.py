@@ -18,7 +18,7 @@ max_epochs = 800
 optimizer = dict(
     type='AdamW',
     sub_model=sub_model_optim,
-    lr=0.0001,
+    lr=0.0005,
     weight_decay=1e-3
 )
 
@@ -26,7 +26,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=1e-4,
+        start_factor=5e-4,
         by_epoch=True,
         begin=0,
         end=1,
@@ -117,7 +117,7 @@ model_cfg = dict(
             inner_channels=64,
             selected_channels=range(4, 32, 2),
             # in_channels=[768] * 8,
-            num_layers=3,
+            num_layers=2,
             out_channels=256
         ),
         loss_cls=dict(
@@ -174,7 +174,7 @@ model_cfg = dict(
 
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230519_5'
+exp_name = 'E20230520_6'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -216,8 +216,8 @@ trainer_cfg = dict(
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=20,
-    check_val_every_n_epoch=20,
+    log_every_n_steps=3,
+    check_val_every_n_epoch=5,
     benchmark=True,
     # sync_batchnorm=True,
     # fast_dev_run=True,
@@ -268,9 +268,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 3
+train_batch_size_per_gpu = 4
 train_num_workers = 2
-test_batch_size_per_gpu = 3
+test_batch_size_per_gpu = 4
 test_num_workers = 2
 persistent_workers = True
 
@@ -289,7 +289,7 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='NWPU_instances_train.json',
+            ann_file='NWPU_instances_val.json',
             data_prefix=dict(img_path='positive image set'),
             test_mode=True,
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
