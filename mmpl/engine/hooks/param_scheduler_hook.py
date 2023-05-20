@@ -40,7 +40,8 @@ class ParamSchedulerHook(Callback):
             for scheduler in param_schedulers:
                 if not scheduler.by_epoch:
                     scheduler.step()
-
+        if isinstance(param_schedulers, _ParamScheduler):
+            param_schedulers = [param_schedulers]
         if isinstance(param_schedulers, list):
             step(param_schedulers)
         elif isinstance(param_schedulers, dict):
@@ -67,7 +68,8 @@ class ParamSchedulerHook(Callback):
             for scheduler in param_schedulers:
                 if scheduler.by_epoch:
                     scheduler.step()
-
+        if isinstance(param_schedulers, _ParamScheduler):
+            param_schedulers = [param_schedulers]
         if isinstance(param_schedulers, list):
             step(param_schedulers)
         elif isinstance(param_schedulers, dict):
