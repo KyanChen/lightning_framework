@@ -20,13 +20,13 @@ param_scheduler = [
         # update by iter
         convert_to_iter_based=True),
     # main learning rate scheduler
-    dict(
-        type='CosineAnnealingLR',
-        T_max=max_epochs,
-        by_epoch=True,
-        begin=1,
-        end=max_epochs,
-    )
+    # dict(
+    #     type='CosineAnnealingLR',
+    #     T_max=max_epochs,
+    #     by_epoch=True,
+    #     begin=1,
+    #     end=max_epochs,
+    # )
     # dict(
     #     type='MultiStepLR',
     #     begin=1,
@@ -57,7 +57,7 @@ evaluator = dict(
 )
 
 
-image_size = (512, 512)
+image_size = (1024, 1024)
 data_preprocessor = dict(
         type='mmdet.DetDataPreprocessor',
         mean=[123.675, 116.28, 103.53],
@@ -209,7 +209,7 @@ model_cfg = dict(
 )
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230520_1'
+exp_name = 'E20230520_0'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -328,7 +328,7 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='NWPU_instances_train.json',
+            ann_file='NWPU_instances_val.json',
             data_prefix=dict(img_path='positive image set'),
             test_mode=True,
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
@@ -345,7 +345,7 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='NWPU_instances_val.json',
+            ann_file='NWPU_instances_train.json',
             data_prefix=dict(img_path='positive image set'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
