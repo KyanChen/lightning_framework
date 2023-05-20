@@ -18,7 +18,7 @@ param_scheduler = [
         begin=0,
         end=1,
         # update by iter
-        convert_to_iter_based=True),
+        convert_to_iter_based=True)
     # main learning rate scheduler
     # dict(
     #     type='CosineAnnealingLR',
