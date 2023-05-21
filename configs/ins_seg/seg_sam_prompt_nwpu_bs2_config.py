@@ -18,7 +18,7 @@ max_epochs = 800
 optimizer = dict(
     type='AdamW',
     sub_model=sub_model_optim,
-    lr=0.0005,
+    lr=0.0002,
     weight_decay=1e-3
 )
 
@@ -26,7 +26,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=5e-4,
+        start_factor=2e-4,
         by_epoch=True,
         begin=0,
         end=1,
