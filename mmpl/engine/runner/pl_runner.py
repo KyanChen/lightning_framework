@@ -111,8 +111,10 @@ class PLRunner:
         model_cfg.update({'config_cfg': copy.deepcopy(cfg).to_dict()})
         model = self.build_model(model_cfg)
         if cfg.get('load_from', None) is not None:
-            import ipdb; ipdb.set_trace()
-            self.load_checkpoint(cfg['load_from'], model)
+            state_dict = torch.load(cfg['load_from'], map_location='cpu')
+            state_dict = state_dict['state_dict']
+            model.load_state_dict(state_dict)
+            print('load from:', cfg['load_from'])
         if compiled_model:
             # default, reduce-overhead, and max-autotune.
             self.model = torch.compile(model)
