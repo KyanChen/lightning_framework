@@ -110,6 +110,9 @@ class PLRunner:
         self.trainer = pl.Trainer(**trainer_cfg)
         model_cfg.update({'config_cfg': copy.deepcopy(cfg).to_dict()})
         model = self.build_model(model_cfg)
+        if cfg.get('load_from', None) is not None:
+            import ipdb; ipdb.set_trace()
+            self.load_checkpoint(cfg['load_from'], model)
         if compiled_model:
             # default, reduce-overhead, and max-autotune.
             self.model = torch.compile(model)
@@ -603,6 +606,7 @@ class PLRunner:
 
     def load_checkpoint(self,
                         filename: str,
+                        model,
                         map_location: Union[str, Callable] = 'cpu',
                         strict: bool = False,
                         revise_keys: list = [(r'^module.', '')]):
@@ -623,20 +627,15 @@ class PLRunner:
         """
         checkpoint = _load_checkpoint(filename, map_location=map_location)
 
-        # Add comments to describe the usage of `after_load_ckpt`
-        self.call_hook('after_load_checkpoint', checkpoint=checkpoint)
-
-        if is_model_wrapper(self.model):
-            model = self.model.module
+        if is_model_wrapper(model):
+            model = model.module
         else:
-            model = self.model
+            model = model
 
         checkpoint = _load_checkpoint_to_model(
             model, checkpoint, strict, revise_keys=revise_keys)
 
-        self._has_loaded = True
-
-        self.logger.info(f'Load checkpoint from {filename}')
+        print(f'Load checkpoint from {filename}')
 
         return checkpoint
 
