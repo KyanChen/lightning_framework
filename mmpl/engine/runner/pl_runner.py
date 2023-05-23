@@ -111,12 +111,7 @@ class PLRunner:
         model_cfg.update({'config_cfg': copy.deepcopy(cfg).to_dict()})
         model = self.build_model(model_cfg)
         if cfg.get('load_from', None) is not None:
-            state_dict = torch.load(cfg['load_from'], map_location='cpu')
-            state_dict = state_dict['state_dict']
-            missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
-            print('load from:', cfg['load_from'])
-            print('load model missing_keys:', missing_keys)
-            print('load model unexpected_keys:', unexpected_keys)
+            self.load_checkpoint(model, cfg['load_from'])
         if compiled_model:
             # default, reduce-overhead, and max-autotune.
             self.model = torch.compile(model)
@@ -608,40 +603,56 @@ class PLRunner:
 
         self.logger.info(f'resumed epoch: {self.epoch}, iter: {self.iter}')
 
-    def load_checkpoint(self,
-                        filename: str,
-                        model,
-                        map_location: Union[str, Callable] = 'cpu',
-                        strict: bool = False,
-                        revise_keys: list = [(r'^module.', '')]):
-        """Load checkpoint from given ``filename``.
+    # def load_checkpoint(self,
+    #                     filename: str,
+    #                     model,
+    #                     map_location: Union[str, Callable] = 'cpu',
+    #                     strict: bool = False,
+    #                     revise_keys: list = [(r'^module.', '')]):
+    #     """Load checkpoint from given ``filename``.
+    #
+    #     Args:
+    #         filename (str): Accept local filepath, URL, ``torchvision://xxx``,
+    #             ``open-mmlab://xxx``.
+    #         map_location (str or callable): A string or a callable function to
+    #             specifying how to remap storage locations.
+    #             Defaults to 'cpu'.
+    #         strict (bool): strict (bool): Whether to allow different params for
+    #             the model and checkpoint.
+    #         revise_keys (list): A list of customized keywords to modify the
+    #             state_dict in checkpoint. Each item is a (pattern, replacement)
+    #             pair of the regular expression operations. Defaults to strip
+    #             the prefix 'module.' by [(r'^module\\.', '')].
+    #     """
+    #     checkpoint = _load_checkpoint(filename, map_location=map_location)
+    #
+    #     if is_model_wrapper(model):
+    #         model = model.module
+    #     else:
+    #         model = model
+    #
+    #     checkpoint = _load_checkpoint_to_model(
+    #         model, checkpoint, strict, revise_keys=revise_keys)
+    #
+    #     print(f'Load checkpoint from {filename}')
+    #
+    #     return checkpoint
+    def load_checkpoint(self, model, file):
 
-        Args:
-            filename (str): Accept local filepath, URL, ``torchvision://xxx``,
-                ``open-mmlab://xxx``.
-            map_location (str or callable): A string or a callable function to
-                specifying how to remap storage locations.
-                Defaults to 'cpu'.
-            strict (bool): strict (bool): Whether to allow different params for
-                the model and checkpoint.
-            revise_keys (list): A list of customized keywords to modify the
-                state_dict in checkpoint. Each item is a (pattern, replacement)
-                pair of the regular expression operations. Defaults to strip
-                the prefix 'module.' by [(r'^module\\.', '')].
-        """
-        checkpoint = _load_checkpoint(filename, map_location=map_location)
-
-        if is_model_wrapper(model):
-            model = model.module
+        if isinstance(file, str):
+            file_path = file
+            state_dict = torch.load(file_path, map_location='cpu')['state_dict']
+        elif isinstance(file, dict):
+            file_path = file['file_path']
+            state_dict = torch.load(file_path, map_location='cpu')['state_dict']
+            for delete_key in file['delete_keys']:
+                del state_dict[delete_key]
         else:
-            model = model
-
-        checkpoint = _load_checkpoint_to_model(
-            model, checkpoint, strict, revise_keys=revise_keys)
-
-        print(f'Load checkpoint from {filename}')
-
-        return checkpoint
+            raise TypeError('file must be str or dict')
+        missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
+        print('load from:', file_path)
+        print('load model missing_keys:', missing_keys)
+        print('load model unexpected_keys:', unexpected_keys)
 
     @master_only
     def save_checkpoint(
