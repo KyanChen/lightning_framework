@@ -110,7 +110,7 @@ model_cfg = dict(
         type='SAMInstanceHead',
         num_things_classes=num_things_classes,
         num_stuff_classes=num_stuff_classes,
-        with_sincos=True,
+        with_res_imgfeat=True,
         prompt_neck=dict(
             type='SAMTransformerEDPromptGenNeck',
             prompt_shape=prompt_shape,
@@ -173,11 +173,7 @@ model_cfg = dict(
         # it will filter mask area where score is less than 0.5 .
         filter_low_score=True),
 )
-
-load_from = dict(
-    file_path='results/nwpu_ins/E20230521_0/checkpoints/last.ckpt',
-    delete_keys=['panoptic_head.point_emb.4.weight', 'panoptic_head.point_emb.4.bias']
-)
+load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
 
 task_name = 'nwpu_ins'
 exp_name = 'E20230523_0'
