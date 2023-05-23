@@ -113,8 +113,10 @@ class PLRunner:
         if cfg.get('load_from', None) is not None:
             state_dict = torch.load(cfg['load_from'], map_location='cpu')
             state_dict = state_dict['state_dict']
-            model.load_state_dict(state_dict)
+            missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
             print('load from:', cfg['load_from'])
+            print('load model missing_keys:', missing_keys)
+            print('load model unexpected_keys:', unexpected_keys)
         if compiled_model:
             # default, reduce-overhead, and max-autotune.
             self.model = torch.compile(model)

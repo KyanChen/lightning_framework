@@ -3,7 +3,7 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_i
 # val max 56, min 1
 
 sub_model_train = [
-    'backbone.mask_decoder'
+    'backbone.mask_decoder',
     'panoptic_head',
     'panoptic_fusion_head',
     'data_preprocessor'
@@ -276,7 +276,7 @@ test_batch_size_per_gpu = 3
 test_num_workers = 2
 persistent_workers = True
 
-# data_parent = '/Users/kyanchen/datasets/Building/WHU'
+# data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPUVHR-10_dataset/'
 data_parent = '/mnt/search01/dataset/cky_data/NWPU10'
 train_data_prefix = ''
 val_data_prefix = ''
