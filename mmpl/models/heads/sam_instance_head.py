@@ -136,7 +136,7 @@ class SAMInstanceHead(Mask2FormerHead):
                 nn.UpsamplingBilinear2d(scale_factor=2),
                 ConvModule(
                     out_channels,
-                    out_channels,
+                    out_channels//2,
                     kernel_size=3,
                     padding=1,
                     norm_cfg=norm_cfg,
@@ -144,8 +144,8 @@ class SAMInstanceHead(Mask2FormerHead):
                 ),
                 nn.UpsamplingBilinear2d(scale_factor=2),
                 ConvModule(
-                    out_channels,
-                    out_channels,
+                    out_channels//2,
+                    out_channels//4,
                     kernel_size=3,
                     padding=1,
                     norm_cfg=norm_cfg,
@@ -153,8 +153,8 @@ class SAMInstanceHead(Mask2FormerHead):
                 ),
                 nn.UpsamplingBilinear2d(scale_factor=2),
                 ConvModule(
-                    out_channels,
-                    out_channels,
+                    out_channels//4,
+                    out_channels//8,
                     kernel_size=3,
                     padding=1,
                     norm_cfg=norm_cfg,
