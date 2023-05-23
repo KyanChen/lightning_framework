@@ -175,7 +175,7 @@ model_cfg = dict(
 )
 
 load_from = dict(
-    file_path='results/nwpu_ins/E20230521_0/checkpoints/last.ckpt',
+    file_path='results/nwpu_ins/E20230522_0/checkpoints/last.ckpt',
     delete_keys=['panoptic_head.point_emb.4.weight', 'panoptic_head.point_emb.4.bias']
 )
 

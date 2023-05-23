@@ -173,17 +173,17 @@ model_cfg = dict(
         # it will filter mask area where score is less than 0.5 .
         filter_low_score=True),
 )
-load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
+load_from = 'results/nwpu_ins/E20230522_0/checkpoints/last.ckpt'
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230523_0'
+exp_name = 'E20230523_1'
 logger = dict(
     type='WandbLogger',
     project=task_name,
     group='sam',
     name=exp_name
 )
-logger = None
+# logger = None
 
 
 callbacks = [
@@ -212,7 +212,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=1,
+    devices=4,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
