@@ -692,7 +692,7 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
 
         self.init_weights()
 
-    def build_transformer(self, num_encoders=3, num_decoders=3, embed_dims=256, num_heads=8, mlp_ratio=4):
+    def build_transformer(self, num_encoders=2, num_decoders=2, embed_dims=256, num_heads=8, mlp_ratio=4):
         transformer_encoder_layer = dict(
             type='BaseTransformerLayer',
             attn_cfgs=[
