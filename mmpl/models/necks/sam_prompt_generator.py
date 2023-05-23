@@ -572,13 +572,16 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
             in_channels=[1280]*16,
             inner_channels=128,
             selected_channels: list=None,
-            num_layers=3,
+            num_encoders=3,
+            num_decoders=3,
             out_channels=256,
             positional_encoding=dict(num_feats=128, normalize=True),
             kernel_size=3,
             stride=1,
             norm_cfg=dict(type='BN', requires_grad=True),
             act_cfg=dict(type='ReLU', inplace=True),
+            init_cfg=None,
+            **kwargs
     ):
         super().__init__()
         self.in_channels = in_channels
@@ -662,7 +665,7 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
 
         self.en_layers = nn.ModuleList()
         self.de_layers = nn.ModuleList()
-        self.build_transformer(num_layers=num_layers)
+        self.build_transformer(num_encoders=num_encoders, num_decoders=num_decoders)
 
         self.embed_dims = self.en_layers[0].embed_dims
         self.pre_norm = self.en_layers[0].pre_norm
@@ -689,7 +692,7 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
 
         self.init_weights()
 
-    def build_transformer(self, num_layers=3, embed_dims=256, num_heads=8, mlp_ratio=4):
+    def build_transformer(self, num_encoders=3, num_decoders=3, embed_dims=256, num_heads=8, mlp_ratio=4):
         transformer_encoder_layer = dict(
             type='BaseTransformerLayer',
             attn_cfgs=[
@@ -738,14 +741,14 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
         )
 
         transformer_en_layers = [
-            copy.deepcopy(transformer_encoder_layer) for _ in range(num_layers)
+            copy.deepcopy(transformer_encoder_layer) for _ in range(num_encoders)
         ]
         transformer_de_layers = [
-            copy.deepcopy(transformer_decoder_layer) for _ in range(num_layers)
+            copy.deepcopy(transformer_decoder_layer) for _ in range(num_decoders)
         ]
-        for i in range(num_layers):
+        for i in range(num_encoders):
             self.en_layers.append(build_transformer_layer(transformer_en_layers[i]))
-        for i in range(num_layers):
+        for i in range(num_decoders):
             self.de_layers.append(build_transformer_layer(transformer_de_layers[i]))
 
     def init_weights(self):
@@ -788,6 +791,7 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
             )
         # (batch_size, num_total_queries, c)
 
+        query_feat_list = []
         for layer in self.de_layers:
             query_feat = layer(
                 query=query_feat,
@@ -796,5 +800,7 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
                 query_pos=query_embed,
                 key_pos=img_feats_pe
             )
+            query_feat_list.append(query_feat)
 
-        return query_feat
+        img_feat = rearrange(memory, 'b (h w) c -> b c h w', h=h, w=w)
+        return query_feat, query_feat_list, img_feat

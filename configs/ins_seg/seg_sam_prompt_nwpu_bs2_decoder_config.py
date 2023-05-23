@@ -119,7 +119,8 @@ model_cfg = dict(
             inner_channels=64,
             selected_channels=range(4, 32, 2),
             # in_channels=[768] * 8,
-            num_layers=2,
+            num_encoders=3,
+            num_decoders=3,
             out_channels=256
         ),
         loss_cls=dict(

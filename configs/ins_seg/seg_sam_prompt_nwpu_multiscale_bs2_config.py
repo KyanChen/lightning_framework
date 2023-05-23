@@ -13,7 +13,7 @@ sub_model_optim = {
     'panoptic_fusion_head': {'lr_mult': 1},
 }
 
-max_epochs = 3000
+max_epochs = 1500
 
 optimizer = dict(
     type='AdamW',
@@ -110,6 +110,7 @@ model_cfg = dict(
         type='SAMInstanceHead',
         num_things_classes=num_things_classes,
         num_stuff_classes=num_stuff_classes,
+        with_multiscale=True,
         prompt_neck=dict(
             type='SAMTransformerEDPromptGenNeck',
             prompt_shape=prompt_shape,
@@ -182,7 +183,7 @@ logger = dict(
     group='sam',
     name=exp_name
 )
-# logger = None
+logger = None
 
 
 callbacks = [
@@ -211,7 +212,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=1,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,

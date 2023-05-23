@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple, Union, Dict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from mmcv.cnn import ConvModule
 from mmengine.structures import InstanceData
 from torch import Tensor
 
@@ -24,6 +25,9 @@ class SAMInstanceHead(Mask2FormerHead):
             num_stuff_classes: int = 0,
             prompt_neck: ConfigType = ...,
             with_iou: bool = False,
+            with_multiscale: bool = False,
+            with_sincos: bool = False,
+            with_res_imgfeat: bool = False,
             loss_cls: ConfigType = dict(
                 type='CrossEntropyLoss',
                 use_sigmoid=False,
@@ -46,6 +50,8 @@ class SAMInstanceHead(Mask2FormerHead):
             train_cfg: OptConfigType = None,
             test_cfg: OptConfigType = None,
             init_cfg: OptMultiConfig = None,
+            norm_cfg=dict(type='BN', requires_grad=True),
+            act_cfg=dict(type='ReLU', inplace=True),
             **kwargs
     ):
         super(AnchorFreeHead, self).__init__(init_cfg=init_cfg)
@@ -54,6 +60,9 @@ class SAMInstanceHead(Mask2FormerHead):
         self.num_stuff_classes = num_stuff_classes
         self.num_classes = self.num_things_classes + self.num_stuff_classes
         self.with_iou = with_iou
+        self.with_multiscale = with_multiscale
+        self.with_sincos = with_sincos
+        self.with_res_imgfeat = with_res_imgfeat
 
         # self.num_transformer_feat_level = num_transformer_feat_level
         # self.num_heads = transformer_decoder.layer_cfg.cross_attn_cfg.num_heads
@@ -105,13 +114,53 @@ class SAMInstanceHead(Mask2FormerHead):
             nn.Linear(out_channels // 2, self.num_classes + 1)
         )
 
-        self.point_emb = nn.Sequential(
-            nn.Linear(out_channels, out_channels),
-            nn.ReLU(inplace=True),
-            nn.Linear(out_channels, out_channels),
-            nn.ReLU(inplace=True),
-            nn.Linear(out_channels, self.per_query_point * out_channels)
-        )
+        if self.with_sincos:
+            self.point_emb = nn.Sequential(
+                nn.Linear(out_channels, out_channels),
+                nn.ReLU(inplace=True),
+                nn.Linear(out_channels, out_channels),
+                nn.ReLU(inplace=True),
+                nn.Linear(out_channels, self.per_query_point * out_channels*2)
+            )
+        else:
+            self.point_emb = nn.Sequential(
+                nn.Linear(out_channels, out_channels),
+                nn.ReLU(inplace=True),
+                nn.Linear(out_channels, out_channels),
+                nn.ReLU(inplace=True),
+                nn.Linear(out_channels, self.per_query_point * out_channels)
+            )
+
+        if self.with_res_imgfeat:
+            self.res_imgfeat = nn.Sequential(
+                nn.UpsamplingBilinear2d(scale_factor=2),
+                ConvModule(
+                    out_channels,
+                    out_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=norm_cfg,
+                    act_cfg=act_cfg
+                ),
+                nn.UpsamplingBilinear2d(scale_factor=2),
+                ConvModule(
+                    out_channels,
+                    out_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=norm_cfg,
+                    act_cfg=act_cfg
+                ),
+                nn.UpsamplingBilinear2d(scale_factor=2),
+                ConvModule(
+                    out_channels,
+                    out_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=norm_cfg,
+                    act_cfg=act_cfg
+                ),
+            )
 
         self.test_cfg = test_cfg
         self.train_cfg = train_cfg
@@ -157,10 +206,13 @@ class SAMInstanceHead(Mask2FormerHead):
             data_sample.metainfo for data_sample in batch_data_samples
         ]
         batch_size = len(batch_img_metas)
-        decoder_out = self.prompt_neck(x)
+        decoder_out, query_feat_list, res_img_feat = self.prompt_neck(x)
 
-        # shape (batch_size， num_queries, c)
-        cls_pred = self.cls_embed(decoder_out)
+        if self.with_multiscale:
+            cls_pred_list = [self.cls_embed(query_feat) for query_feat in query_feat_list]
+        else:
+            # shape (batch_size， num_queries, c)
+            cls_pred_list = [self.cls_embed(decoder_out)]
         # shape (batch_size, num_queries, c)
         point_emb = self.point_emb(decoder_out)
         # shape (batch_size, num_queries, per_query_point, c)
@@ -168,6 +220,9 @@ class SAMInstanceHead(Mask2FormerHead):
 
         img_seg_feat = x[0]
         point_emb = rearrange(point_emb, 'b n p c -> (b n) p c')
+        if self.with_sincos:
+            point_emb = torch.sin(point_emb[..., ::2]) + point_emb[..., 1::2]
+
         nomask_dense_embeddings = sam.prompt_encoder.no_mask_embed.weight.reshape(1, -1, 1, 1).expand(
             point_emb.shape[0], -1, *img_seg_feat.shape[-2:]
         )
@@ -176,24 +231,30 @@ class SAMInstanceHead(Mask2FormerHead):
         img_pe = sam.prompt_encoder.get_dense_pe()
         img_pe = repeat(img_pe, 'b c h w -> (b n) c h w', n=img_embeddings.shape[0])
 
+        if self.with_res_imgfeat:
+            res_img_feat = self.res_imgfeat(res_img_feat)
+        else:
+            res_img_feat = None
+
         low_res_masks, iou_predictions = sam.mask_decoder.forward_batch(
             image_embeddings=img_embeddings,
             image_pe=img_pe,
             sparse_prompt_embeddings=point_emb,
             dense_prompt_embeddings=nomask_dense_embeddings,
-            multimask_output=False
+            multimask_output=False,
+            res_img_feat=res_img_feat,
         )
         mask_pred = rearrange(low_res_masks.squeeze(1), '(b n) h w -> b n h w', b=batch_size)
 
         # optional
-        if self.with_iou:
-            iou_predictions = iou_predictions.view(batch_size, self.num_queries, -1)
-            cls_pred = cls_pred * iou_predictions
+        # if self.with_iou:
+        #     iou_predictions = iou_predictions.view(batch_size, self.num_queries, -1)
+        #     cls_pred = cls_pred * iou_predictions
 
-        cls_pred_list = []
-        mask_pred_list = []
-        cls_pred_list.append(cls_pred)
-        mask_pred_list.append(mask_pred)
+        if self.with_multiscale:
+            mask_pred_list = [mask_pred] * len(cls_pred_list)
+        else:
+            mask_pred_list = [mask_pred]
 
         return cls_pred_list, mask_pred_list
 
