@@ -13,7 +13,7 @@ sub_model_optim = {
     'panoptic_fusion_head': {'lr_mult': 1},
 }
 
-max_epochs = 1500
+max_epochs = 2000
 
 optimizer = dict(
     type='AdamW',
@@ -118,7 +118,7 @@ model_cfg = dict(
             inner_channels=64,
             selected_channels=range(4, 32, 2),
             # in_channels=[768] * 8,
-            num_encoders=3,
+            num_encoders=2,
             num_decoders=3,
             out_channels=256
         ),
