@@ -173,7 +173,7 @@ model_cfg = dict(
         # it will filter mask area where score is less than 0.5 .
         filter_low_score=True),
 )
-# load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
+load_from = 'results/nwpu_ins/E20230522_0/checkpoints/last.ckpt'
 
 task_name = 'nwpu_ins'
 exp_name = 'E20230522_1'
