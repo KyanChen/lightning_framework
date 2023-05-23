@@ -236,7 +236,7 @@ class SAMInstanceHead(Mask2FormerHead):
             res_img_feat = torch.repeat_interleave(res_img_feat, self.num_queries, dim=0)
         else:
             res_img_feat = None
-        import ipdb; ipdb.set_trace()
+
         low_res_masks, iou_predictions = sam.mask_decoder.forward_batch(
             image_embeddings=img_embeddings,
             image_pe=img_pe,
