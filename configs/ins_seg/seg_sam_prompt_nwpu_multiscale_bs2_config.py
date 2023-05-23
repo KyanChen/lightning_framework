@@ -176,7 +176,7 @@ model_cfg = dict(
 load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230522_0'
+exp_name = 'E20230523_0'
 logger = dict(
     type='WandbLogger',
     project=task_name,
