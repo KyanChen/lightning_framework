@@ -233,6 +233,7 @@ class SAMInstanceHead(Mask2FormerHead):
 
         if self.with_res_imgfeat:
             res_img_feat = self.res_imgfeat(res_img_feat)
+            res_img_feat = torch.repeat_interleave(res_img_feat, self.num_queries, dim=0)
         else:
             res_img_feat = None
         import ipdb; ipdb.set_trace()
