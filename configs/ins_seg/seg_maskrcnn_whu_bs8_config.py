@@ -1,6 +1,6 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models', 'mmdet.models'], allow_failed_imports=False)
 
-max_epochs = 200
+max_epochs = 120
 
 optimizer = dict(
     type='AdamW',
