@@ -2,11 +2,11 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_i
 # train max 71, min 1
 # val max 56, min 1
 
-max_epochs = 300
+max_epochs = 400
 
 optimizer = dict(
     type='AdamW',
-    lr=0.0002,
+    lr=0.0005,
     weight_decay=1e-3
 )
 
@@ -14,7 +14,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=1e-4,
+        start_factor=5e-4,
         by_epoch=True,
         begin=0,
         end=1,
@@ -99,7 +99,7 @@ model = dict(
             norm_cfg=dict(type='GN', num_groups=32),
             act_cfg=dict(type='ReLU'),
             encoder=dict(  # DeformableDetrTransformerEncoder
-                num_layers=6,
+                num_layers=3,
                 layer_cfg=dict(  # DeformableDetrTransformerEncoderLayer
                     self_attn_cfg=dict(  # MultiScaleDeformableAttention
                         embed_dims=256,
@@ -119,7 +119,7 @@ model = dict(
         positional_encoding=dict(num_feats=128, normalize=True),
         transformer_decoder=dict(  # Mask2FormerTransformerDecoder
             return_intermediate=True,
-            num_layers=9,
+            num_layers=3,
             layer_cfg=dict(  # Mask2FormerTransformerDecoderLayer
                 self_attn_cfg=dict(  # MultiheadAttention
                     embed_dims=256,
@@ -202,7 +202,7 @@ model_cfg = dict(
 )
 
 task_name = 'whu_ins'
-exp_name = 'E20230514_0'
+exp_name = 'E20230525_1'
 logger = dict(
     type='WandbLogger',
     project=task_name,
