@@ -1,10 +1,10 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models', 'mmdet.models'], allow_failed_imports=False)
 
-max_epochs = 150
+max_epochs = 200
 
 optimizer = dict(
     type='AdamW',
-    lr=0.0002,
+    lr=0.0005,
     weight_decay=1e-4
 )
 
@@ -12,7 +12,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=1e-4,
+        start_factor=5e-4,
         by_epoch=True,
         begin=0,
         end=1,
@@ -74,7 +74,7 @@ model = dict(
         out_indices=(0, 1, 2, 3),
         frozen_stages=-1,
         norm_cfg=dict(type='BN', requires_grad=True),
-        norm_eval=False,
+        norm_eval=True,
         style='pytorch',
         init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')
     ),
@@ -200,7 +200,7 @@ model_cfg = dict(
 )
 
 task_name = 'whu_ins'
-exp_name = 'E20230513_3'
+exp_name = 'E20230525_0'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -240,16 +240,16 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=4,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
     log_every_n_steps=20,
-    check_val_every_n_epoch=2,
+    check_val_every_n_epoch=10,
     benchmark=True,
-    sync_batchnorm=True,
+    # sync_batchnorm=True,
     # fast_dev_run=True,
 
     # limit_train_batches=1,

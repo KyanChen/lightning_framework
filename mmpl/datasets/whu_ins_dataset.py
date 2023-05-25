@@ -18,8 +18,8 @@ class WHUInsSegDataset(CocoDataset):
         Returns:
             List[dict]: Filtered results.
         """
-        if self.test_mode:
-            return self.data_list
+        # if self.test_mode:
+        #     return self.data_list
 
         if self.filter_cfg is None:
             return self.data_list
