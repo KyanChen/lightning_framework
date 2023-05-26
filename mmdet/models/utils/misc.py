@@ -225,7 +225,9 @@ def unmap(data, count, inds, fill=0):
     if data.dim() == 1:
         ret = data.new_full((count, ), fill)
         print('_______')
-        print(ret)
+        # print(ret)
+        print(count)
+        print(fill)
         print('_*****_')
         ret[inds.type(torch.bool)] = data
     else:
