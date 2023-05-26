@@ -433,7 +433,8 @@ class CocoPLMetric(Metric):
 
         if self._coco_api is None:
             # use converted gt json file to initialize coco api
-            logger.info('Converting ground truth to coco format...')
+            if torch.distributed.get_rank() == 0:
+                logger.info('Converting ground truth to coco format...')
             coco_json_path = self.gt_to_coco_json(
                 gt_dicts=gts, outfile_prefix=outfile_prefix)
             self._coco_api = COCO(coco_json_path)
@@ -455,7 +456,8 @@ class CocoPLMetric(Metric):
             return eval_results
 
         for metric in self.metrics:
-            logger.info(f'Evaluating {metric}...')
+            if torch.distributed.get_rank() == 0:
+                logger.info(f'Evaluating {metric}...')
 
             # TODO: May refactor fast_eval_recall to an independent metric?
             # fast eval recall
@@ -602,6 +604,7 @@ class CocoPLMetric(Metric):
                     table_data += [result for result in results_2d]
                     table = AsciiTable(table_data)
 
+                    print('**'*10, torch.distributed.get_rank())
                     if torch.distributed.get_rank() == 0:
                     # if mmengine.dist.get_local_rank() == 0:
                         rank_zero_info('\n' + table.table)
