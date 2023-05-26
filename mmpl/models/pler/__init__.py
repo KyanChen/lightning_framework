@@ -9,5 +9,6 @@ from .mmdet_pler import MMDetPLer
 from .motionvqe_pler import MotionVQVQEPLer
 from .motion_lm_gpt_pler import MotionLMGPTPLer
 from .semseg_sam_pler import SemSegSAMPLer
+from .seg_sam_anchor_pler import SegSAMAnchorPLer
 
 # __all__ = ['GPTPLer', 'YoloPLer', 'SegPLer', 'MMSegPLer']

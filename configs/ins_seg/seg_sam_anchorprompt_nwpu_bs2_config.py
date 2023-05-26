@@ -4,21 +4,19 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_i
 
 sub_model_train = [
     'panoptic_head',
-    'panoptic_fusion_head',
     'data_preprocessor'
 ]
 
 sub_model_optim = {
     'panoptic_head': {'lr_mult': 1},
-    'panoptic_fusion_head': {'lr_mult': 1},
 }
 
-max_epochs = 6000
+max_epochs = 3000
 
 optimizer = dict(
     type='AdamW',
     sub_model=sub_model_optim,
-    lr=0.0002,
+    lr=0.0003,
     weight_decay=1e-3
 )
 
@@ -26,7 +24,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=2e-4,
+        start_factor=3e-4,
         by_epoch=True,
         begin=0,
         end=1,
@@ -52,14 +50,6 @@ param_scheduler = [
 param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
-
-# evaluator_ = dict(
-#         type='MeanAveragePrecision',
-#         iou_type='segm',
-#         # iou_type='bbox',
-#         # dist_sync_on_step=True,
-#         # compute_on_cpu=True,
-# )
 
 evaluator_ = dict(
         type='CocoPLMetric',
@@ -92,7 +82,7 @@ prompt_shape = (80, 5)
 
 
 model_cfg = dict(
-    type='SegSAMPLer',
+    type='SegSAMAnchorPLer',
     hyperparameters=dict(
         optimizer=optimizer,
         param_scheduler=param_scheduler,
@@ -111,8 +101,10 @@ model_cfg = dict(
         neck=dict(
             type='SAMAggregatorNeck',
             in_channels=[1280] * 32,
+            # in_channels=[768] * 12,
             inner_channels=64,
             selected_channels=range(4, 32, 2),
+            # selected_channels=range(4, 12, 2),
             out_channels=256,
             up_sample_scale=2,
         ),
@@ -131,14 +123,14 @@ model_cfg = dict(
                 target_stds=[1.0, 1.0, 1.0, 1.0]),
             loss_cls=dict(
                 type='mmdet.CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-            loss_bbox=dict(type='mmdet.L1Loss', loss_weight=1.0)),
+            loss_bbox=dict(type='mmdet.SmoothL1Loss', loss_weight=1.0)),
         roi_head=dict(
-            type='mmdet.StandardRoIHead',
+            type='SAMAnchorPromptRoIHead',
             bbox_roi_extractor=dict(
                 type='mmdet.SingleRoIExtractor',
                 roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=0),
                 out_channels=256,
-                featmap_strides=[4, 8, 16, 32]),
+                featmap_strides=[16]),
             bbox_head=dict(
                 type='mmdet.Shared2FCBBoxHead',
                 in_channels=256,
@@ -152,16 +144,17 @@ model_cfg = dict(
                 reg_class_agnostic=False,
                 loss_cls=dict(
                     type='mmdet.CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-                loss_bbox=dict(type='mmdet.L1Loss', loss_weight=1.0)),
+                loss_bbox=dict(type='mmdet.SmoothL1Loss', loss_weight=1.0)),
             mask_roi_extractor=dict(
                 type='mmdet.SingleRoIExtractor',
                 roi_layer=dict(type='RoIAlign', output_size=14, sampling_ratio=0),
                 out_channels=256,
-                featmap_strides=[4, 8, 16, 32]),
+                featmap_strides=[16]),
             mask_head=dict(
                 type='SAMPromptMaskHead',
                 per_query_point=5,
                 with_sincos=True,
+                class_agnostic=True,
                 loss_mask=dict(
                     type='mmdet.CrossEntropyLoss', use_mask=True, loss_weight=1.0))),
         # model training and testing settings
@@ -176,10 +169,10 @@ model_cfg = dict(
                     ignore_iof_thr=-1),
                 sampler=dict(
                     type='mmdet.RandomSampler',
-                    num=256,
+                    num=512,
                     pos_fraction=0.5,
                     neg_pos_ub=-1,
-                    add_gt_as_proposals=False),
+                    add_gt_as_proposals=True),
                 allowed_border=-1,
                 pos_weight=-1,
                 debug=False),
@@ -202,7 +195,7 @@ model_cfg = dict(
                     pos_fraction=0.25,
                     neg_pos_ub=-1,
                     add_gt_as_proposals=True),
-                mask_size=28,
+                mask_size=1024,
                 pos_weight=-1,
                 debug=False)),
         test_cfg=dict(
@@ -222,14 +215,14 @@ model_cfg = dict(
 # load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230526_2'
+exp_name = 'E20230526_3'
 logger = dict(
     type='WandbLogger',
     project=task_name,
     group='sam',
     name=exp_name
 )
-# logger = None
+logger = None
 
 
 callbacks = [
@@ -258,7 +251,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=4,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,

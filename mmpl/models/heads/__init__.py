@@ -7,4 +7,6 @@ from .motiongpt_vqvae_pseudo_head import MotionVQVAEPseudoHead
 from .motiongpt_index_predict_pseudo_head import MotionGPTPseudoHead
 from .sam_semseg_head import SamSemSegHead
 
+from .sam_instance_head import SAMAnchorInstanceHead, SAMAnchorPromptRoIHead, SAMPromptMaskHead
+
 # __all__ = ['MotionGPTHead', 'YOLOv8SIRENSHead']
