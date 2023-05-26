@@ -224,12 +224,7 @@ def unmap(data, count, inds, fill=0):
     count)"""
     if data.dim() == 1:
         ret = data.new_full((count, ), fill)
-        print('_______')
-        print(inds)
-        print(ret)
-        print(data)
         ret[inds.type(torch.bool)] = data
-        print('*******')
     else:
         new_size = (count, ) + data.size()[1:]
         ret = data.new_full(new_size, fill)

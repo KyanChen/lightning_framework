@@ -240,6 +240,9 @@ class AnchorHead(BaseDenseHead):
         inside_flags = anchor_inside_flags(flat_anchors, valid_flags,
                                            img_meta['img_shape'][:2],
                                            self.train_cfg['allowed_border'])
+        print('_______')
+        print(inside_flags)
+        print('___*____')
         if not inside_flags.any():
             raise ValueError(
                 'There is no valid anchor inside the image boundary. Please '
@@ -294,8 +297,6 @@ class AnchorHead(BaseDenseHead):
         # map up to original set of anchors
         if unmap_outputs:
             num_total_anchors = flat_anchors.size(0)
-            # print(inside_flags)
-            # print(labels.shape, num_total_anchors, inside_flags.shape)
             labels = unmap(
                 labels, num_total_anchors, inside_flags,
                 fill=self.num_classes)  # fill bg label
