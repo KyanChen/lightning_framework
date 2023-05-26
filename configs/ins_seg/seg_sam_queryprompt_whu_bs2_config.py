@@ -13,7 +13,7 @@ sub_model_optim = {
     'panoptic_fusion_head': {'lr_mult': 1},
 }
 
-max_epochs = 6000
+max_epochs = 5000
 
 optimizer = dict(
     type='AdamW',
@@ -85,7 +85,7 @@ data_preprocessor = dict(
     mask_pad_value=0,
 )
 
-num_things_classes = 10
+num_things_classes = 1
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
 prompt_shape = (80, 5)
