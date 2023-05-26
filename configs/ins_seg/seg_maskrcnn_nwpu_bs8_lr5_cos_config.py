@@ -352,6 +352,6 @@ datamodule_cfg = dict(
             backend_args=backend_args)
     ),
     val_loader=val_loader,
-    # test_loader=val_loader
+    test_loader=val_loader
     # predict_loader=val_loader
 )
