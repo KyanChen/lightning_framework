@@ -306,8 +306,6 @@ persistent_workers = True
 
 # data_parent = '/Users/kyanchen/datasets/Building/WHU'
 data_parent = '/mnt/search01/dataset/cky_data/SSDD'
-train_data_prefix = ''
-val_data_prefix = ''
 
 dataset_type = 'SSDDInsSegDataset'
 
@@ -320,7 +318,7 @@ val_loader = dict(
         type=dataset_type,
         data_root=data_parent,
         ann_file='annotations/SSDD_instances_val.json',
-        data_prefix=dict(img_path=val_data_prefix+'/imgs'),
+        data_prefix=dict(img_path='imgs'),
         test_mode=True,
         filter_cfg=dict(filter_empty_gt=True, min_size=32),
         pipeline=test_pipeline,
@@ -339,7 +337,7 @@ datamodule_cfg = dict(
             type=dataset_type,
             data_root=data_parent,
             ann_file='annotations/SSDD_instances_train.json',
-            data_prefix=dict(img_path=train_data_prefix+'/imgs'),
+            data_prefix=dict(img_path='imgs'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
             backend_args=backend_args)
