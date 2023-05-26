@@ -47,6 +47,7 @@ class SegSAMPLer(BasePLer):
         self.test_cfg = test_cfg
 
     def setup(self, stage: str) -> None:
+        super().setup()
         if self.need_train_names is not None:
             self._set_grad(self.need_train_names, noneed_train_names=[])
 
