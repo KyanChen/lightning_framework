@@ -34,25 +34,19 @@ param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
+
 evaluator_ = dict(
-        type='MeanAveragePrecision',
-        iou_type='segm',
-        # iou_type='bbox',
-        # dist_sync_on_step=True,
-        # compute_on_cpu=True,
+        type='CocoPLMetric',
+        metric=['bbox', 'segm'],
+        proposal_nums=[1, 10, 100]
 )
 
-# evaluator_ = dict(
-#     type='CocoPLMetric',
-#     metric=['bbox', 'segm'],
-#     proposal_nums=[1, 10, 100],
-# )
 
 evaluator = dict(
     # train_evaluator=evaluator_,
     val_evaluator=evaluator_,
+    test_evaluator=evaluator_,
 )
-
 
 image_size = (512, 512)
 data_preprocessor = dict(
@@ -238,7 +232,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=4,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -339,7 +333,7 @@ datamodule_cfg = dict(
             backend_args=backend_args)
     ),
     val_loader=val_loader,
-    # test_loader=val_loader
+    test_loader=val_loader
     # predict_loader=val_loader
 )
 
