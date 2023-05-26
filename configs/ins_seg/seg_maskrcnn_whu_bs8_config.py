@@ -40,6 +40,11 @@ evaluator_ = dict(
         # compute_on_cpu=True,
 )
 
+evaluator_ = dict(
+        type='CocoPLMetric',
+        metric='bbox',
+        proposal_nums=[1, 10, 100]
+)
 
 evaluator = dict(
     # train_evaluator=evaluator_,

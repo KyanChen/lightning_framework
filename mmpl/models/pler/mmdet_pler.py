@@ -89,8 +89,8 @@ class MMDetPLer(BasePLer):
                 gt['masks'] = gt_data['masks'].to_tensor(dtype=torch.bool, device=result['masks'].device)
             targets.append(gt)
 
-        self.test_evaluator.update(preds, targets)
-        # self.val_evaluator.update(batch, batch_data_samples)
+        # self.test_evaluator.update(preds, targets)
+        self.test_evaluator.update(batch, batch_data_samples)
 
 
 
