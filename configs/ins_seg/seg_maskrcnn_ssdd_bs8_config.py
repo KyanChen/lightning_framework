@@ -32,18 +32,24 @@ param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
+# evaluator_ = dict(
+#         type='MeanAveragePrecision',
+#         iou_type='segm',
+#         # iou_type='bbox',
+#         # dist_sync_on_step=True,
+#         # compute_on_cpu=True,
+# )
 evaluator_ = dict(
-        type='MeanAveragePrecision',
-        iou_type='segm',
-        # iou_type='bbox',
-        # dist_sync_on_step=True,
-        # compute_on_cpu=True,
+        type='CocoPLMetric',
+        metric=['bbox', 'segm'],
+        proposal_nums=[1, 10, 100]
 )
 
 
 evaluator = dict(
     # train_evaluator=evaluator_,
     val_evaluator=evaluator_,
+    test_evaluator=evaluator_,
 )
 
 
@@ -343,6 +349,6 @@ datamodule_cfg = dict(
             backend_args=backend_args)
     ),
     val_loader=val_loader,
-    # test_loader=val_loader
+    test_loader=val_loader
     # predict_loader=val_loader
 )
