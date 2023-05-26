@@ -604,7 +604,6 @@ class CocoPLMetric(Metric):
                     table_data += [result for result in results_2d]
                     table = AsciiTable(table_data)
 
-                    print('**'*10, torch.distributed.get_rank())
                     if torch.distributed.get_rank() == 0:
                     # if mmengine.dist.get_local_rank() == 0:
                         rank_zero_info('\n' + table.table)
@@ -626,6 +625,7 @@ class CocoPLMetric(Metric):
                                 f'{ap[1]:.3f} {ap[2]:.3f} {ap[3]:.3f} '
                                 f'{ap[4]:.3f} {ap[5]:.3f}')
 
+        print('**' * 10, torch.distributed.get_rank())
         if tmp_dir is not None:
             tmp_dir.cleanup()
         for k, v in eval_results.items():
