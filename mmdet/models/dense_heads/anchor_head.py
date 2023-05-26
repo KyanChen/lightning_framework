@@ -240,9 +240,6 @@ class AnchorHead(BaseDenseHead):
         inside_flags = anchor_inside_flags(flat_anchors, valid_flags,
                                            img_meta['img_shape'][:2],
                                            self.train_cfg['allowed_border'])
-        print('_______')
-        print(inside_flags)
-        print('___*____')
         if not inside_flags.any():
             raise ValueError(
                 'There is no valid anchor inside the image boundary. Please '
