@@ -82,27 +82,28 @@ class SegSAMPLer(BasePLer):
             rescale=True)
         results = self.add_pred_to_datasample(batch_data_samples, results_list)
 
-        preds = []
-        targets = []
-        for data_sample in results:
-            result = dict()
-            pred = data_sample.pred_instances
-            result['boxes'] = pred['bboxes']
-            result['scores'] = pred['scores']
-            result['labels'] = pred['labels']
-            if 'masks' in pred:
-                result['masks'] = pred['masks']
-            preds.append(result)
-            # parse gt
-            gt = dict()
-            gt_data = data_sample.get('gt_instances', None)
-            gt['boxes'] = gt_data['bboxes']
-            gt['labels'] = gt_data['labels']
-            if 'masks' in pred:
-                gt['masks'] = gt_data['masks'].to_tensor(dtype=torch.bool, device=result['masks'].device)
-            targets.append(gt)
-
-        self.val_evaluator.update(preds, targets)
+        # preds = []
+        # targets = []
+        # for data_sample in results:
+        #     result = dict()
+        #     pred = data_sample.pred_instances
+        #     result['boxes'] = pred['bboxes']
+        #     result['scores'] = pred['scores']
+        #     result['labels'] = pred['labels']
+        #     if 'masks' in pred:
+        #         result['masks'] = pred['masks']
+        #     preds.append(result)
+        #     # parse gt
+        #     gt = dict()
+        #     gt_data = data_sample.get('gt_instances', None)
+        #     gt['boxes'] = gt_data['bboxes']
+        #     gt['labels'] = gt_data['labels']
+        #     if 'masks' in pred:
+        #         gt['masks'] = gt_data['masks'].to_tensor(dtype=torch.bool, device=result['masks'].device)
+        #     targets.append(gt)
+        #
+        # self.val_evaluator.update(preds, targets)
+        self.val_evaluator.update(batch, results)
 
     def training_step(self, batch, batch_idx):
         data = self.data_preprocessor(batch, True)
