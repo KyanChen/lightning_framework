@@ -13,7 +13,7 @@ sub_model_optim = {
     'panoptic_fusion_head': {'lr_mult': 1},
 }
 
-max_epochs = 3000
+max_epochs = 6000
 
 optimizer = dict(
     type='AdamW',
@@ -53,19 +53,19 @@ param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
-evaluator_ = dict(
-        type='MeanAveragePrecision',
-        iou_type='segm',
-        # iou_type='bbox',
-        # dist_sync_on_step=True,
-        # compute_on_cpu=True,
-)
-
 # evaluator_ = dict(
-#     type='CocoPLMetric',
-#     metric=['bbox', 'segm'],
-#     proposal_nums=[1, 10, 100],
+#         type='MeanAveragePrecision',
+#         iou_type='segm',
+#         # iou_type='bbox',
+#         # dist_sync_on_step=True,
+#         # compute_on_cpu=True,
 # )
+
+evaluator_ = dict(
+        type='CocoPLMetric',
+        metric=['bbox', 'segm'],
+        proposal_nums=[1, 10, 100]
+)
 
 evaluator = dict(
     # train_evaluator=evaluator_,
@@ -110,6 +110,8 @@ model_cfg = dict(
         type='SAMInstanceHead',
         num_things_classes=num_things_classes,
         num_stuff_classes=num_stuff_classes,
+        with_multiscale=True,
+        with_sincos=True,
         prompt_neck=dict(
             type='SAMTransformerEDPromptGenNeck',
             prompt_shape=prompt_shape,
@@ -118,7 +120,7 @@ model_cfg = dict(
             selected_channels=range(4, 32, 2),
             # in_channels=[768] * 8,
             num_encoders=2,
-            num_decoders=2,
+            num_decoders=3,
             out_channels=256
         ),
         loss_cls=dict(
@@ -172,10 +174,10 @@ model_cfg = dict(
         # it will filter mask area where score is less than 0.5 .
         filter_low_score=True),
 )
-load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
+# load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230522_0'
+exp_name = 'E20230526_2'
 logger = dict(
     type='WandbLogger',
     project=task_name,
