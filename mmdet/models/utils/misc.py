@@ -223,9 +223,6 @@ def unmap(data, count, inds, fill=0):
     """Unmap a subset of item (data) back to the original set of items (of size
     count)"""
     if data.dim() == 1:
-        print('2_*****_')
-        print('data')
-        print('3_*****_')
         ret = data.new_full((count, ), fill)
         ret[inds.type(torch.bool)] = data
     else:
