@@ -40,16 +40,16 @@ param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
-evaluator_ = dict(
-        type='MeanAveragePrecision',
-        iou_type='segm',
-)
-
 # evaluator_ = dict(
-#     type='CocoPLMetric',
-#     metric=['bbox', 'segm'],
-#     proposal_nums=[1, 10, 100],
+#         type='MeanAveragePrecision',
+#         iou_type='segm',
 # )
+
+evaluator_ = dict(
+        type='CocoPLMetric',
+        metric=['bbox', 'segm'],
+        proposal_nums=[1, 10, 100]
+)
 
 evaluator = dict(
     # train_evaluator=evaluator_,
