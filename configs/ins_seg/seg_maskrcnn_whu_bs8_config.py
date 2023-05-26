@@ -42,7 +42,7 @@ evaluator_ = dict(
 
 evaluator_ = dict(
         type='CocoPLMetric',
-        metric='bbox',
+        metric=['bbox', 'segm'],
         proposal_nums=[1, 10, 100]
 )
 
