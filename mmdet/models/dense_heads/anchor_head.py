@@ -300,6 +300,7 @@ class AnchorHead(BaseDenseHead):
                     fill=self.num_classes)  # fill bg label
             except:
                 import ipdb; ipdb.set_trace()
+                print(inside_flags)
                 print(labels.shape, num_total_anchors, inside_flags.shape)
             label_weights = unmap(label_weights, num_total_anchors,
                                   inside_flags)
