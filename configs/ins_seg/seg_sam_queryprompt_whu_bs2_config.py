@@ -88,7 +88,7 @@ data_preprocessor = dict(
 num_things_classes = 1
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-prompt_shape = (80, 5)
+prompt_shape = (100, 5)
 
 
 model_cfg = dict(

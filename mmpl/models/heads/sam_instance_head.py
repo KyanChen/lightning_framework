@@ -7,6 +7,7 @@ from mmcv.cnn import ConvModule
 from mmengine.structures import InstanceData
 from torch import Tensor
 
+from mmdet.models import BaseDetector
 from mmdet.models.utils import multi_apply
 from mmdet.structures import SampleList
 from mmdet.utils import InstanceList, reduce_mean, OptMultiConfig
@@ -343,7 +344,7 @@ class SAMInstanceHead(Mask2FormerHead):
 
 
 @MODELS.register_module()
-class SAMAnchorInstanceHead():
+class SAMAnchorInstanceHead(BaseDetector):
     def __init__(
             self,
             neck: OptConfigType = None,
@@ -353,129 +354,35 @@ class SAMAnchorInstanceHead():
             test_cfg: OptConfigType = None,
             **kwargs
     ):
-        super(AnchorFreeHead, self).__init__(init_cfg=init_cfg)
+        super().__init__()
+        self.neck = MODELS.build(neck)
 
-        self.num_things_classes = num_things_classes
-        self.num_stuff_classes = num_stuff_classes
-        self.num_classes = self.num_things_classes + self.num_stuff_classes
-        self.with_iou = with_iou
-        self.with_multiscale = with_multiscale
-        self.with_sincos = with_sincos
-        self.with_res_imgfeat = with_res_imgfeat
+        if rpn_head is not None:
+            rpn_train_cfg = train_cfg.rpn if train_cfg is not None else None
+            rpn_head_ = rpn_head.copy()
+            rpn_head_.update(train_cfg=rpn_train_cfg, test_cfg=test_cfg.rpn)
+            rpn_head_num_classes = rpn_head_.get('num_classes', None)
+            if rpn_head_num_classes is None:
+                rpn_head_.update(num_classes=1)
+            else:
+                if rpn_head_num_classes != 1:
+                    warnings.warn(
+                        'The `num_classes` should be 1 in RPN, but get '
+                        f'{rpn_head_num_classes}, please set '
+                        'rpn_head.num_classes = 1 in your config file.')
+                    rpn_head_.update(num_classes=1)
+            self.rpn_head = MODELS.build(rpn_head_)
 
-        # self.num_transformer_feat_level = num_transformer_feat_level
-        # self.num_heads = transformer_decoder.layer_cfg.cross_attn_cfg.num_heads
-        # self.num_transformer_decoder_layers = transformer_decoder.num_layers
-        # assert pixel_decoder.encoder.layer_cfg. \
-        #            self_attn_cfg.num_levels == num_transformer_feat_level
-        # pixel_decoder_ = copy.deepcopy(pixel_decoder)
-        # pixel_decoder_.update(
-        #     in_channels=in_channels,
-        #     feat_channels=feat_channels,
-        #     out_channels=out_channels)
-        # self.pixel_decoder = MODELS.build(pixel_decoder_)
-        # self.transformer_decoder = Mask2FormerTransformerDecoder(
-        #     **transformer_decoder)
-        # self.decoder_embed_dims = self.transformer_decoder.embed_dims
-        #
-        # self.decoder_input_projs = ModuleList()
-        # # from low resolution to high resolution
-        # for _ in range(num_transformer_feat_level):
-        #     if (self.decoder_embed_dims != feat_channels
-        #             or enforce_decoder_input_project):
-        #         self.decoder_input_projs.append(
-        #             Conv2d(
-        #                 feat_channels, self.decoder_embed_dims, kernel_size=1))
-        #     else:
-        #         self.decoder_input_projs.append(nn.Identity())
-        # self.decoder_positional_encoding = SinePositionalEncoding(
-        #     **positional_encoding)
-        # self.query_embed = nn.Embedding(self.num_queries, feat_channels)
-        # self.query_feat = nn.Embedding(self.num_queries, feat_channels)
-        # # from low resolution to high resolution
-        # self.level_embed = nn.Embedding(self.num_transformer_feat_level,
-        #                                 feat_channels)
-        #
-        # self.cls_embed = nn.Linear(feat_channels, self.num_classes + 1)
-        # self.mask_embed = nn.Sequential(
-        #     nn.Linear(feat_channels, feat_channels), nn.ReLU(inplace=True),
-        #     nn.Linear(feat_channels, feat_channels), nn.ReLU(inplace=True),
-        #     nn.Linear(feat_channels, out_channels))
+        if roi_head is not None:
+            # update train and test cfg here for now
+            # TODO: refactor assigner & sampler
+            rcnn_train_cfg = train_cfg.rcnn if train_cfg is not None else None
+            roi_head.update(train_cfg=rcnn_train_cfg)
+            roi_head.update(test_cfg=test_cfg.rcnn)
+            self.roi_head = MODELS.build(roi_head)
 
-        self.prompt_neck = MODELS.build(prompt_neck)
-        self.num_queries = self.prompt_neck.num_queries
-        self.per_query_point = self.prompt_neck.per_query_point
-        out_channels = self.prompt_neck.out_channels
-
-        self.cls_embed = nn.Sequential(
-            nn.Linear(out_channels, out_channels // 2),
-            nn.ReLU(inplace=True),
-            nn.Linear(out_channels // 2, self.num_classes + 1)
-        )
-
-        if self.with_sincos:
-            self.point_emb = nn.Sequential(
-                nn.Linear(out_channels, out_channels),
-                nn.ReLU(inplace=True),
-                nn.Linear(out_channels, out_channels),
-                nn.ReLU(inplace=True),
-                nn.Linear(out_channels, self.per_query_point * out_channels*2)
-            )
-        else:
-            self.point_emb = nn.Sequential(
-                nn.Linear(out_channels, out_channels),
-                nn.ReLU(inplace=True),
-                nn.Linear(out_channels, out_channels),
-                nn.ReLU(inplace=True),
-                nn.Linear(out_channels, self.per_query_point * out_channels)
-            )
-
-        if self.with_res_imgfeat:
-            self.res_imgfeat = nn.Sequential(
-                nn.UpsamplingBilinear2d(scale_factor=2),
-                ConvModule(
-                    out_channels,
-                    out_channels//2,
-                    kernel_size=3,
-                    padding=1,
-                    norm_cfg=norm_cfg,
-                    act_cfg=act_cfg
-                ),
-                nn.UpsamplingBilinear2d(scale_factor=2),
-                ConvModule(
-                    out_channels//2,
-                    out_channels//4,
-                    kernel_size=3,
-                    padding=1,
-                    norm_cfg=norm_cfg,
-                    act_cfg=act_cfg
-                ),
-                nn.UpsamplingBilinear2d(scale_factor=2),
-                ConvModule(
-                    out_channels//4,
-                    out_channels//8,
-                    kernel_size=3,
-                    padding=1,
-                    norm_cfg=norm_cfg,
-                    act_cfg=act_cfg
-                ),
-            )
-
-        self.test_cfg = test_cfg
         self.train_cfg = train_cfg
-        if train_cfg:
-            self.assigner = TASK_UTILS.build(self.train_cfg['assigner'])
-            self.sampler = TASK_UTILS.build(
-                self.train_cfg['sampler'], default_args=dict(context=self))
-            self.num_points = self.train_cfg.get('num_points', 12544)
-            self.oversample_ratio = self.train_cfg.get('oversample_ratio', 3.0)
-            self.importance_sample_ratio = self.train_cfg.get(
-                'importance_sample_ratio', 0.75)
-
-        self.class_weight = loss_cls.class_weight
-        self.loss_cls = MODELS.build(loss_cls)
-        self.loss_mask = MODELS.build(loss_mask)
-        self.loss_dice = MODELS.build(loss_dice)
+        self.test_cfg = test_cfg
 
     def forward(self, x: List[Tensor],
                 batch_data_samples: SampleList,
