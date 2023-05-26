@@ -294,6 +294,9 @@ class AnchorHead(BaseDenseHead):
         # map up to original set of anchors
         if unmap_outputs:
             num_total_anchors = flat_anchors.size(0)
+            print('_______')
+            print(labels)
+            print('_*****_')
             labels = unmap(
                 labels, num_total_anchors, inside_flags,
                 fill=self.num_classes)  # fill bg label
