@@ -54,6 +54,7 @@ evaluator_ = dict(
 evaluator = dict(
     # train_evaluator=evaluator_,
     val_evaluator=evaluator_,
+    test_evaluator=evaluator_
 )
 
 
