@@ -433,8 +433,7 @@ class CocoPLMetric(Metric):
 
         if self._coco_api is None:
             # use converted gt json file to initialize coco api
-            if torch.distributed.get_rank() == 0:
-                logger.info('Converting ground truth to coco format...')
+            logger.info('Converting ground truth to coco format...')
             coco_json_path = self.gt_to_coco_json(
                 gt_dicts=gts, outfile_prefix=outfile_prefix)
             self._coco_api = COCO(coco_json_path)
@@ -456,8 +455,7 @@ class CocoPLMetric(Metric):
             return eval_results
 
         for metric in self.metrics:
-            if torch.distributed.get_rank() == 0:
-                logger.info(f'Evaluating {metric}...')
+            logger.info(f'Evaluating {metric}...')
 
             # TODO: May refactor fast_eval_recall to an independent metric?
             # fast eval recall
@@ -603,10 +601,8 @@ class CocoPLMetric(Metric):
                     table_data = [headers]
                     table_data += [result for result in results_2d]
                     table = AsciiTable(table_data)
-
-                    if torch.distributed.get_rank() == 0:
                     # if mmengine.dist.get_local_rank() == 0:
-                        rank_zero_info('\n' + table.table)
+                    rank_zero_info('\n' + table.table)
 
                 if metric_items is None:
                     metric_items = [
@@ -620,12 +616,11 @@ class CocoPLMetric(Metric):
 
                 ap = coco_eval.stats[:6]
                 # if mmengine.dist.get_local_rank() == 0:
-                if torch.distributed.get_rank() == 0:
-                    rank_zero_info(f'{metric}_mAP_copypaste: {ap[0]:.3f} '
-                                f'{ap[1]:.3f} {ap[2]:.3f} {ap[3]:.3f} '
-                                f'{ap[4]:.3f} {ap[5]:.3f}')
 
-        print('**' * 10, torch.distributed.get_rank())
+                rank_zero_info(f'{metric}_mAP_copypaste: {ap[0]:.3f} '
+                            f'{ap[1]:.3f} {ap[2]:.3f} {ap[3]:.3f} '
+                            f'{ap[4]:.3f} {ap[5]:.3f}')
+
         if tmp_dir is not None:
             tmp_dir.cleanup()
         for k, v in eval_results.items():
