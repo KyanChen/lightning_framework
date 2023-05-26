@@ -225,7 +225,7 @@ def unmap(data, count, inds, fill=0):
     if data.dim() == 1:
         ret = data.new_full((count, ), fill)
         print('_______')
-        # print(ret)
+        print(data)
         print(count)
         print(fill)
         print('_*****_')
