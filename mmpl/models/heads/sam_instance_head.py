@@ -889,7 +889,7 @@ class SAMPromptMaskHead(FCNMaskHead):
                 mask_targets = torch.zeros((0,) + mask_size, device=device, dytpe=torch.float32)
             else:
                 import ipdb; ipdb.set_trace()
-                mask_targets = gt_mask[pos_gt_inds].to_tensor(dtype=torch.float32, device=device)
+                mask_targets = gt_mask[pos_gt_inds.cpu()].to_tensor(dtype=torch.float32, device=device)
             mask_targets_list.append(mask_targets)
         mask_targets = torch.cat(mask_targets_list)
         return mask_targets
