@@ -332,7 +332,6 @@ val_loader = dict(
         filter_cfg=dict(filter_empty_gt=True, min_size=32),
         pipeline=test_pipeline,
         backend_args=backend_args,
-        indices=16,
     )
 )
 
