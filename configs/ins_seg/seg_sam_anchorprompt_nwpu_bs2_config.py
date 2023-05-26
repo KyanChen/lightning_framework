@@ -107,72 +107,117 @@ model_cfg = dict(
         # checkpoint='pretrain/sam/sam_vit_b_01ec64.pth',
     ),
     panoptic_head=dict(
-        type='SAMInstanceHead',
-        num_things_classes=num_things_classes,
-        num_stuff_classes=num_stuff_classes,
-        with_multiscale=True,
-        with_sincos=True,
-        prompt_neck=dict(
-            type='SAMTransformerEDPromptGenNeck',
-            prompt_shape=prompt_shape,
+        type='SAMAnchorInstanceHead',
+        neck=dict(
+            type='SAMAggregatorNeck',
             in_channels=[1280] * 32,
             inner_channels=64,
             selected_channels=range(4, 32, 2),
-            # in_channels=[768] * 8,
-            num_encoders=2,
-            num_decoders=3,
-            out_channels=256
+            out_channels=256,
+            up_sample_scale=2,
         ),
-        loss_cls=dict(
-            type='mmdet.CrossEntropyLoss',
-            use_sigmoid=False,
-            loss_weight=2.0,
-            reduction='mean',
-            class_weight=[1.0] * num_classes + [0.1]),
-        loss_mask=dict(
-            type='mmdet.CrossEntropyLoss',
-            use_sigmoid=True,
-            reduction='mean',
-            loss_weight=5.0),
-        loss_dice=dict(
-            type='mmdet.DiceLoss',
-            use_sigmoid=True,
-            activate=True,
-            reduction='mean',
-            naive_dice=True,
-            eps=1.0,
-            loss_weight=5.0)),
-    panoptic_fusion_head=dict(
-        type='mmdet.MaskFormerFusionHead',
-        num_things_classes=num_things_classes,
-        num_stuff_classes=num_stuff_classes,
-        loss_panoptic=None,
-        init_cfg=None),
-    train_cfg=dict(
-        num_points=12544,
-        oversample_ratio=3.0,
-        importance_sample_ratio=0.75,
-        assigner=dict(
-            type='mmdet.HungarianAssigner',
-            match_costs=[
-                dict(type='mmdet.ClassificationCost', weight=2.0),
-                dict(
-                    type='mmdet.CrossEntropyLossCost', weight=5.0, use_sigmoid=True),
-                dict(type='mmdet.DiceCost', weight=5.0, pred_act=True, eps=1.0)
-            ]),
-        sampler=dict(type='mmdet.MaskPseudoSampler')),
-    test_cfg=dict(
-        panoptic_on=False,
-        # For now, the dataset does not support
-        # evaluating semantic segmentation metric.
-        semantic_on=False,
-        instance_on=True,
-        # max_per_image is for instance segmentation.
-        max_per_image=100,
-        iou_thr=0.8,
-        # In Mask2Former's panoptic postprocessing,
-        # it will filter mask area where score is less than 0.5 .
-        filter_low_score=True),
+        rpn_head=dict(
+            type='mmdet.RPNHead',
+            in_channels=256,
+            feat_channels=256,
+            anchor_generator=dict(
+                type='mmdet.AnchorGenerator',
+                scales=[2, 4, 8, 16, 32],
+                ratios=[0.5, 1.0, 2.0],
+                strides=[16]),
+            bbox_coder=dict(
+                type='mmdet.DeltaXYWHBBoxCoder',
+                target_means=[.0, .0, .0, .0],
+                target_stds=[1.0, 1.0, 1.0, 1.0]),
+            loss_cls=dict(
+                type='mmdet.CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
+            loss_bbox=dict(type='mmdet.L1Loss', loss_weight=1.0)),
+        roi_head=dict(
+            type='mmdet.StandardRoIHead',
+            bbox_roi_extractor=dict(
+                type='mmdet.SingleRoIExtractor',
+                roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=0),
+                out_channels=256,
+                featmap_strides=[4, 8, 16, 32]),
+            bbox_head=dict(
+                type='mmdet.Shared2FCBBoxHead',
+                in_channels=256,
+                fc_out_channels=1024,
+                roi_feat_size=7,
+                num_classes=num_classes,
+                bbox_coder=dict(
+                    type='mmdet.DeltaXYWHBBoxCoder',
+                    target_means=[0., 0., 0., 0.],
+                    target_stds=[0.1, 0.1, 0.2, 0.2]),
+                reg_class_agnostic=False,
+                loss_cls=dict(
+                    type='mmdet.CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
+                loss_bbox=dict(type='mmdet.L1Loss', loss_weight=1.0)),
+            mask_roi_extractor=dict(
+                type='mmdet.SingleRoIExtractor',
+                roi_layer=dict(type='RoIAlign', output_size=14, sampling_ratio=0),
+                out_channels=256,
+                featmap_strides=[4, 8, 16, 32]),
+            mask_head=dict(
+                type='SAMPromptMaskHead',
+                per_query_point=5,
+                with_sincos=True,
+                loss_mask=dict(
+                    type='mmdet.CrossEntropyLoss', use_mask=True, loss_weight=1.0))),
+        # model training and testing settings
+        train_cfg=dict(
+            rpn=dict(
+                assigner=dict(
+                    type='mmdet.MaxIoUAssigner',
+                    pos_iou_thr=0.7,
+                    neg_iou_thr=0.3,
+                    min_pos_iou=0.3,
+                    match_low_quality=True,
+                    ignore_iof_thr=-1),
+                sampler=dict(
+                    type='mmdet.RandomSampler',
+                    num=256,
+                    pos_fraction=0.5,
+                    neg_pos_ub=-1,
+                    add_gt_as_proposals=False),
+                allowed_border=-1,
+                pos_weight=-1,
+                debug=False),
+            rpn_proposal=dict(
+                nms_pre=2000,
+                max_per_img=1000,
+                nms=dict(type='nms', iou_threshold=0.7),
+                min_bbox_size=0),
+            rcnn=dict(
+                assigner=dict(
+                    type='mmdet.MaxIoUAssigner',
+                    pos_iou_thr=0.5,
+                    neg_iou_thr=0.5,
+                    min_pos_iou=0.5,
+                    match_low_quality=True,
+                    ignore_iof_thr=-1),
+                sampler=dict(
+                    type='mmdet.RandomSampler',
+                    num=512,
+                    pos_fraction=0.25,
+                    neg_pos_ub=-1,
+                    add_gt_as_proposals=True),
+                mask_size=28,
+                pos_weight=-1,
+                debug=False)),
+        test_cfg=dict(
+            rpn=dict(
+                nms_pre=1000,
+                max_per_img=1000,
+                nms=dict(type='nms', iou_threshold=0.7),
+                min_bbox_size=0),
+            rcnn=dict(
+                score_thr=0.05,
+                nms=dict(type='nms', iou_threshold=0.5),
+                max_per_img=100,
+                mask_thr_binary=0.5)
+        )
+    )
 )
 # load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
 

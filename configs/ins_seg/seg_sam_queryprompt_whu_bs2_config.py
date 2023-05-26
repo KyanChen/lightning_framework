@@ -88,7 +88,7 @@ data_preprocessor = dict(
 num_things_classes = 1
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-prompt_shape = (100, 5)
+prompt_shape = (80, 5)
 
 
 model_cfg = dict(
@@ -168,7 +168,7 @@ model_cfg = dict(
         semantic_on=False,
         instance_on=True,
         # max_per_image is for instance segmentation.
-        max_per_image=100,
+        max_per_image=80,
         iou_thr=0.8,
         # In Mask2Former's panoptic postprocessing,
         # it will filter mask area where score is less than 0.5 .

@@ -804,3 +804,139 @@ class SAMTransformerEDPromptGenNeck(nn.Module):
 
         img_feat = rearrange(memory, 'b (h w) c -> b c h w', h=h, w=w)
         return query_feat, query_feat_list, img_feat
+
+
+@MODELS.register_module()
+class SAMAggregatorNeck(nn.Module):
+    def __init__(
+            self,
+            in_channels=[1280]*16,
+            inner_channels=128,
+            selected_channels: list=None,
+            out_channels=256,
+            kernel_size=3,
+            stride=1,
+            norm_cfg=dict(type='BN', requires_grad=True),
+            act_cfg=dict(type='ReLU', inplace=True),
+            up_sample_scale=2,
+            init_cfg=None,
+            **kwargs
+    ):
+        super().__init__()
+        self.in_channels = in_channels
+        self.kernel_size = kernel_size
+        self.norm_cfg = norm_cfg
+        self.act_cfg = act_cfg
+        self.out_channels = out_channels
+        self.stride = stride
+        self.selected_channels = selected_channels
+        self.up_sample_scale = up_sample_scale
+
+        self.down_sample_layers = nn.ModuleList()
+        for idx in self.selected_channels:
+            self.down_sample_layers.append(
+                nn.Sequential(
+                    ConvModule(
+                        in_channels[idx],
+                        inner_channels,
+                        kernel_size=1,
+                        norm_cfg=self.norm_cfg,
+                        act_cfg=self.act_cfg
+                    ),
+                    ConvModule(
+                        inner_channels,
+                        inner_channels,
+                        kernel_size=3,
+                        padding=1,
+                        stride=2,
+                        norm_cfg=self.norm_cfg,
+                        act_cfg=self.act_cfg
+                    ),
+                )
+            )
+        self.fusion_layers = nn.ModuleList()
+        for idx in self.selected_channels:
+            self.fusion_layers.append(
+                ConvModule(
+                    inner_channels,
+                    inner_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
+                )
+            )
+        self.up_layers = nn.ModuleList()
+        self.up_layers.append(
+            nn.Sequential(
+                ConvModule(
+                    inner_channels,
+                    inner_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
+                ),
+                ConvModule(
+                    inner_channels,
+                    inner_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
+                )
+            )
+        )
+        self.up_layers.append(
+            ConvModule(
+                inner_channels,
+                out_channels,
+                kernel_size=1,
+                norm_cfg=self.norm_cfg,
+                act_cfg=None
+            )
+        )
+
+        self.up_sample_layers = nn.ModuleList()
+        assert up_sample_scale == 2
+        self.up_sample_layers.append(
+            nn.Sequential(
+                nn.Upsample(scale_factor=up_sample_scale, mode='bilinear', align_corners=False),
+                ConvModule(
+                    out_channels,
+                    out_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
+                ),
+                ConvModule(
+                    out_channels,
+                    out_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
+                )
+            )
+        )
+        self.up_sample_layers.append(
+            nn.Upsample(scale_factor=up_sample_scale, mode='bilinear', align_corners=False)
+        )
+
+    def forward(self, inputs):
+        _, inner_states = inputs
+        inner_states = [einops.rearrange(inner_states[idx], 'b h w c -> b c h w') for idx in self.selected_channels]
+        inner_states = [layer(x) for layer, x in zip(self.down_sample_layers, inner_states)]
+
+        x = None
+        for inner_state, layer in zip(inner_states, self.fusion_layers):
+            if x is not None:
+                inner_state = x + inner_state
+            x = inner_state + layer(inner_state)
+        x = self.up_layers[0](x) + x
+        img_feats = self.up_layers[1](x)
+
+        img_feats = self.up_sample_layers[0](img_feats) + self.up_sample_layers[1](img_feats)
+
+        return img_feats
