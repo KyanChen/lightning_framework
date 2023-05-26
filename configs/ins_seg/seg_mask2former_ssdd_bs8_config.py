@@ -2,7 +2,7 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_i
 # train max 71, min 1
 # val max 56, min 1
 
-max_epochs = 400
+max_epochs = 600
 
 optimizer = dict(
     type='AdamW',
@@ -201,8 +201,8 @@ model_cfg = dict(
     whole_model=model,
 )
 
-task_name = 'whu_ins'
-exp_name = 'E20230525_1'
+task_name = 'ssdd_ins'
+exp_name = 'E20230526_1'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -244,7 +244,7 @@ trainer_cfg = dict(
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=20,
+    log_every_n_steps=10,
     check_val_every_n_epoch=10,
     benchmark=True,
     # sync_batchnorm=True,
@@ -303,12 +303,9 @@ test_num_workers = 4
 persistent_workers = True
 
 # data_parent = '/Users/kyanchen/datasets/Building/WHU'
-data_parent = '/mnt/search01/dataset/cky_data/WHU'
-train_data_prefix = 'train/'
-val_data_prefix = 'test/'
+data_parent = '/mnt/search01/dataset/cky_data/SSDD'
 
-dataset_type = 'WHUInsSegDataset'
-# metainfo = dict(classes=('background_', 'building',), palette=[(0, 0, 0), (0, 0, 255)])
+dataset_type = 'SSDDInsSegDataset'
 
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,
@@ -318,8 +315,8 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='annotations/WHU_building_test.json',
-            data_prefix=dict(img_path=val_data_prefix + '/image', seg_path=val_data_prefix + '/label'),
+            ann_file='annotations/SSDD_instances_val.json',
+            data_prefix=dict(img_path='imgs'),
             test_mode=True,
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=test_pipeline,
@@ -335,8 +332,8 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='annotations/WHU_building_train.json',
-            data_prefix=dict(img_path=train_data_prefix + '/image', seg_path=train_data_prefix + '/label'),
+            ann_file='annotations/SSDD_instances_train.json',
+            data_prefix=dict(img_path='imgs'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
             backend_args=backend_args)
