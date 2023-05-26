@@ -16,7 +16,7 @@ max_epochs = 3000
 optimizer = dict(
     type='AdamW',
     sub_model=sub_model_optim,
-    lr=0.0003,
+    lr=0.0002,
     weight_decay=1e-3
 )
 
@@ -24,7 +24,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=3e-4,
+        start_factor=2e-4,
         by_epoch=True,
         begin=0,
         end=1,
@@ -251,7 +251,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=4,
+    devices=1,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,

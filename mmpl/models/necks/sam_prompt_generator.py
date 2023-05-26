@@ -920,6 +920,7 @@ class SAMAggregatorNeck(nn.Module):
                 )
             )
         )
+
         self.up_sample_layers.append(
             nn.Upsample(scale_factor=up_sample_scale, mode='bilinear', align_corners=False)
         )
