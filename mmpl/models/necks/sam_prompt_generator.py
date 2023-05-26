@@ -936,8 +936,8 @@ class SAMAggregatorNeck(nn.Module):
                 inner_state = x + inner_state
             x = inner_state + layer(inner_state)
         x = self.up_layers[0](x) + x
-        img_feats = self.up_layers[1](x)
+        img_feats_0 = self.up_layers[1](x)
 
-        img_feats = self.up_sample_layers[0](img_feats) + self.up_sample_layers[1](img_feats)
+        img_feats_1 = self.up_sample_layers[0](img_feats_0) + self.up_sample_layers[1](img_feats_0)
 
-        return img_feats
+        return img_feats_1
