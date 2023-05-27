@@ -62,7 +62,7 @@ data_preprocessor = dict(
 num_things_classes = 1
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-num_queries = 25
+num_queries = 30
 
 model = dict(
     type='mmdet.Mask2Former',

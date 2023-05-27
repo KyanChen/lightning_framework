@@ -1,6 +1,4 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_imports=False)
-# train max 71, min 1
-# val max 56, min 1
 
 sub_model_train = [
     'panoptic_head',
@@ -18,7 +16,7 @@ max_epochs = 5000
 optimizer = dict(
     type='AdamW',
     sub_model=sub_model_optim,
-    lr=0.0002,
+    lr=0.0003,
     weight_decay=1e-3
 )
 
@@ -26,7 +24,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=2e-4,
+        start_factor=3e-4,
         by_epoch=True,
         begin=0,
         end=1,
@@ -52,14 +50,6 @@ param_scheduler = [
 param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
-
-# evaluator_ = dict(
-#         type='MeanAveragePrecision',
-#         iou_type='segm',
-#         # iou_type='bbox',
-#         # dist_sync_on_step=True,
-#         # compute_on_cpu=True,
-# )
 
 evaluator_ = dict(
         type='CocoPLMetric',
@@ -88,7 +78,7 @@ data_preprocessor = dict(
 num_things_classes = 1
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-prompt_shape = (80, 5)
+prompt_shape = (25, 5)
 
 
 model_cfg = dict(
