@@ -274,8 +274,10 @@ class AnchorHead(BaseDenseHead):
 
         pos_inds = sampling_result.pos_inds
         neg_inds = sampling_result.neg_inds
+
         print("pos_inds", torch.sum(pos_inds>=num_valid_anchors))
         print("neg_inds", torch.sum(neg_inds>=num_valid_anchors))
+
         # `bbox_coder.encode` accepts tensor or box type inputs and generates
         # tensor targets. If regressing decoded boxes, the code will convert
         # box type `pos_bbox_targets` to tensor.
