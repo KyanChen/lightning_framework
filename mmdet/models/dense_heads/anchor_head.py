@@ -237,6 +237,8 @@ class AnchorHead(BaseDenseHead):
                 - neg_inds (Tensor): negative samples indexes.
                 - sampling_result (:obj:`SamplingResult`): Sampling results.
         """
+        print("flat_anchors", flat_anchors.shape)
+
         inside_flags = anchor_inside_flags(flat_anchors, valid_flags,
                                            img_meta['img_shape'][:2],
                                            self.train_cfg['allowed_border'])
@@ -247,6 +249,7 @@ class AnchorHead(BaseDenseHead):
                 '``allowed_border`` to -1 to skip the condition.')
         # assign gt and sample anchors
         anchors = flat_anchors[inside_flags]
+        print("valid_flags", torch.sum(valid_flags))
 
         pred_instances = InstanceData(priors=anchors)
         assign_result = self.assigner.assign(pred_instances, gt_instances,
