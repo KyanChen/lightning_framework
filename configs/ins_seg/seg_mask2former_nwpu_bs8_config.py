@@ -71,7 +71,7 @@ data_preprocessor = dict(
 num_things_classes = 10
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-num_queries = 80
+num_queries = 70
 
 # model settings
 model = dict(
