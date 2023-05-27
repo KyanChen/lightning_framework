@@ -250,6 +250,7 @@ class AnchorHead(BaseDenseHead):
         # assign gt and sample anchors
         anchors = flat_anchors[inside_flags]
         print("valid_flags", torch.sum(valid_flags))
+        print("anchors", anchors.shape)
 
         pred_instances = InstanceData(priors=anchors)
         assign_result = self.assigner.assign(pred_instances, gt_instances,
@@ -273,6 +274,8 @@ class AnchorHead(BaseDenseHead):
 
         pos_inds = sampling_result.pos_inds
         neg_inds = sampling_result.neg_inds
+        print("pos_inds", torch.sum(pos_inds>=num_valid_anchors))
+        print("neg_inds", torch.sum(neg_inds>=num_valid_anchors))
         # `bbox_coder.encode` accepts tensor or box type inputs and generates
         # tensor targets. If regressing decoded boxes, the code will convert
         # box type `pos_bbox_targets` to tensor.
