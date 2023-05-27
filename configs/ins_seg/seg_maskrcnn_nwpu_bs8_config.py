@@ -1,6 +1,7 @@
 custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models', 'mmdet.models'], allow_failed_imports=False)
-
-max_epochs = 200
+# train max 71, min 1
+# val max 56, min 1
+max_epochs = 500
 
 optimizer = dict(
     type='AdamW',
@@ -26,6 +27,13 @@ param_scheduler = [
         begin=1,
         end=max_epochs,
     )
+    # dict(
+    #     type='MultiStepLR',
+    #     begin=1,
+    #     end=max_epochs,
+    #     by_epoch=True,
+    #     milestones=[max_epochs//2, max_epochs*3//4],
+    #     gamma=0.2)
 ]
 
 param_scheduler_callback = dict(
@@ -35,25 +43,22 @@ param_scheduler_callback = dict(
 # evaluator_ = dict(
 #         type='MeanAveragePrecision',
 #         iou_type='segm',
-#         # iou_type='bbox',
-#         # dist_sync_on_step=True,
-#         # compute_on_cpu=True,
 # )
+
 evaluator_ = dict(
         type='CocoPLMetric',
         metric=['bbox', 'segm'],
         proposal_nums=[1, 10, 100]
 )
 
-
 evaluator = dict(
     # train_evaluator=evaluator_,
     val_evaluator=evaluator_,
-    test_evaluator=evaluator_,
+    test_evaluator=evaluator_
 )
 
 
-image_size = (512, 512)
+image_size = (1024, 1024)
 data_preprocessor = dict(
         type='mmdet.DetDataPreprocessor',
         mean=[123.675, 116.28, 103.53],
@@ -64,10 +69,9 @@ data_preprocessor = dict(
         pad_size_divisor=32
 )
 
-num_things_classes = 1
+num_things_classes = 10
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-num_queries = 100
 
 # model settings
 model = dict(
@@ -78,7 +82,7 @@ model = dict(
         depth=50,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
-        frozen_stages=-1,
+        frozen_stages=1,
         norm_cfg=dict(type='BN', requires_grad=True),
         norm_eval=True,
         style='pytorch',
@@ -205,15 +209,15 @@ model_cfg = dict(
     whole_model=model,
 )
 
-task_name = 'ssdd_ins'
-exp_name = 'E20230526_0'
+task_name = 'nwpu_ins'
+exp_name = 'E20230520_0'
 logger = dict(
     type='WandbLogger',
     project=task_name,
     group='maskrcnn',
     name=exp_name
 )
-# logger = None
+logger = None
 
 
 callbacks = [
@@ -240,20 +244,20 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="auto",
+    accelerator="cpu",
     strategy="auto",
     # strategy="ddp",
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=4,
+    devices=1,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=10,
-    check_val_every_n_epoch=10,
+    log_every_n_steps=3,
+    check_val_every_n_epoch=5,
     benchmark=True,
     # sync_batchnorm=True,
     # fast_dev_run=True,
@@ -265,7 +269,7 @@ trainer_cfg = dict(
     # overfit_batches=0.0,
 
     # val_check_interval=None,
-    # num_sanity_val_steps=1,
+    # num_sanity_val_steps=0,
     # enable_checkpointing=None,
     # enable_progress_bar=None,
     # enable_model_summary=None,
@@ -304,33 +308,33 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 8
+train_batch_size_per_gpu = 2
 train_num_workers = 4
-test_batch_size_per_gpu = 8
+test_batch_size_per_gpu = 2
 test_num_workers = 4
 persistent_workers = True
 
-data_parent = '/Users/kyanchen/datasets/seg/SSDD'
-# data_parent = '/mnt/search01/dataset/cky_data/SSDD'
+data_parent = '/Users/kyanchen/datasets/seg/VHR-10_dataset_coco/NWPUVHR-10_dataset/'
+# data_parent = '/mnt/search01/dataset/cky_data/NWPU10'
+train_data_prefix = ''
+val_data_prefix = ''
 
-dataset_type = 'SSDDInsSegDataset'
+dataset_type = 'NWPUInsSegDataset'
 
 val_loader = dict(
-    batch_size=test_batch_size_per_gpu,
-    num_workers=test_num_workers,
-    persistent_workers=persistent_workers,
-    pin_memory=True,
-    dataset=dict(
-        type=dataset_type,
-        data_root=data_parent,
-        ann_file='annotations/SSDD_instances_val.json',
-        data_prefix=dict(img_path='imgs'),
-        test_mode=True,
-        filter_cfg=dict(filter_empty_gt=True, min_size=32),
-        pipeline=test_pipeline,
-        backend_args=backend_args
-    )
-)
+        batch_size=test_batch_size_per_gpu,
+        num_workers=test_num_workers,
+        persistent_workers=persistent_workers,
+        pin_memory=True,
+        dataset=dict(
+            type=dataset_type,
+            data_root=data_parent,
+            ann_file='NWPU_instances_val.json',
+            data_prefix=dict(img_path='positive image set'),
+            test_mode=True,
+            filter_cfg=dict(filter_empty_gt=True, min_size=32),
+            pipeline=test_pipeline,
+            backend_args=backend_args))
 
 datamodule_cfg = dict(
     type='PLDataModule',
@@ -342,8 +346,8 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='annotations/SSDD_instances_train.json',
-            data_prefix=dict(img_path='imgs'),
+            ann_file='NWPU_instances_train.json',
+            data_prefix=dict(img_path='positive image set'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
             backend_args=backend_args)

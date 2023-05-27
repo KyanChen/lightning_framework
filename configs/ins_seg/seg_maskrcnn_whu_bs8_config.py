@@ -310,8 +310,8 @@ test_batch_size_per_gpu = 8
 test_num_workers = 4
 persistent_workers = True
 
-# data_parent = '/Users/kyanchen/datasets/Building/WHU'
-data_parent = '/mnt/search01/dataset/cky_data/WHU'
+data_parent = '/Users/kyanchen/datasets/Building/WHU'
+# data_parent = '/mnt/search01/dataset/cky_data/WHU'
 train_data_prefix = 'train/'
 val_data_prefix = 'test/'
 

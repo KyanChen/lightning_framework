@@ -2,11 +2,23 @@ custom_imports = dict(imports=['mmseg.datasets', 'mmseg.models'], allow_failed_i
 # train max 71, min 1
 # val max 56, min 1
 
-max_epochs = 600
+sub_model_train = [
+    'panoptic_head',
+    'panoptic_fusion_head',
+    'data_preprocessor'
+]
+
+sub_model_optim = {
+    'panoptic_head': {'lr_mult': 1},
+    'panoptic_fusion_head': {'lr_mult': 1},
+}
+
+max_epochs = 5000
 
 optimizer = dict(
     type='AdamW',
-    lr=0.0005,
+    sub_model=sub_model_optim,
+    lr=0.0002,
     weight_decay=1e-3
 )
 
@@ -14,7 +26,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=5e-4,
+        start_factor=2e-4,
         by_epoch=True,
         begin=0,
         end=1,
@@ -27,13 +39,27 @@ param_scheduler = [
         by_epoch=True,
         begin=1,
         end=max_epochs,
-    )
+    ),
+    # dict(
+    #     type='MultiStepLR',
+    #     begin=1,
+    #     end=max_epochs,
+    #     by_epoch=True,
+    #     milestones=[max_epochs//2, max_epochs*3//4],
+    #     gamma=0.2)
 ]
 
 param_scheduler_callback = dict(
     type='ParamSchedulerHook'
 )
 
+# evaluator_ = dict(
+#         type='MeanAveragePrecision',
+#         iou_type='segm',
+#         # iou_type='bbox',
+#         # dist_sync_on_step=True,
+#         # compute_on_cpu=True,
+# )
 
 evaluator_ = dict(
         type='CocoPLMetric',
@@ -41,14 +67,14 @@ evaluator_ = dict(
         proposal_nums=[1, 10, 100]
 )
 
-
 evaluator = dict(
     # train_evaluator=evaluator_,
     val_evaluator=evaluator_,
-    test_evaluator=evaluator_,
 )
 
-image_size = (512, 512)
+
+image_size = (1024, 1024)
+
 data_preprocessor = dict(
     type='mmdet.DetDataPreprocessor',
     mean=[123.675, 116.28, 103.53],
@@ -62,76 +88,41 @@ data_preprocessor = dict(
 num_things_classes = 1
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-num_queries = 25
+prompt_shape = (80, 5)
 
-model = dict(
-    type='mmdet.Mask2Former',
+
+model_cfg = dict(
+    type='SegSAMPLer',
+    hyperparameters=dict(
+        optimizer=optimizer,
+        param_scheduler=param_scheduler,
+        evaluator=evaluator,
+    ),
+    need_train_names=sub_model_train,
     data_preprocessor=data_preprocessor,
     backbone=dict(
-        type='mmdet.ResNet',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3),
-        frozen_stages=-1,
-        norm_cfg=dict(type='BN', requires_grad=False),
-        norm_eval=True,
-        style='pytorch',
-        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50')),
+        type='vit_h',
+        checkpoint='pretrain/sam/sam_vit_h_4b8939.pth',
+        # type='vit_b',
+        # checkpoint='pretrain/sam/sam_vit_b_01ec64.pth',
+    ),
     panoptic_head=dict(
-        type='mmdet.Mask2FormerHead',
-        in_channels=[256, 512, 1024, 2048],  # pass to pixel_decoder inside
-        strides=[4, 8, 16, 32],
-        feat_channels=256,
-        out_channels=256,
+        type='SAMInstanceHead',
         num_things_classes=num_things_classes,
         num_stuff_classes=num_stuff_classes,
-        num_queries=num_queries,
-        num_transformer_feat_level=3,
-        pixel_decoder=dict(
-            type='mmdet.MSDeformAttnPixelDecoder',
-            num_outs=3,
-            norm_cfg=dict(type='GN', num_groups=32),
-            act_cfg=dict(type='ReLU'),
-            encoder=dict(  # DeformableDetrTransformerEncoder
-                num_layers=3,
-                layer_cfg=dict(  # DeformableDetrTransformerEncoderLayer
-                    self_attn_cfg=dict(  # MultiScaleDeformableAttention
-                        embed_dims=256,
-                        num_heads=8,
-                        num_levels=3,
-                        num_points=4,
-                        dropout=0.0,
-                        batch_first=True),
-                    ffn_cfg=dict(
-                        embed_dims=256,
-                        feedforward_channels=1024,
-                        num_fcs=2,
-                        ffn_drop=0.0,
-                        act_cfg=dict(type='ReLU', inplace=True)))),
-            positional_encoding=dict(num_feats=128, normalize=True)),
-        enforce_decoder_input_project=False,
-        positional_encoding=dict(num_feats=128, normalize=True),
-        transformer_decoder=dict(  # Mask2FormerTransformerDecoder
-            return_intermediate=True,
-            num_layers=3,
-            layer_cfg=dict(  # Mask2FormerTransformerDecoderLayer
-                self_attn_cfg=dict(  # MultiheadAttention
-                    embed_dims=256,
-                    num_heads=8,
-                    dropout=0.0,
-                    batch_first=True),
-                cross_attn_cfg=dict(  # MultiheadAttention
-                    embed_dims=256,
-                    num_heads=8,
-                    dropout=0.0,
-                    batch_first=True),
-                ffn_cfg=dict(
-                    embed_dims=256,
-                    feedforward_channels=2048,
-                    num_fcs=2,
-                    ffn_drop=0.0,
-                    act_cfg=dict(type='ReLU', inplace=True))),
-            init_cfg=None),
+        with_multiscale=True,
+        with_sincos=True,
+        prompt_neck=dict(
+            type='SAMTransformerEDPromptGenNeck',
+            prompt_shape=prompt_shape,
+            in_channels=[1280] * 32,
+            inner_channels=64,
+            selected_channels=range(4, 32, 2),
+            # in_channels=[768] * 8,
+            num_encoders=2,
+            num_decoders=3,
+            out_channels=256
+        ),
         loss_cls=dict(
             type='mmdet.CrossEntropyLoss',
             use_sigmoid=False,
@@ -177,30 +168,20 @@ model = dict(
         semantic_on=False,
         instance_on=True,
         # max_per_image is for instance segmentation.
-        max_per_image=100,
+        max_per_image=80,
         iou_thr=0.8,
         # In Mask2Former's panoptic postprocessing,
         # it will filter mask area where score is less than 0.5 .
         filter_low_score=True),
-    init_cfg=None)
-
-
-model_cfg = dict(
-    type='MMDetPLer',
-    hyperparameters=dict(
-        optimizer=optimizer,
-        param_scheduler=param_scheduler,
-        evaluator=evaluator,
-    ),
-    whole_model=model,
 )
+# load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
 
-task_name = 'ssdd_ins'
-exp_name = 'E20230527_0'
+task_name = 'whu_ins'
+exp_name = 'E20230526_3'
 logger = dict(
     type='WandbLogger',
     project=task_name,
-    group='mask2former',
+    group='sam',
     name=exp_name
 )
 # logger = None
@@ -232,14 +213,14 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=4,
+    devices=8,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=10,
-    check_val_every_n_epoch=10,
+    log_every_n_steps=20,
+    check_val_every_n_epoch=5,
     benchmark=True,
     # sync_batchnorm=True,
     # fast_dev_run=True,
@@ -290,16 +271,17 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 8
-train_num_workers = 4
-test_batch_size_per_gpu = 8
-test_num_workers = 4
+train_batch_size_per_gpu = 3
+train_num_workers = 2
+test_batch_size_per_gpu = 3
+test_num_workers = 2
 persistent_workers = True
 
-# data_parent = '/Users/kyanchen/datasets/Building/WHU'
-data_parent = '/mnt/search01/dataset/cky_data/SSDD'
+data_parent = '/mnt/search01/dataset/cky_data/WHU'
+train_data_prefix = 'train/'
+val_data_prefix = 'test/'
 
-dataset_type = 'SSDDInsSegDataset'
+dataset_type = 'WHUInsSegDataset'
 
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,
@@ -309,8 +291,8 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='annotations/SSDD_instances_val.json',
-            data_prefix=dict(img_path='imgs'),
+            ann_file='annotations/WHU_building_test.json',
+            data_prefix=dict(img_path=val_data_prefix + '/image', seg_path=val_data_prefix + '/label'),
             test_mode=True,
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=test_pipeline,
@@ -326,28 +308,13 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='annotations/SSDD_instances_train.json',
-            data_prefix=dict(img_path='imgs'),
+            ann_file='annotations/WHU_building_train.json',
+            data_prefix=dict(img_path=train_data_prefix + '/image', seg_path=train_data_prefix + '/label'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
             backend_args=backend_args)
     ),
     val_loader=val_loader,
-    test_loader=val_loader
+    # test_loader=val_loader
     # predict_loader=val_loader
 )
-
-
-# val_evaluator = [
-#     dict(
-#         type='CocoMetric',
-#         ann_file=data_root +
-#         'annotations/instancesonly_filtered_gtFine_val.json',
-#         metric=['bbox', 'segm'],
-#         backend_args=backend_args),
-#     dict(
-#         type='CityScapesMetric',
-#         seg_prefix=data_root + 'gtFine/val',
-#         outfile_prefix='./work_dirs/cityscapes_metric/instance',
-#         backend_args=backend_args)
-# ]
