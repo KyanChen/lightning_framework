@@ -628,6 +628,7 @@ class SAMAnchorPromptRoIHead(StandardRoIHead):
         Returns:
             dict[str, Tensor]: A dictionary of loss components
         """
+        x = list(x)
         bs, _, h, w = x[-1].shape
         mask_pe = torch.zeros((bs, h, w), device=x[0].device, dtype=torch.bool)
         img_feats_pe = self.generator_pe(mask_pe)
@@ -764,10 +765,12 @@ class SAMAnchorPromptRoIHead(StandardRoIHead):
                   the last dimension 4 arrange as (x1, y1, x2, y2).
                 - masks (Tensor): Has a shape (num_instances, H, W).
         """
-        bs, _, h, w = x[0].shape
+        x = list(x)
+        bs, _, h, w = x[-1].shape
         mask_pe = torch.zeros((bs, h, w), device=x[0].device, dtype=torch.bool)
         img_feats_pe = self.generator_pe(mask_pe)
-        x = (x[0] + img_feats_pe,)
+        for i in range(len(x)):
+            x[i] = x[i] + torch.nn.functional.interpolate(img_feats_pe, size=x[i].shape[-2:], mode='bilinear')
 
         assert self.with_bbox, 'Bbox head must be implemented.'
         batch_img_metas = [
