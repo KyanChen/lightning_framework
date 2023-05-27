@@ -282,9 +282,9 @@ class AnchorHead(BaseDenseHead):
                 pos_bbox_targets = get_box_tensor(pos_bbox_targets)
             bbox_targets[pos_inds, :] = pos_bbox_targets
             bbox_weights[pos_inds, :] = 1.0
-            print('1_______')
-            print(labels)
-            print('2_______')
+            # print('1_______')
+            # print(labels)
+            # print('2_______')
             labels[pos_inds] = sampling_result.pos_gt_labels
 
             if self.train_cfg['pos_weight'] <= 0:
@@ -293,9 +293,9 @@ class AnchorHead(BaseDenseHead):
                 label_weights[pos_inds] = self.train_cfg['pos_weight']
         if len(neg_inds) > 0:
             label_weights[neg_inds] = 1.0
-        print('3_______')
-        print(labels)
-        print('4_______')
+        # print('3_______')
+        # print(labels)
+        # print('4_______')
         # map up to original set of anchors
         if unmap_outputs:
             num_total_anchors = flat_anchors.size(0)

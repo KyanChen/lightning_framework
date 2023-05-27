@@ -116,7 +116,7 @@ model_cfg = dict(
                 type='mmdet.AnchorGenerator',
                 scales=[2, 4, 8, 16, 32],
                 ratios=[0.5, 1.0, 2.0],
-                strides=[16]),
+                strides=[16, 32]),
             bbox_coder=dict(
                 type='mmdet.DeltaXYWHBBoxCoder',
                 target_means=[.0, .0, .0, .0],
@@ -130,7 +130,7 @@ model_cfg = dict(
                 type='mmdet.SingleRoIExtractor',
                 roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=0),
                 out_channels=256,
-                featmap_strides=[16]),
+                featmap_strides=[16, 32]),
             bbox_head=dict(
                 type='mmdet.Shared2FCBBoxHead',
                 in_channels=256,

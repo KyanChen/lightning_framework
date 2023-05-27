@@ -394,7 +394,7 @@ class SAMAnchorInstanceHead(TwoStageDetector):
 
     def extract_feat(self, x):
         x = self.neck(x)
-        return (x, )
+        return x
 
     def loss(self,
              batch_inputs,
@@ -628,10 +628,11 @@ class SAMAnchorPromptRoIHead(StandardRoIHead):
         Returns:
             dict[str, Tensor]: A dictionary of loss components
         """
-        bs, _, h, w = x[0].shape
+        bs, _, h, w = x[-1].shape
         mask_pe = torch.zeros((bs, h, w), device=x[0].device, dtype=torch.bool)
         img_feats_pe = self.generator_pe(mask_pe)
-        x = (x[0] + img_feats_pe, )
+        for i in range(len(x)):
+            x[i] = x[i] + torch.nn.functional.interpolate(img_feats_pe, size=x[i].shape[-2:], mode='bilinear')
 
         assert len(rpn_results_list) == len(batch_data_samples)
         outputs = unpack_gt_instances(batch_data_samples)

@@ -940,4 +940,4 @@ class SAMAggregatorNeck(nn.Module):
 
         img_feats_1 = self.up_sample_layers[0](img_feats_0) + self.up_sample_layers[1](img_feats_0)
 
-        return img_feats_1
+        return img_feats_0, img_feats_1
