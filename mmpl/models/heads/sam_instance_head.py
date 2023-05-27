@@ -443,11 +443,11 @@ class SAMAnchorInstanceHead(TwoStageDetector):
                 data_sample.proposals for data_sample in batch_data_samples
             ]
 
-        # roi_losses = self.roi_head.loss(x, rpn_results_list,
-        #                                 batch_data_samples,
-        #                                 sam, img_seg_feat
-        #                                 )
-        # losses.update(roi_losses)
+        roi_losses = self.roi_head.loss(x, rpn_results_list,
+                                        batch_data_samples,
+                                        sam, img_seg_feat
+                                        )
+        losses.update(roi_losses)
 
         return losses
 
