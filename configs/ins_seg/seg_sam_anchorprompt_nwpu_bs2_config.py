@@ -106,7 +106,7 @@ model_cfg = dict(
             selected_channels=range(4, 32, 2),
             # selected_channels=range(4, 12, 2),
             out_channels=256,
-            up_sample_scale=2,
+            up_sample_scale=4,
         ),
         rpn_head=dict(
             type='mmdet.RPNHead',
