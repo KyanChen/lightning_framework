@@ -11,12 +11,12 @@ sub_model_optim = {
     'panoptic_head': {'lr_mult': 1},
 }
 
-max_epochs = 3000
+max_epochs = 1000
 
 optimizer = dict(
     type='AdamW',
     sub_model=sub_model_optim,
-    lr=0.0003,
+    lr=0.0002,
     weight_decay=1e-3
 )
 
@@ -24,7 +24,7 @@ param_scheduler = [
     # warm up learning rate scheduler
     dict(
         type='LinearLR',
-        start_factor=3e-4,
+        start_factor=2e-4,
         by_epoch=True,
         begin=0,
         end=1,
@@ -78,7 +78,6 @@ data_preprocessor = dict(
 num_things_classes = 10
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-prompt_shape = (80, 5)
 
 
 model_cfg = dict(
@@ -123,9 +122,9 @@ model_cfg = dict(
                 target_stds=[1.0, 1.0, 1.0, 1.0]),
             loss_cls=dict(
                 type='mmdet.CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-            loss_bbox=dict(type='mmdet.SmoothL1Loss', loss_weight=1.0)),
+            loss_bbox=dict(type='mmdet.L1Loss', loss_weight=1.0)),
         roi_head=dict(
-            type='SAMAnchorPromptRoIHead',
+            type='mmdet.StandardRoIHead',
             bbox_roi_extractor=dict(
                 type='mmdet.SingleRoIExtractor',
                 roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=0),
@@ -144,17 +143,18 @@ model_cfg = dict(
                 reg_class_agnostic=False,
                 loss_cls=dict(
                     type='mmdet.CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-                loss_bbox=dict(type='mmdet.SmoothL1Loss', loss_weight=1.0)),
+                loss_bbox=dict(type='mmdet.L1Loss', loss_weight=1.0)),
             mask_roi_extractor=dict(
                 type='mmdet.SingleRoIExtractor',
                 roi_layer=dict(type='RoIAlign', output_size=14, sampling_ratio=0),
                 out_channels=256,
                 featmap_strides=[8, 16, 32]),
             mask_head=dict(
-                type='SAMPromptMaskHead',
-                per_query_point=prompt_shape[1],
-                with_sincos=True,
-                class_agnostic=True,
+                type='mmdet.FCNMaskHead',
+                num_convs=4,
+                in_channels=256,
+                conv_out_channels=256,
+                num_classes=num_classes,
                 loss_mask=dict(
                     type='mmdet.CrossEntropyLoss', use_mask=True, loss_weight=1.0))),
         # model training and testing settings
@@ -169,7 +169,7 @@ model_cfg = dict(
                     ignore_iof_thr=-1),
                 sampler=dict(
                     type='mmdet.RandomSampler',
-                    num=512,
+                    num=256,
                     pos_fraction=0.5,
                     neg_pos_ub=-1,
                     add_gt_as_proposals=False),
@@ -195,7 +195,7 @@ model_cfg = dict(
                     pos_fraction=0.25,
                     neg_pos_ub=-1,
                     add_gt_as_proposals=True),
-                mask_size=1024,
+                mask_size=28,
                 pos_weight=-1,
                 debug=False)),
         test_cfg=dict(
@@ -215,11 +215,11 @@ model_cfg = dict(
 # load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
 
 task_name = 'nwpu_ins'
-exp_name = 'E20230527_3'
+exp_name = 'E20230526_3'
 logger = dict(
     type='WandbLogger',
     project=task_name,
-    group='sam',
+    group='samcls',
     name=exp_name
 )
 
@@ -250,7 +250,7 @@ trainer_cfg = dict(
     # strategy='ddp_find_unused_parameters_true',
     # precision='32',
     # precision='16-mixed',
-    devices=8,
+    devices=1,
     default_root_dir=f'results/{task_name}/{exp_name}',
     # default_root_dir='results/tmp',
     max_epochs=max_epochs,
@@ -308,9 +308,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 4
+train_batch_size_per_gpu = 3
 train_num_workers = 2
-test_batch_size_per_gpu = 4
+test_batch_size_per_gpu = 3
 test_num_workers = 2
 persistent_workers = True
 
