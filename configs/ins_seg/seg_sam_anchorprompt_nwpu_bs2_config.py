@@ -149,7 +149,7 @@ model_cfg = dict(
                 type='mmdet.SingleRoIExtractor',
                 roi_layer=dict(type='RoIAlign', output_size=14, sampling_ratio=0),
                 out_channels=256,
-                featmap_strides=[16]),
+                featmap_strides=[8, 16, 32]),
             mask_head=dict(
                 type='SAMPromptMaskHead',
                 per_query_point=5,
