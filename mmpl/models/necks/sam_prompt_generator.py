@@ -818,7 +818,7 @@ class SAMAggregatorNeck(nn.Module):
             stride=1,
             norm_cfg=dict(type='BN', requires_grad=True),
             act_cfg=dict(type='ReLU', inplace=True),
-            up_sample_scale=2,
+            up_sample_scale=4,
             init_cfg=None,
             **kwargs
     ):
@@ -898,7 +898,33 @@ class SAMAggregatorNeck(nn.Module):
         )
 
         self.up_sample_layers = nn.ModuleList()
-        assert up_sample_scale == 2
+        assert up_sample_scale == 4
+        self.up_sample_layers.append(
+            nn.Sequential(
+                nn.Upsample(scale_factor=up_sample_scale, mode='bilinear', align_corners=False),
+                ConvModule(
+                    out_channels,
+                    out_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
+                ),
+                ConvModule(
+                    out_channels,
+                    out_channels,
+                    kernel_size=3,
+                    padding=1,
+                    norm_cfg=self.norm_cfg,
+                    act_cfg=self.act_cfg
+                )
+            )
+        )
+
+        self.up_sample_layers.append(
+            nn.Upsample(scale_factor=up_sample_scale, mode='bilinear', align_corners=False)
+        )
+
         self.up_sample_layers.append(
             nn.Sequential(
                 nn.Upsample(scale_factor=up_sample_scale, mode='bilinear', align_corners=False),
@@ -940,4 +966,6 @@ class SAMAggregatorNeck(nn.Module):
 
         img_feats_1 = self.up_sample_layers[0](img_feats_0) + self.up_sample_layers[1](img_feats_0)
 
-        return img_feats_0, img_feats_1
+        img_feats_2 = self.up_sample_layers[2](img_feats_1) + self.up_sample_layers[3](img_feats_1)
+
+        return img_feats_2, img_feats_1, img_feats_0
