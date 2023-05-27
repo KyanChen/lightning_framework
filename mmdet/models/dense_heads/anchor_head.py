@@ -237,7 +237,7 @@ class AnchorHead(BaseDenseHead):
                 - neg_inds (Tensor): negative samples indexes.
                 - sampling_result (:obj:`SamplingResult`): Sampling results.
         """
-        print("flat_anchors", flat_anchors.shape)
+        # print("flat_anchors", flat_anchors.shape)
 
         inside_flags = anchor_inside_flags(flat_anchors, valid_flags,
                                            img_meta['img_shape'][:2],
@@ -249,8 +249,8 @@ class AnchorHead(BaseDenseHead):
                 '``allowed_border`` to -1 to skip the condition.')
         # assign gt and sample anchors
         anchors = flat_anchors[inside_flags]
-        print("valid_flags", torch.sum(valid_flags))
-        print("anchors", anchors.shape)
+        # print("valid_flags", torch.sum(valid_flags))
+        # print("anchors", anchors.shape)
 
         pred_instances = InstanceData(priors=anchors)
         assign_result = self.assigner.assign(pred_instances, gt_instances,
@@ -275,8 +275,8 @@ class AnchorHead(BaseDenseHead):
         pos_inds = sampling_result.pos_inds
         neg_inds = sampling_result.neg_inds
 
-        print("pos_inds", torch.sum(pos_inds>=num_valid_anchors))
-        print("neg_inds", torch.sum(neg_inds>=num_valid_anchors))
+        # print("pos_inds", torch.sum(pos_inds>=num_valid_anchors))
+        # print("neg_inds", torch.sum(neg_inds>=num_valid_anchors))
 
         # `bbox_coder.encode` accepts tensor or box type inputs and generates
         # tensor targets. If regressing decoded boxes, the code will convert
