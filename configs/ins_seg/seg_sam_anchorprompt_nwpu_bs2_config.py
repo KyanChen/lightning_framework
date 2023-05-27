@@ -164,7 +164,7 @@ model_cfg = dict(
                     type='mmdet.MaxIoUAssigner',
                     pos_iou_thr=0.7,
                     neg_iou_thr=0.3,
-                    min_pos_iou=0.1,
+                    min_pos_iou=0.3,
                     match_low_quality=True,
                     ignore_iof_thr=-1),
                 sampler=dict(
@@ -245,7 +245,7 @@ callbacks = [
 
 trainer_cfg = dict(
     compiled_model=False,
-    accelerator="auto",
+    accelerator="cpu",
     strategy="auto",
     # strategy="ddp",
     # strategy='ddp_find_unused_parameters_true',
