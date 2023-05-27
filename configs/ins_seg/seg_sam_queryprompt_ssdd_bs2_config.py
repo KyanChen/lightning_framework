@@ -11,7 +11,7 @@ sub_model_optim = {
     'panoptic_fusion_head': {'lr_mult': 1},
 }
 
-max_epochs = 5000
+max_epochs = 8000
 
 optimizer = dict(
     type='AdamW',
@@ -78,7 +78,7 @@ data_preprocessor = dict(
 num_things_classes = 1
 num_stuff_classes = 0
 num_classes = num_things_classes + num_stuff_classes
-prompt_shape = (25, 5)
+prompt_shape = (30, 5)
 
 
 model_cfg = dict(
@@ -106,7 +106,7 @@ model_cfg = dict(
             type='SAMTransformerEDPromptGenNeck',
             prompt_shape=prompt_shape,
             in_channels=[1280] * 32,
-            inner_channels=64,
+            inner_channels=32,
             selected_channels=range(4, 32, 2),
             # in_channels=[768] * 8,
             num_encoders=2,
@@ -158,7 +158,7 @@ model_cfg = dict(
         semantic_on=False,
         instance_on=True,
         # max_per_image is for instance segmentation.
-        max_per_image=80,
+        max_per_image=prompt_shape[0],
         iou_thr=0.8,
         # In Mask2Former's panoptic postprocessing,
         # it will filter mask area where score is less than 0.5 .
@@ -166,8 +166,8 @@ model_cfg = dict(
 )
 # load_from = 'results/nwpu_ins/E20230521_0/checkpoints/last.ckpt'
 
-task_name = 'whu_ins'
-exp_name = 'E20230526_3'
+task_name = 'ssdd_ins'
+exp_name = 'E20230527_1'
 logger = dict(
     type='WandbLogger',
     project=task_name,
@@ -209,7 +209,7 @@ trainer_cfg = dict(
     max_epochs=max_epochs,
     logger=logger,
     callbacks=callbacks,
-    log_every_n_steps=20,
+    log_every_n_steps=10,
     check_val_every_n_epoch=5,
     benchmark=True,
     # sync_batchnorm=True,
@@ -261,17 +261,15 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 3
+train_batch_size_per_gpu = 4
 train_num_workers = 2
-test_batch_size_per_gpu = 3
+test_batch_size_per_gpu = 4
 test_num_workers = 2
 persistent_workers = True
 
-data_parent = '/mnt/search01/dataset/cky_data/WHU'
-train_data_prefix = 'train/'
-val_data_prefix = 'test/'
+data_parent = '/mnt/search01/dataset/cky_data/SSDD'
 
-dataset_type = 'WHUInsSegDataset'
+dataset_type = 'SSDDInsSegDataset'
 
 val_loader = dict(
         batch_size=test_batch_size_per_gpu,
@@ -281,8 +279,8 @@ val_loader = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='annotations/WHU_building_test.json',
-            data_prefix=dict(img_path=val_data_prefix + '/image', seg_path=val_data_prefix + '/label'),
+            ann_file='annotations/SSDD_instances_val.json',
+            data_prefix=dict(img_path='imgs'),
             test_mode=True,
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=test_pipeline,
@@ -298,8 +296,8 @@ datamodule_cfg = dict(
         dataset=dict(
             type=dataset_type,
             data_root=data_parent,
-            ann_file='annotations/WHU_building_train.json',
-            data_prefix=dict(img_path=train_data_prefix + '/image', seg_path=train_data_prefix + '/label'),
+            ann_file='annotations/SSDD_instances_train.json',
+            data_prefix=dict(img_path='imgs'),
             filter_cfg=dict(filter_empty_gt=True, min_size=32),
             pipeline=train_pipeline,
             backend_args=backend_args)
