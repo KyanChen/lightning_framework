@@ -191,7 +191,7 @@ model_cfg = dict(
                     ignore_iof_thr=-1),
                 sampler=dict(
                     type='mmdet.RandomSampler',
-                    num=512,
+                    num=256,
                     pos_fraction=0.25,
                     neg_pos_ub=-1,
                     add_gt_as_proposals=True),
@@ -308,9 +308,9 @@ test_pipeline = [
 ]
 
 
-train_batch_size_per_gpu = 4
+train_batch_size_per_gpu = 3
 train_num_workers = 2
-test_batch_size_per_gpu = 4
+test_batch_size_per_gpu = 3
 test_num_workers = 2
 persistent_workers = True
 
