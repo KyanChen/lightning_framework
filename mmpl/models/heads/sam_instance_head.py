@@ -845,6 +845,8 @@ class SAMPromptMaskHead(FCNMaskHead):
             point_emb.shape[0], -1, *img_seg_feat.shape[-2:]
         )
         img_flag_ids = torch.bincount(img_flag_ids.long())
+        padding = torch.zeros((len(img_seg_feat)-len(img_flag_ids),), device=img_flag_ids.device, dtype=img_flag_ids.dtype)
+        img_flag_ids = torch.cat([img_flag_ids, padding])
         img_embeddings = torch.repeat_interleave(img_seg_feat, img_flag_ids, dim=0)
         img_pe = sam.prompt_encoder.get_dense_pe()
         img_pe = repeat(img_pe, 'b c h w -> (b n) c h w', n=img_embeddings.shape[0])
