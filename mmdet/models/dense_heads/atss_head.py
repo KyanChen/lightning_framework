@@ -55,7 +55,7 @@ class ATSSHead(AnchorHead):
                      type='GN', num_groups=32, requires_grad=True),
                  reg_decoded_bbox: bool = True,
                  loss_centerness: ConfigType = dict(
-                     type='CrossEntropyLoss',
+                     type='mmdet.CrossEntropyLoss',
                      use_sigmoid=True,
                      loss_weight=1.0),
                  init_cfg: MultiConfig = dict(
