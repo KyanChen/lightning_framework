@@ -60,7 +60,7 @@ evaluator = dict(
 )
 
 
-image_size = (512, 512)
+image_size = (640, 640)
 data_preprocessor = dict(
         type='mmdet.DetDataPreprocessor',
         mean=[123.675, 116.28, 103.53],
